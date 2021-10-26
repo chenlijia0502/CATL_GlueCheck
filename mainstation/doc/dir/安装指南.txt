@@ -1,0 +1,6 @@
+按顺序安装：
+1. PyQt5_sip-12.7.1
+
+2. PyQt5-5.9.1-5.9.2
+
+3. pyqtgraph-develop.zip

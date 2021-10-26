@@ -1,0 +1,739 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainStation_lunzhuan</class>
+ <widget class="QWidget" name="MainStation_lunzhuan">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1167</width>
+    <height>803</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>0</width>
+    <height>0</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout_3">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="sizeConstraint">
+    <enum>QLayout::SetDefaultConstraint</enum>
+   </property>
+   <property name="margin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QWidget" name="widget_2" native="true">
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <property name="margin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QWidget" name="widget_top" native="true">
+        <property name="styleSheet">
+         <string notr="true">QWidget#widget_top
+{background-color:#188bd1;}</string>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <item>
+          <widget class="QWidget" name="widget_company" native="true">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>80</width>
+             <height>80</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>230</width>
+             <height>200</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout">
+            <item>
+             <widget class="QLabel" name="label_3">
+              <property name="minimumSize">
+               <size>
+                <width>190</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">background-color:transparent;border:0px;
+
+border-image: url(res/福万达.png);</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="minimumSize">
+            <size>
+             <width>300</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>华文中宋</family>
+             <pointsize>20</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: rgb(255, 255, 255);</string>
+           </property>
+           <property name="text">
+            <string>涂胶气泡检查</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QWidget" name="widget_5" native="true">
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <property name="spacing">
+             <number>50</number>
+            </property>
+            <property name="margin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QPushButton" name="pbt_realtime">
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>90</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>80</width>
+                <height>90</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton#pbt_realtime
+{background-color:transparent;border:0px;
+border-image: url(res/主界面.png)
+}
+
+
+QPushButton:hover#pbt_realtime
+ {background-color:transparent;border:0px;
+background-color:lightBlue ;
+}
+
+QPushButton:checked#pbt_realtime
+ { 
+background-color:lightBlue;border:0px;
+border-image: url(res/mainpage_normal.png)
+
+}
+
+ 
+</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pbt_paramset">
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>90</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>80</width>
+                <height>90</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton#pbt_paramset
+{background-color:transparent;border:0px;
+border-image: url(res/参数设置.png);
+}
+
+
+QPushButton:hover#pbt_paramset
+ {background-color:transparent;border:0px;
+background-color:lightBlue;
+}
+
+QPushButton:checked#pbt_paramset
+ { 
+background-color:lightBlue;border:0px;
+border-image: url(res/参数设置.png);
+
+}
+
+ 
+</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pbt_logview">
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>90</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>80</width>
+                <height>90</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton#pbt_logview
+{background-color:transparent;border:0px;
+border-image: url(res/日志记录.png);
+}
+
+
+QPushButton:hover#pbt_logview
+ {background-color:transparent;border:0px;
+background-color:lightBlue;
+}
+
+QPushButton:checked#pbt_logview
+ { 
+background-color:lightBlue;border:0px;
+border-image: url(res/日志记录.png);
+}
+
+ 
+</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QWidget" name="widget" native="true">
+           <layout class="QVBoxLayout" name="verticalLayout_5">
+            <property name="leftMargin">
+             <number>9</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QWidget" name="widget_6" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="layoutDirection">
+               <enum>Qt::LeftToRight</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_5">
+               <property name="margin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QPushButton" name="ptb_help">
+                 <property name="minimumSize">
+                  <size>
+                   <width>40</width>
+                   <height>30</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>40</width>
+                   <height>30</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>SimSun-ExtB</family>
+                   <pointsize>14</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="toolTip">
+                  <string>帮助</string>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton#ptb_help
+{background-color:transparent;border:0px;
+color: rgb(255, 255, 255);
+
+}
+
+
+QPushButton:hover#ptb_help
+ {background-color:transparent;border:0px;
+background-color:lightBlue;
+}
+
+QPushButton:checked#ptb_help
+ { 
+background-color:lightBlue;border:0px;
+
+}
+ 
+</string>
+                 </property>
+                 <property name="text">
+                  <string>关于</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pbt_minimize">
+                 <property name="minimumSize">
+                  <size>
+                   <width>35</width>
+                   <height>35</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>35</width>
+                   <height>35</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string>最小化</string>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton#pbt_minimize
+{background-color:transparent;border:0px;
+border-image: url(res/最小化.png)
+}
+
+
+QPushButton:hover#pbt_minimize
+ {background-color:transparent;border:0px;
+background-color:lightBlue;
+}
+
+QPushButton:checked#pbt_minimize
+ { 
+background-color:lightBlue;border:0px;
+border-image: url(res/最小化.png)
+
+}
+
+ 
+</string>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="checkable">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pbt_quit">
+                 <property name="minimumSize">
+                  <size>
+                   <width>35</width>
+                   <height>35</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>35</width>
+                   <height>35</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string>关闭</string>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton#pbt_quit
+{background-color:transparent;border:0px;
+border-image: url(res/关闭.png)
+}
+
+
+QPushButton:hover#pbt_quit
+ {background-color:transparent;border:0px;
+background-color:lightBlue;
+}
+
+QPushButton:checked#pbt_quit
+ { 
+background-color:lightBlue;border:0px;
+border-image: url(res/关闭.png)
+
+}
+
+ 
+</string>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="checkable">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QWidget" name="widget_tool" native="true">
+        <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="10,1">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="margin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QStackedWidget" name="stackedWidget"/>
+         </item>
+         <item>
+          <widget class="QWidget" name="widget_4" native="true">
+           <property name="styleSheet">
+            <string notr="true">background-color:#188bd1;</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_3">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="margin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="label">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>42</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <family>华文仿宋</family>
+                <pointsize>16</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">
+background-color: rgb(92, 195, 253);
+color: rgb(255, 255, 255);
+</string>
+              </property>
+              <property name="text">
+               <string>工具区</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QWidget" name="widget_3" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>150</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>150</width>
+                <height>10000</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <kerning>false</kerning>
+               </font>
+              </property>
+              <property name="layoutDirection">
+               <enum>Qt::LeftToRight</enum>
+              </property>
+              <property name="autoFillBackground">
+               <bool>false</bool>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QWidget#widget_3
+{background-color:#188bd1;}</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0">
+               <property name="spacing">
+                <number>9</number>
+               </property>
+               <property name="leftMargin">
+                <number>40</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QPushButton" name="toolbtn_onlinerun">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>80</width>
+                   <height>90</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>75</width>
+                   <height>80</height>
+                  </size>
+                 </property>
+                 <property name="layoutDirection">
+                  <enum>Qt::LeftToRight</enum>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton#toolbtn_onlinerun
+{ border-image: url(res/开始检查.png); }  
+QPushButton:hover#toolbtn_onlinerun
+{ border-image: url(res/开始检查.png); 
+} 
+QPushButton:checked#toolbtn_onlinerun
+ { border-image: url(res/停止检查.png); } 
+
+QPushButton{background-color:transparent;border:0px;}
+
+QPushButton:hover{background-color:white;border:0px;}
+
+QPushButtons:pressed{background-color:white;border-style:insert;}</string>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                 <property name="autoDefault">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="toolbtn_offlinerun">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>80</width>
+                   <height>90</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>90</height>
+                  </size>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton#toolbtn_offlinerun
+{ border-image: url(res/开始模拟.png); }  
+QPushButton:hover#toolbtn_offlinerun
+{ border-image: url(res/开始模拟.png); 
+} 
+QPushButton:checked#toolbtn_offlinerun
+ { border-image: url(res/停止检查.png); } 
+
+QPushButton{background-color:transparent;border:0px;}
+
+QPushButton:hover{background-color:white;border:0px;}
+
+QPushButtons:pressed{background-color:white;border-style:insert;}</string>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="toolbtn_savebadimage">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>80</width>
+                   <height>90</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>90</height>
+                  </size>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton#toolbtn_savebadimage
+{ border-image: url(res/保存数据.png); }  
+
+
+QPushButton{background-color:transparent;border:0px;}
+
+QPushButton:hover{background-color:white;border:0px;}
+
+QPushButtons:pressed{background-color:white;border-style:insert;}</string>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QWidget" name="labelwidget" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>45</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>45</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QWidget#labelwidget
+{background-color: rgb(92, 195, 253);}</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+     <zorder>widget_tool</zorder>
+     <zorder>labelwidget</zorder>
+     <zorder>widget_top</zorder>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

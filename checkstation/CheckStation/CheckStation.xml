@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<Camera>
+		<Type>Hikvision</Type>
+		<Mode>Color</Mode>
+		<BayerMode>GRBG</BayerMode>
+		<CardIndex>0</CardIndex>
+		<DeviceId>00-01-0D-C4-14-A8</DeviceId>
+		<ConfigName>.\T_Nano-M1920_Default_Default.ccf</ConfigName>
+		<CardName>Xtium-CL_MX4_1</CardName>>
+		<GrabImageWidth>8192</GrabImageWidth>
+		<GrabImageHeight>2000</GrabImageHeight>
+		<Channel>3</Channel>
+	</Camera>
+	<Network>
+		<Port>3001</Port>
+		<IpAddress>127.0.0.1</IpAddress>
+		<NetStationId>0</NetStationId>
+	</Network>
+	<Path>
+		<NetWorkSaveImagePath>d:\1.dat</NetWorkSaveImagePath>
+		<NetWorkExposureSaveImagePath>d:\ColorExposureSaveQue1.dat</NetWorkExposureSaveImagePath>
+	</Path>
+	<GlobalParameter>
+		<QueSize>30</QueSize>
+		<SaveImgTotalCounts>1000</SaveImgTotalCounts>
+		<LanguageMode>1</LanguageMode>
+		<SendInfoInterval>1</SendInfoInterval>
+		<SimulateTimeStep>200</SimulateTimeStep>>
+	</GlobalParameter>
+</root>

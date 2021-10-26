@@ -1,0 +1,262 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{5C2E508C-CAD4-442E-9589-BD4950240CCD}</ProjectGuid>
+    <RootNamespace>CheckStation</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>12.0.21005.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>..\..\..\bin\Debug\x64\</OutDir>
+    <IntDir>..\..\..\bin\obj\Debug\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>.\</OutDir>
+    <IntDir>.\obj\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>.\</OutDir>
+    <IntDir>.\obj\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\..\include\Img64;..\..\..\include\Ipp64;..\..\库\kxMath\kxMath;..\..\库\kxAlgorithm;..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>ImgDispLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\..\lib;..\..\..\lib\Img64;..\..\..\lib\ipp64;..\..\..\lib\boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\..\..\include\CameraKey;..\..\..\..\include\zsAlgorithm;..\..\..\..\include\Ipp21;..\..\..\..\include;..\..\..\..\include\mkl21;..\..\..\..\include\tbb21;..\..\..\..\include\jsoncpp184;..\..\..\..\include\KxAsio;..\..\..\..\include\tinyxml2;..\..\..\..\include\hikvision2020;..\..\..\..\include\opencv3413;..\..\..\..\include\python;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_IPP_SEQUENTIAL_STATIC;MKL_DIRECT_CALL_SEQ;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;_Hikvision;_ENABLE_ATOMIC_ALIGNMENT_FIX;BOOST_ALL_DYN_LINK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <OpenMPSupport>true</OpenMPSupport>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <EnablePREfast>false</EnablePREfast>
+      <BrowseInformation>true</BrowseInformation>
+      <DisableSpecificWarnings>4005;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>opencv_world3413d.lib;jsoncppD.lib;MvCameraControl.lib;tinyxml2d.lib;python37.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>.\CheckStation.exe</OutputFile>
+      <AdditionalLibraryDirectories>..\..\..\..\lib\CameraKey;..\..\..\..\lib\boost;..\..\..\..\lib\zsAlgorithm;..\..\..\..\lib\Ipp21\intel64;..\..\..\..\lib\mkl21\intel64;..\..\..\..\lib\tbb21\intel64\vc14;..\..\..\..\lib\opencv3413\vc14;..\..\..\..\lib\jsoncpp184;..\..\..\..\lib\KxAsio;..\..\..\..\lib\tinyxml2;..\..\..\..\lib\hikvision2020\win64;..\..\..\..\lib\python;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX64</TargetMachine>
+      <StackReserveSize>
+      </StackReserveSize>
+    </Link>
+    <Bscmake>
+      <PreserveSbr>true</PreserveSbr>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\..\..\..\include\Sapera-new;..\..\..\..\include\python;..\..\..\..\include\zsAlgorithm;..\..\..\..\include\Ipp21;..\..\..\..\include\mkl21;..\..\..\..\include\tbb21;..\..\..\..\include\KxAsio;..\..\..\..\include\tinyxml2;..\..\..\..\include\boost;..\..\..\..\include\hikvision2020;..\..\..\..\include\jsoncpp184;..\..\..\..\include\opencv3413;..\..\..\..\include\CameraKey;..\..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_IPP_SEQUENTIAL_STATIC;_Hikvision;MKL_DIRECT_CALL_SEQ;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;_ENABLE_ATOMIC_ALIGNMENT_FIX;BOOST_ALL_DYN_LINK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <OpenMPSupport>true</OpenMPSupport>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>opencv_world3413.lib;jsoncpp.lib;MvCameraControl.lib;tinyxml2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>.\CheckStation.exe</OutputFile>
+      <AdditionalLibraryDirectories>..\..\..\..\lib\boost;..\..\..\..\lib\Sapera-new;..\..\..\..\lib\python;..\..\..\..\lib\zsAlgorithm;..\..\..\..\lib\Ipp21\intel64;..\..\..\..\lib\mkl21\intel64;..\..\..\..\lib\tbb21\intel64\vc14;..\..\..\..\lib\KxAsio;..\..\..\..\lib\tinyxml2;..\..\..\..\lib\protobuf;..\..\..\..\lib\opencv3413\vc14;..\..\..\..\lib\hikvision2020\win64;..\..\..\..\lib\jsoncpp184;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="CalcuSurfacePlaneness.cpp" />
+    <ClCompile Include="CkxFileRead.cpp" />
+    <ClCompile Include="EmpiricalAlgorithm.cpp" />
+    <ClCompile Include="GlueCheck.cpp" />
+    <ClCompile Include="Grab_Buffer.cpp" />
+    <ClCompile Include="GrabPack.cpp" />
+    <ClCompile Include="kxCamera.cpp" />
+    <ClCompile Include="kxCameraHikvision.cpp" />
+    <ClCompile Include="KxCheck.cpp" />
+    <ClCompile Include="kxCheckResult.cpp" />
+    <ClCompile Include="KxGeneralFun.cpp" />
+    <ClCompile Include="kxPrintf.cpp" />
+    <ClCompile Include="CkxThreadManage.cpp" />
+    <ClCompile Include="CkxEnvironment.cpp" />
+    <ClCompile Include="kxParameter.cpp" />
+    <ClCompile Include="AsioTcp.cpp" />
+    <ClCompile Include="MvCamera.cpp" />
+    <ClCompile Include="SaveQue.cpp" />
+    <ClCompile Include="TestAsioTcpClient.cpp" />
+    <ClCompile Include="global.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="minidmp.cpp" />
+    <ClCompile Include="zcudpclient.cpp" />
+    <ClCompile Include="zsCameraLMI.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BaseCheckMethod.h" />
+    <ClInclude Include="CalcuSurfacePlaneness.h" />
+    <ClInclude Include="CkxFileRead.h" />
+    <ClInclude Include="EmpiricaAlgorithm.h" />
+    <ClInclude Include="GlueCheck.h" />
+    <ClInclude Include="Grab_Buffer.h" />
+    <ClInclude Include="GrabPack.h" />
+    <ClInclude Include="kxCamera.h" />
+    <ClInclude Include="kxCameraHikvison.h" />
+    <ClInclude Include="KxCheck.h" />
+    <ClInclude Include="kxCheckResult.h" />
+    <ClInclude Include="KxGeneralFun.h" />
+    <ClInclude Include="kxPrintf.h" />
+    <ClInclude Include="CkxThreadManage.h" />
+    <ClInclude Include="CkxEnvironment.h" />
+    <ClInclude Include="kxParameter.h" />
+    <ClInclude Include="AsioTcp.h" />
+    <ClInclude Include="MvCamera.h" />
+    <ClInclude Include="SaveQue.h" />
+    <ClInclude Include="TestAsioTcpClient.h" />
+    <ClInclude Include="global.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="minidmp.h" />
+    <ClInclude Include="zcudpclient.h" />
+    <ClInclude Include="zsCameraLMI.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CheckStation.ini" />
+    <None Include="result.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

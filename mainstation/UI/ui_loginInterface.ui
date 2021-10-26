@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>LoginDialog</class>
+ <widget class="QDialog" name="LoginDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>700</width>
+    <height>380</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>700</width>
+    <height>380</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>700</width>
+    <height>380</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QDialog#LoginDialog
+{
+border-image: url(res/login.jpg); }</string>
+  </property>
+  <widget class="QPushButton" name="pushButton_main">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>30</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>主站配置</string>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QPushButton#pushButton_main
+{ 
+border-image: url(res/mainset.png);
+color: rgb(255, 255, 255);
+}  
+QPushButton:hover#pushButton_main
+{ 
+border-image: url(res/mainset_hover.png);
+color: rgb(85, 255, 0);
+
+} </string>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_sub">
+   <property name="geometry">
+    <rect>
+     <x>41</x>
+     <y>10</y>
+     <width>30</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>子站配置</string>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">
+QPushButton#pushButton_sub
+{ 
+border-image: url(res/mainset.png);
+}  
+QPushButton:hover#pushButton_sub
+{ 
+border-image: url(res/mainset_hover.png);
+
+
+} </string>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_login">
+   <property name="geometry">
+    <rect>
+     <x>160</x>
+     <y>280</y>
+     <width>191</width>
+     <height>51</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QPushButton#pushButton_login
+{ 
+background-color: rgba(255, 255, 255,5%);
+font: 14pt &quot;Arial&quot;;
+color:rgb(210, 210, 210); 
+}  
+QPushButton:hover#pushButton_login
+{ 
+background-color: rgba(255, 255, 255,5%);
+font: 18pt &quot;Arial&quot;;
+color: rgb(0, 0, 127);
+} </string>
+   </property>
+   <property name="text">
+    <string>登录</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_quit">
+   <property name="geometry">
+    <rect>
+     <x>370</x>
+     <y>280</y>
+     <width>191</width>
+     <height>51</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QPushButton#pushButton_quit
+{ 
+background-color: rgba(255, 255, 255,5%);
+font: 14pt &quot;Arial&quot;;
+color: rgb(210, 210, 210); 
+}  
+QPushButton:hover#pushButton_quit
+{ 
+background-color: rgba(255, 255, 255,5%);
+font: 18pt &quot;Arial&quot;;
+color: rgb(0, 0, 127);
+} </string>
+   </property>
+   <property name="text">
+    <string>退出</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

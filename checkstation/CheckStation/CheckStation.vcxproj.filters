@@ -1,0 +1,214 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="相机">
+      <UniqueIdentifier>{16fc82db-1e3f-4105-a8a4-77dd83cade16}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="检测流程">
+      <UniqueIdentifier>{913a1ffd-e0d1-4a38-ab39-134b7ffef580}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="配置">
+      <UniqueIdentifier>{db294540-bee8-48c3-9ef1-78df64cfedf9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="网络">
+      <UniqueIdentifier>{08448f7c-b27b-45d4-ac0a-48e880609ad0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="结果处理">
+      <UniqueIdentifier>{53d4f15d-7b0f-4b0c-b26d-3645a5bf735e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="全局">
+      <UniqueIdentifier>{07668c3f-bd15-4642-a196-c163381c76a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="其它">
+      <UniqueIdentifier>{9e57dceb-317d-4a48-a04a-e546102c709c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="异常处理">
+      <UniqueIdentifier>{46752834-d9e4-4dc3-864a-def89eee7e29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="线程">
+      <UniqueIdentifier>{b9835d82-df9e-4c00-8f4d-c6793a0979a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="基础库">
+      <UniqueIdentifier>{5f4deccd-b65c-4e16-9413-0a6397e2726a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="相机\hkvision">
+      <UniqueIdentifier>{0bb51df2-d265-4379-8131-42471f6b0eca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="相机\LMI">
+      <UniqueIdentifier>{7768a91a-db02-44ab-ae5a-f1811fe39e00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="算法">
+      <UniqueIdentifier>{58e4ab5e-a3e0-4768-96fb-3cbddf69787d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CkxFileRead.cpp">
+      <Filter>相机</Filter>
+    </ClCompile>
+    <ClCompile Include="Grab_Buffer.cpp">
+      <Filter>相机</Filter>
+    </ClCompile>
+    <ClCompile Include="GrabPack.cpp">
+      <Filter>相机</Filter>
+    </ClCompile>
+    <ClCompile Include="kxCamera.cpp">
+      <Filter>相机</Filter>
+    </ClCompile>
+    <ClCompile Include="CkxThreadManage.cpp">
+      <Filter>线程</Filter>
+    </ClCompile>
+    <ClCompile Include="CkxEnvironment.cpp">
+      <Filter>配置</Filter>
+    </ClCompile>
+    <ClCompile Include="kxParameter.cpp">
+      <Filter>配置</Filter>
+    </ClCompile>
+    <ClCompile Include="AsioTcp.cpp">
+      <Filter>网络</Filter>
+    </ClCompile>
+    <ClCompile Include="SaveQue.cpp">
+      <Filter>网络</Filter>
+    </ClCompile>
+    <ClCompile Include="global.cpp">
+      <Filter>全局</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>全局</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>其它</Filter>
+    </ClCompile>
+    <ClCompile Include="minidmp.cpp">
+      <Filter>异常处理</Filter>
+    </ClCompile>
+    <ClCompile Include="kxPrintf.cpp">
+      <Filter>配置</Filter>
+    </ClCompile>
+    <ClCompile Include="kxCheckResult.cpp">
+      <Filter>结果处理</Filter>
+    </ClCompile>
+    <ClCompile Include="KxGeneralFun.cpp">
+      <Filter>全局</Filter>
+    </ClCompile>
+    <ClCompile Include="TestAsioTcpClient.cpp">
+      <Filter>网络</Filter>
+    </ClCompile>
+    <ClCompile Include="zcudpclient.cpp">
+      <Filter>网络</Filter>
+    </ClCompile>
+    <ClCompile Include="KxCheck.cpp">
+      <Filter>检测流程</Filter>
+    </ClCompile>
+    <ClCompile Include="kxCameraHikvision.cpp">
+      <Filter>相机\hkvision</Filter>
+    </ClCompile>
+    <ClCompile Include="MvCamera.cpp">
+      <Filter>相机\hkvision</Filter>
+    </ClCompile>
+    <ClCompile Include="GlueCheck.cpp">
+      <Filter>检测流程</Filter>
+    </ClCompile>
+    <ClCompile Include="zsCameraLMI.cpp">
+      <Filter>相机\LMI</Filter>
+    </ClCompile>
+    <ClCompile Include="CalcuSurfacePlaneness.cpp">
+      <Filter>检测流程</Filter>
+    </ClCompile>
+    <ClCompile Include="EmpiricalAlgorithm.cpp">
+      <Filter>算法</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CkxFileRead.h">
+      <Filter>相机</Filter>
+    </ClInclude>
+    <ClInclude Include="Grab_Buffer.h">
+      <Filter>相机</Filter>
+    </ClInclude>
+    <ClInclude Include="GrabPack.h">
+      <Filter>相机</Filter>
+    </ClInclude>
+    <ClInclude Include="kxCamera.h">
+      <Filter>相机</Filter>
+    </ClInclude>
+    <ClInclude Include="CkxThreadManage.h">
+      <Filter>线程</Filter>
+    </ClInclude>
+    <ClInclude Include="CkxEnvironment.h">
+      <Filter>配置</Filter>
+    </ClInclude>
+    <ClInclude Include="kxParameter.h">
+      <Filter>配置</Filter>
+    </ClInclude>
+    <ClInclude Include="AsioTcp.h">
+      <Filter>网络</Filter>
+    </ClInclude>
+    <ClInclude Include="SaveQue.h">
+      <Filter>网络</Filter>
+    </ClInclude>
+    <ClInclude Include="global.h">
+      <Filter>全局</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>其它</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>其它</Filter>
+    </ClInclude>
+    <ClInclude Include="minidmp.h">
+      <Filter>异常处理</Filter>
+    </ClInclude>
+    <ClInclude Include="kxPrintf.h">
+      <Filter>配置</Filter>
+    </ClInclude>
+    <ClInclude Include="kxCheckResult.h">
+      <Filter>结果处理</Filter>
+    </ClInclude>
+    <ClInclude Include="KxGeneralFun.h">
+      <Filter>全局</Filter>
+    </ClInclude>
+    <ClInclude Include="TestAsioTcpClient.h">
+      <Filter>网络</Filter>
+    </ClInclude>
+    <ClInclude Include="zcudpclient.h">
+      <Filter>网络</Filter>
+    </ClInclude>
+    <ClInclude Include="KxCheck.h">
+      <Filter>检测流程</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseCheckMethod.h">
+      <Filter>检测流程</Filter>
+    </ClInclude>
+    <ClInclude Include="kxCameraHikvison.h">
+      <Filter>相机\hkvision</Filter>
+    </ClInclude>
+    <ClInclude Include="MvCamera.h">
+      <Filter>相机\hkvision</Filter>
+    </ClInclude>
+    <ClInclude Include="GlueCheck.h">
+      <Filter>检测流程</Filter>
+    </ClInclude>
+    <ClInclude Include="zsCameraLMI.h">
+      <Filter>相机\LMI</Filter>
+    </ClInclude>
+    <ClInclude Include="CalcuSurfacePlaneness.h">
+      <Filter>检测流程</Filter>
+    </ClInclude>
+    <ClInclude Include="EmpiricaAlgorithm.h">
+      <Filter>算法</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CheckStation.ini">
+      <Filter>全局</Filter>
+    </None>
+    <None Include="result.json">
+      <Filter>检测流程</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt">
+      <Filter>其它</Filter>
+    </Text>
+  </ItemGroup>
+</Project>

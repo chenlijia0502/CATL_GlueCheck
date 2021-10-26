@@ -1,0 +1,26 @@
+# 子站
+*.dll
+*.obj
+*.sbr
+*.pyc
+*.tlog
+*.db
+*.ipch
+*.ilk
+*.log
+*.exe
+*.bsc
+*.pdb
+*.dmp
+substation/ipch/*
+checkstation/.vs/*
+checkstation/CheckStation/obj/*
+
+# 主站
+mainstation/.idea*
+mainstation/.settings*
+mainstataion/.pydevproject*
+*.pyc
+mainstation/dist/*
+mainstation/build/*
+*.rar

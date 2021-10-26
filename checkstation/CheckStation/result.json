@@ -1,0 +1,27 @@
+
+# 2020.07.31 这份文档只是说明json的格式，方便子主协同开发
+开发可根据需要往上添加
+
+{
+		"checkstatus" : 1, //处理结果，0为OK，1为NG
+		"id":0,
+		"imagepath" : "",
+		"startoffset" : 0,
+		"imageoffsetlen" : 0,	//
+		defect num: 0,			//缺陷数量
+		"defect feature":		//缺陷特征列表
+		[
+		{
+		"defect name": "",
+		"Dots": 0,
+		"Energy": 0, 
+		"pos":[x, y, width, height]，
+		......
+		},
+		{
+		.....
+		}
+		.....
+		],
+
+}

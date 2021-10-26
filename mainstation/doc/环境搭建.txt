@@ -1,0 +1,20 @@
+pip freeze > requirements.txt'
+生成requirements
+
+
+$ pip wheel -w DIR -r requirements.txt
+将包下载
+
+$ pip wheel -w DIR -r requirements.txt
+同上，另一种方式
+
+$ pip3 install --no-index --find-links=DIR -r requirements.txt
+安装dir中的包
+
+
+
+有些包有要求:
+
+
+(1)pyqtgraph, 这条支线是0.11.0的开发版，虽然未正式发布，但其解决了10版本的很多问题，所以比较适合我们。它对Pyqt5版本有要求
+pip install git+https://github.com/pyqtgraph/pyqtgraph@develop

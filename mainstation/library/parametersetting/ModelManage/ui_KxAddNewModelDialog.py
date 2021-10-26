@@ -1,0 +1,76 @@
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'KxMotifyTextDialog.ui'
+#
+# Created by: PyQt4 UI code generator 4.11.4
+#
+# WARNING! All changes made in this file will be lost!
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+# try:
+#     _fromUtf8 = QtCore.QString.fromUtf8
+# except AttributeError:
+#     def _fromUtf8(s):
+#         return s
+#
+# try:
+#     _encoding = QtGui.QApplication.UnicodeUTF8
+#     def _translate(context, text, disambig):
+#         return QtGui.QApplication.translate(context, text, disambig, _encoding)
+# except AttributeError:
+#     def _translate(context, text, disambig):
+#         return QtGui.QApplication.translate(context, text, disambig)
+
+class Ui_KxAddNewModelDialog(QtCore.QObject):
+    def setupUi(self, Dialog):
+        Dialog.setObjectName("Dialog")
+        Dialog.resize(300, 130)
+        self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
+        self.buttonBox.setGeometry(QtCore.QRect(50, 100, 171, 21))
+        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.setObjectName("buttonBox")
+        self.lineEdit = QtWidgets.QLineEdit(Dialog)
+        self.lineEdit.setGeometry(QtCore.QRect(80, 10, 161, 20))
+        self.lineEdit.setAlignment(QtCore.Qt.AlignCenter)
+        self.lineEdit.setObjectName("lineEdit")
+        self.label = QtWidgets.QLabel(self.tr("Name") , Dialog)
+        self.label.setGeometry(QtCore.QRect(13, 10, 41, 20))
+        self.label.setTextFormat(QtCore.Qt.RichText)
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.label.setObjectName("label")
+        
+        self.lineEdit1 = QtWidgets.QLineEdit(Dialog)
+        self.lineEdit1.setGeometry(QtCore.QRect(80, 40, 161, 20))
+        self.lineEdit1.setAlignment(QtCore.Qt.AlignCenter)
+        self.lineEdit1.setObjectName("lineEdit1")
+#         self.lineEdit1.setEnabled(False)#2017
+        self.label1 = QtWidgets.QLabel(self.tr("Creator") , Dialog)
+        self.label1.setGeometry(QtCore.QRect(13, 40, 41, 20))
+        self.label1.setTextFormat(QtCore.Qt.RichText)
+        self.label1.setAlignment(QtCore.Qt.AlignCenter)
+        self.label1.setObjectName("label1")
+        
+        self.lineEdit2 = QtWidgets.QLineEdit(Dialog)
+        self.lineEdit2.setGeometry(QtCore.QRect(80, 70, 161, 20))
+        self.lineEdit2.setAlignment(QtCore.Qt.AlignCenter)
+        self.lineEdit2.setObjectName("lineEdit1")
+        self.label2 = QtWidgets.QLabel(self.tr("Remark") , Dialog)
+        self.label2.setGeometry(QtCore.QRect(13, 70, 50, 30))
+        self.label2.setTextFormat(QtCore.Qt.RichText)
+        self.label2.setAlignment(QtCore.Qt.AlignCenter)
+        self.label2.setObjectName("label1")
+
+
+        self.retranslateUi(Dialog)
+
+        self.buttonBox.accepted.connect(Dialog.accept)
+        self.buttonBox.rejected.connect(Dialog.reject)
+        # QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL(_fromUtf8("accepted()")), Dialog.accept)
+        # QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL(_fromUtf8("rejected()")), Dialog.reject)
+        QtCore.QMetaObject.connectSlotsByName(Dialog)
+
+    def retranslateUi(self, Dialog):
+        Dialog.setWindowTitle("Dialog")
+

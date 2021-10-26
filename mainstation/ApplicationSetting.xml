@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<developer>
+		<Ui_stytle>1</Ui_stytle>
+	</developer>
+	<substationport>3001</substationport>
+	<isengineermode>1</isengineermode>
+	<istranslate>1</istranslate>
+	<isopenplc>1</isopenplc>
+	<paramsdir>d:\Param-gule\</paramsdir>
+	<sendtcpdatalatertime>0.5</sendtcpdatalatertime>
+	<n_hardware_port>7</n_hardware_port>
+	<n_hardwarequeuelen>6</n_hardwarequeuelen>
+	<softwareaddress>192.168.0.20</softwareaddress>
+	<machineaddress>192.168.0.10</machineaddress>
+	<mointoringwidget_classname>GlueMonitorWidget</mointoringwidget_classname>
+	<maxCameraPerStation>1</maxCameraPerStation>
+	<substation>
+		<substation1>
+			<stationstatu>1</stationstatu>
+			<picturepath>d:\PlateEdgeCheck</picturepath>
+			<exepath>K:\VS_project\NEW\project\FrameWork\CheckStation\CheckStation.exe</exepath>
+			<ui_parameter_terms>
+				<KxGlobal></KxGlobal>
+				<GuleParam></GuleParam>
+			</ui_parameter_terms>
+		</substation1>
+	</substation>
+</root>

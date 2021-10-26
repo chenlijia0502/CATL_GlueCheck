@@ -1,0 +1,440 @@
+#include "stdafx.h"
+#include "TestAsioTcpClient.h"
+#include "CkxThreadManage.h"
+#include "CkxEnvironment.h"
+#include "KxRotateCards.h"
+#include "kxCheckResult.h"
+#include "Grab_Buffer.h"
+#include "CkxFileRead.h"
+#include "kxParameter.h"
+#include "global.h"
+#include "KxCheck.h"
+#include "GrabPack.h"
+//#include "kxPrintf.h"
+#include "KxGeneralFun.h"
+#include "zcudpclient.h"
+#include "global.h"
+using namespace Check;
+
+CTestAsioTcpClient::CTestAsioTcpClient(int nStationID, const char *c_pszAddress, int nListenPort)
+	: CKxAsioTcpClient(nStationID, this, c_pszAddress, nListenPort) 
+{
+	//m_pAsioTcp = boost::make_shared<CAsioTcpServer>(this, nListenPort);
+	// 初始化网络线程并启动，Start是线程函数，this是传入的参数
+	//m_pRunThread = boost::shared_ptr<boost::thread>(new boost::thread(Start, this));
+	m_pSendDataBuffer = (unsigned char *)calloc(sizeof(NetDataHeader), sizeof(unsigned char)); 
+	m_nCurSendBufferSize = sizeof(NetDataHeader);
+
+
+
+}
+
+
+CTestAsioTcpClient::~CTestAsioTcpClient()
+{
+	//m_pAsioTcp->Stop(); 
+	//m_pRunThread->join(); 
+	free(m_pSendDataBuffer); 
+}
+
+void CTestAsioTcpClient::OnNewConnection(int nStationID)
+{
+	printf("Server(Station %d) Is Connected!\n", nStationID); 
+}
+
+
+void CTestAsioTcpClient::OnDisconnected(int nStationID)
+{
+	Connect();
+}
+
+void CTestAsioTcpClient::OnRecvHeartBeat(int nStationID)
+{
+	//std::cout << "OnRecvHeartBeat" << std::endl;
+}
+
+
+void CTestAsioTcpClient::SendImgMsg(int nStationID, int nMsgType, int nExtDataSize, int nWidth, int nHeight, int nPitch, int nType, const char* pExtData)
+{
+	// HYH 2020.02.13 不用看了，你一般不会用到这个
+	boost::unique_lock<boost::mutex> lock(m_mutex);
+
+	int nDataSize = /*sizeof(NetDataHeader) + dataHeader.*/nExtDataSize;
+	if (nDataSize > m_nCurSendBufferSize)
+	{
+		m_pSendDataBuffer = (unsigned char *)realloc(m_pSendDataBuffer, nDataSize * sizeof(unsigned char));
+		m_nCurSendBufferSize = nDataSize;
+	}
+	memcpy(m_pSendDataBuffer + /*sizeof(NetDataHeader)*/+0 * sizeof(int), &nWidth, sizeof(int));
+	memcpy(m_pSendDataBuffer + /*sizeof(NetDataHeader)*/+1 * sizeof(int), &nHeight, sizeof(int));
+	memcpy(m_pSendDataBuffer + /*sizeof(NetDataHeader)*/+2 * sizeof(int), &nPitch, sizeof(int));
+	memcpy(m_pSendDataBuffer + /*sizeof(NetDataHeader)*/+3 * sizeof(int), &nType, sizeof(int));
+	memcpy(m_pSendDataBuffer + /*sizeof(NetDataHeader)*/+4 * sizeof(int), pExtData, /*dataHeader.*/nExtDataSize - 4 * sizeof(int));
+
+	CKxAsioTcpClient::SendMsg(/*nStationID, */nMsgType, 0, NULL, 0, (const char *)m_pSendDataBuffer, nDataSize);
+}
+
+void CTestAsioTcpClient::SendMsg(int nStationID, int nMsgType, const char *pData[], int nSize[], int nLen)
+{
+	// HYH 2020.02.13 不用看了，你一般不会用到这个
+	boost::unique_lock<boost::mutex> lock(m_mutex);
+	int nExtDataSize = 0;
+	for (int i = 0; i < nLen; i++)
+	{
+		nExtDataSize += nSize[i];
+	}
+	int nDataSize = /*sizeof(NetDataHeader) + dataHeader.*/nExtDataSize;
+	if (nDataSize > m_nCurSendBufferSize)
+	{
+		m_pSendDataBuffer = (unsigned char *)realloc(m_pSendDataBuffer, nDataSize * sizeof(unsigned char));
+		m_nCurSendBufferSize = nDataSize;
+	}
+	//memcpy(m_pSendDataBuffer, &dataHeader, sizeof(NetDataHeader)); 
+	int nOffset = 0/*sizeof(NetDataHeader)*/;
+	for (int i = 0; i < nLen; i++)
+	{
+		memcpy(m_pSendDataBuffer + nOffset, pData[i], nSize[i]);
+		nOffset += nSize[i];
+	}
+
+	CKxAsioTcpClient::SendMsg(/*nStationID, */nMsgType, 0, NULL, 0, (const char *)m_pSendDataBuffer, nDataSize);
+}
+
+void CTestAsioTcpClient::OnException(const char *c_pszFile, int nLine, const char *c_pszErrorInfo)
+{
+	// 关闭相机
+	std::cout << "监测到主站连接异常，关闭相机" << std::endl;
+	Graber::g_GetGrabPack().Stop();
+	Graber::g_GetCamera()->Close();
+
+}
+
+
+void CTestAsioTcpClient::OnRecvData(int nStationID, const unsigned char* pData, size_t nDataSize)
+{
+	std::cout << "OnRecvData:" << pData  << " size = " << nDataSize << "bytes" << std::endl;
+	
+
+	// 判断数据是否有效，pData带数据包头，所以至少有sizeof(NetDataHeader)这么大
+	if (pData && nDataSize >= sizeof(NetDataHeader)) 
+	{
+		NetDataHeader dataHeader; 
+		memcpy(&dataHeader, pData, sizeof(NetDataHeader)); 
+
+		// 检查包头里的数据是否有效，nDataSize的长度为sizeof(NetDataHeader) + 超长数据的长度
+		if (dataHeader.nExtDataSize == nDataSize - sizeof(NetDataHeader)) 
+		{
+			// pExtData为超长数据的指针
+			const unsigned char *pExtData = pData + sizeof(NetDataHeader); 
+			if (dataHeader.nExtDataSize == 0) 
+			{
+				pExtData = NULL; 
+			}
+
+			// 2020.02.13 
+			switch (int(dataHeader.nMsgType))
+			{
+				case MSG_HANDSHAKE_SEND:
+					RecMsgHandshake();
+					break;
+
+				case MSG_START_CHECK:
+					RecMsgToStartCheck(pExtData);
+					break;
+
+				case MSG_STOP_CHECK:
+					RecMsgToStopCheck();
+					break;
+
+				case MSG_ALL_IMG:
+					RecMsgToStartSimulate(pExtData);
+					break;
+
+				case MSG_START_CAMERA:
+					RecMsgToOpenCamera(pExtData);
+					break;
+
+				case MSG_STOP_CAMERA:
+					RecMsgToCloseCamera();
+					break;
+
+				case MSG_SAVE_IMAGE:
+					RecMsgToSaveAllImg(pExtData);
+					break;
+
+				case MSG_SAVE_BAD_IMAGE:
+					RecMsgToSaveBadImg(pExtData);
+					break;
+
+				case MSG_CHANGE_EXPOURE_TIME:
+					RecMsgToChangeCameraParam(pExtData);
+					break;
+
+				case MSG_A:
+					GetA();
+					break;
+
+				default:
+					break;
+
+			}
+		}
+	}
+	
+}
+
+
+void CTestAsioTcpClient::GetA()
+{
+	//发回A数据
+}
+
+void CTestAsioTcpClient::SendMsg(int nStationID, int nMsgType, int nExtDataSize, const char* pExtData)
+{
+	/*!
+	HYH 2020.02.13
+	一般就是调用这个函数来调用基类的sendmsg，将数据发给主站。
+	注意，nExtDataSize是被塞进数据头里，而pExtData会被作为额外的数据塞进包尾，所以主站解析时先解析数据头，得到nExtDataSize、nStationID、nMsgType
+	等这些数据，后解析pExtData。所以开发者如果不想翻看中转进程的内容，那么你可以理解为pExtData被直接送到界面去，至于是什么格式就要看你自己定义的命令，
+	或者说统一一种格式，比如json这种
+	*/
+
+	boost::unique_lock<boost::mutex> lock(m_mutex);
+
+	int nDataSize = /*sizeof(NetDataHeader) + dataHeader.*/nExtDataSize;
+	if (nDataSize > m_nCurSendBufferSize)
+	{
+		m_pSendDataBuffer = (unsigned char *)realloc(m_pSendDataBuffer, nDataSize * sizeof(unsigned char));
+		m_nCurSendBufferSize = nDataSize;
+	}
+	//memcpy(m_pSendDataBuffer, &dataHeader, sizeof(NetDataHeader)); 
+	memcpy(m_pSendDataBuffer/* + sizeof(NetDataHeader)*/, pExtData, /*dataHeader.*/nExtDataSize);
+
+	CKxAsioTcpClient::SendMsg(/*nStationID, */nMsgType, 0, NULL, 0, (const char *)m_pSendDataBuffer, nDataSize);
+}
+
+void CTestAsioTcpClient::RecMsgHandshake()
+{
+	if (Net::IsExistNetObj())
+	{
+		string szNet;
+		szNet = "handshake";
+		Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_HANDSHAKE_SEND), int(szNet.size()), szNet.c_str());
+	}
+}
+
+
+
+void CTestAsioTcpClient::RecMsgToStartCheck(const unsigned char* pExtData)
+{
+	//停止检测
+	Config::g_GetParameter().m_bChangeExpoureTimeStatus = false;
+	g_Environment.StopCheck();
+	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("停止检测"));
+	//载入参数
+
+	char* pt = (char*)pExtData;
+	int nDirLen = (int)(*((int*)pt));
+	pt += sizeof(int);
+	char* pFileName = new char[nDirLen + 1];
+	memset(pFileName, 0, sizeof(char)*nDirLen);  //参数路径
+	IppStatus status = ippsCopy_8u((Ipp8u*)pt, (Ipp8u*)pFileName, nDirLen);
+	pFileName[nDirLen] = '\0';
+
+	CKxBaseFunction hFun;
+
+	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("参数路径：%s"), pFileName);
+	//int nStatus = g_Environment.LoadAllObj(pFileName);
+	int nStatus = g_Environment.LoadAllObjByXml(pFileName);
+	if (!nStatus)
+	{
+		//kxPrintf(KX_Err, "参数载入失败，无法开始正常检查");
+		char szInfo[1024];
+		sprintf_s(szInfo, 1024, Config::g_GetParameter().g_TranslatorChinese("参数载入失败，无法开始正常检查"));
+		std::ostringstream os;
+		os.write(reinterpret_cast<const char *>(&nStatus), sizeof(int));
+		os.write(reinterpret_cast<const char *>(&szInfo), sizeof(szInfo));
+		std::string str = os.str();
+		if (Net::IsExistNetObj())
+		{
+			Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_START_CHECK_IS_READY), int(str.size()), str.c_str());
+		}
+		return; //参数加载失败，不检查
+	}
+
+	//关闭内触发模式
+	//if (Config::g_GetParameter().m_bChangeExpoureTimeStatus)
+	//{
+	//	Graber::g_GetGrabPack().Stop();
+	//	Graber::g_GetCamera()->OpenInternalTrigger(1);
+	//	
+	//}
+	Graber::g_GetGraberBuffer().Init(true);
+	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("载入模板完成"));
+	//给内触发模式打开
+	//Graber::g_GetCamera()->OpenInternalTrigger(0);
+	g_Environment.StartCheck();
+	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("开始检测"));
+	std::ostringstream os;
+	nStatus = 1;
+	os.write(reinterpret_cast<const char *>(&nStatus), sizeof(int));
+	std::string str = os.str();
+	if (Net::IsExistNetObj())
+	{
+		Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_START_CHECK_IS_READY), int(str.size()), str.c_str());
+	}
+	delete[]pFileName;
+
+}
+
+void CTestAsioTcpClient::RecMsgToStopCheck()
+{
+	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("停止检测"));
+	g_Environment.StopCheck();
+	Check::g_GetCheckCardObj().ClearIndex();
+}
+
+void CTestAsioTcpClient::RecMsgToStartSimulate(const unsigned char* pExtData)
+{
+	Config::g_GetParameter().m_bChangeExpoureTimeStatus = false;
+	//停止检测
+	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("停止检测"));
+	g_Environment.StopCheck();
+	char* pt = (char*)pExtData;
+
+	int nDirLen = (int)(*((int*)pt));
+	pt += sizeof(int);
+	char* pFileName = new char[nDirLen + 1];
+	memset(pFileName, 0, sizeof(char)*nDirLen);  //参数路径
+	IppStatus status = ippsCopy_8u((Ipp8u*)pt, (Ipp8u*)pFileName, nDirLen);
+	pFileName[nDirLen] = '\0';
+
+	pt += sizeof(char)*nDirLen;
+	nDirLen = (int)(*((int*)pt));
+	pt += sizeof(int);
+	char* pStimulateDir = new char[nDirLen + 1];
+	memset(pStimulateDir, 0, sizeof(char)*nDirLen);  //参数路径
+	status = ippsCopy_8u((Ipp8u*)pt, (Ipp8u*)pStimulateDir, nDirLen);
+	pStimulateDir[nDirLen] = '\0';
+
+	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("参数路径：%s"), pFileName);
+
+	//int nStatus = g_Environment.LoadAllObj(pFileName);
+	int nStatus = g_Environment.LoadAllObjByXml(pFileName);
+	if (!nStatus)
+	{
+		//kxPrintf(KX_Err, "参数载入失败，无法开始正常检查");
+		std::ostringstream os;
+		os.write(reinterpret_cast<const char *>(&nStatus), sizeof(int));
+		std::string str = os.str();
+		if (Net::IsExistNetObj())
+		{
+			Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_START_CHECK_IS_READY), int(str.size()), str.c_str());
+		}
+		return; //参数加载失败，不检查
+	}
+
+	Graber::g_GetGraberBuffer().Init(false);
+	
+
+	if (_access(pStimulateDir, 0) != 0)
+	{
+		kxPrintf(KX_WARNING, Config::g_GetParameter().g_TranslatorChinese("开始模拟检查路径不存在,路径为：%s"), pStimulateDir);
+		return;
+	}
+	else
+		kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("开始模拟检查_路径为：%s"), pStimulateDir);
+	g_Environment.StartSimulation(pStimulateDir);
+
+
+	char szInfo[1024];
+	sprintf_s(szInfo, 1024, Config::g_GetParameter().g_TranslatorChinese("参数载入成功，可以正常检查"));
+	std::ostringstream os;
+	nStatus = 1;
+	os.write(reinterpret_cast<const char *>(&nStatus), sizeof(int));
+	os.write(reinterpret_cast<const char *>(&szInfo), sizeof(szInfo));
+	std::string str = os.str();
+	if (Net::IsExistNetObj())
+	{
+		Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_START_CHECK_IS_READY), int(str.size()), str.c_str());
+	}
+	delete[] pFileName;
+	delete[] pStimulateDir;
+}
+
+void CTestAsioTcpClient::RecMsgToOpenCamera(const unsigned char* pExtData)
+{
+	unsigned char* pt = (unsigned char*)pExtData;
+	int nUIid = (int)(*((int*)pt));  //界面id
+	Config::g_GetParameter().m_nCurrentUIid = nUIid;
+	pt += sizeof(int);
+	int nExpoureTime = (int)(*((int*)pt));   //曝光时间
+	//pt += sizeof(int);
+	//int nbestvalue = (int)(*((int*)pt));//最佳清晰度值
+	//pt += sizeof(int);
+	//int nbestrange = (int)(*((int*)pt));//最佳精调范围
+	Config::GetGlobalParam().m_nExpoureTime = nExpoureTime;
+	Config::g_GetParameter().m_bChangeExpoureTimeStatus = true;
+	Config::g_GetParameter().m_nSendImageCount = 0;
+	Graber::g_GetGraberBuffer().Init(true);
+	//开始采集
+	Graber::g_GetGrabPack().Stop();
+	//给相机触发
+	Graber::g_GetCamera()->OpenInternalTrigger(0);
+	Graber::g_GetGrabPack().Start();
+	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("开始内触发采集"));
+
+}
+
+void CTestAsioTcpClient::RecMsgToCloseCamera()
+{
+	Graber::g_GetGrabPack().Stop();
+	Config::g_GetParameter().m_bChangeExpoureTimeStatus = false;
+	Graber::g_GetCamera()->OpenInternalTrigger(1);
+	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("停止采集"));
+}
+
+void CTestAsioTcpClient::RecMsgToSaveAllImg(const unsigned char* pExtData)
+{
+	char* pt = (char*)pExtData;
+	int nDirLen = (int)(*((int*)pt));
+	pt += sizeof(int);
+	char* pFileName = new char[nDirLen + 1];
+	memset(pFileName, 0, sizeof(char)*nDirLen);  //参数路径
+	IppStatus status = ippsCopy_8u((Ipp8u*)pt, (Ipp8u*)pFileName, nDirLen);
+	pFileName[nDirLen] = '\0';
+	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("存图路径：%s"), pFileName);
+	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("开始存图"));
+	Check::g_GetCheckCardObj().SetSaveStatus(Check::g_GetCheckCardObj()._SAVEALL, pFileName);
+	delete[] pFileName;
+}
+
+void CTestAsioTcpClient::RecMsgToSaveBadImg(const unsigned char* pExtData)
+{
+	char* pt = (char*)pExtData;
+	int nDirLen = (int)(*((int*)pt));
+	pt += sizeof(int);
+	char* pFileName = new char[nDirLen + 1];
+	memset(pFileName, 0, sizeof(char)*nDirLen);  //参数路径
+	IppStatus status = ippsCopy_8u((Ipp8u*)pt, (Ipp8u*)pFileName, nDirLen);
+	pFileName[nDirLen] = '\0';
+	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("存坏图路径：%s"), pFileName);
+	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("开始存图"));
+	Check::g_GetCheckCardObj().SetSaveStatus(Check::g_GetCheckCardObj()._SAVEBAD, pFileName);
+
+	delete[] pFileName;
+}
+
+void CTestAsioTcpClient::RecMsgToChangeCameraParam(const unsigned char* pExtData)
+{
+	unsigned char* pt = (unsigned char*)pExtData;
+	int nUIid = (int)(*((int*)pt));  //界面id
+	Config::g_GetParameter().m_nCurrentUIid = nUIid;
+	pt += sizeof(int);
+	int nExpoureTime = (int)(*((int*)pt));   //曝光时间
+	printf("设置曝光时间为：%d\n", nExpoureTime);
+	Config::GetGlobalParam().m_nExpoureTime = nExpoureTime;
+}
+
+
+CTestAsioTcpClient* g_client ;
