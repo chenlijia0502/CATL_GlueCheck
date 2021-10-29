@@ -12,7 +12,22 @@ public:
 	~CGlueCheck();
 
 	int Check(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, Json::Value &checkresult);
+
 	bool ReadParamXml(const char* filePath, char *ErrorInfo, const char * templatepath = NULL);
+
+	void SetParam(void *param) 
+	{
+		m_param = *((SingleParam*)param);
+	}
+
+	struct SingleParam
+	{
+		kxRect<int>		m_rcCheckROI;
+		int				m_nGrabTimes;//扫描列，设备移动扫描第几组,说明当前扫描图像属于第几组
+		int				m_nGrabDirection;
+	};
+
+
 
 
 private:
@@ -20,7 +35,7 @@ private:
 	kxCImageBuf				 m_ImgBase;
 	kxCImageBuf				 m_WarpImg;
 	CKxBlobAnalyse			 m_hBlobFun;
-
+	SingleParam				 m_param;
 
 	int						 m_nthresh;//提取异物灰度
 	int						 m_nmindots;//异物最小点数
@@ -34,7 +49,14 @@ private:
 
 
 private:
-	void checkcolordiff(const kxCImageBuf& SrcImg);
+	void checkcolordiff(const kxCImageBuf& SrcImg);// 检色差
+
+	void checkyiwu(const kxCImageBuf& SrcImg);// 检异物，包含断胶
+
+	void checkqipao(const kxCImageBuf& SrcImg); // 检气泡
+
+	void checkEdge(const kxCImageBuf& SrcImg);
+
 
 
 };

@@ -15,6 +15,7 @@ int CkxGrabBuffer::Read( FILE* fp )
 		return FALSE;
 	return TRUE;
 }
+
 int CkxGrabBuffer::Write( FILE* fp )
 {
 	if( fwrite( &m_Parameter, sizeof(Parameter), 1, fp ) != 1 )
@@ -32,6 +33,7 @@ int CkxGrabBuffer:: Load( const char* lpszFile )//¶ÁÈ¡ÎÄ¼þ
 	fclose( fp );
 	return b;
 }
+
 int CkxGrabBuffer::Save( const char* lpszFile )  
 {
 	FILE*   fp;
@@ -151,6 +153,7 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nType)
 void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int nPitch, int nChannel)
 {
 	m_nNowID++;
+
 	if (!m_CaptureQueue.IsFull())
 	{
 		KxCallStatus hCall;
@@ -457,6 +460,7 @@ int CkxGrabBuffer::ConvertBayer2Color(const kxCImageBuf& cardImg, kxCImageBuf& d
 }
 
 CkxGrabBuffer   g_GraberBuffer;
+
 namespace Graber
 {
 	int GLoad_Grabbuffer()
@@ -465,6 +469,7 @@ namespace Graber
 		// 	return    g_GraberBuffer.Load( strFile );   
 		return TRUE;
 	}
+
 	int GSave_Grabbuffer()
 	{
 		// 	CString   strFile=GetTemplBasicPath()+_T("Grab.dat");      

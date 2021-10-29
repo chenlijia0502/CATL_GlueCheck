@@ -34,5 +34,7 @@ public:
 	//设置学习完成状态
 	virtual void SetLearnCompletedStatus(bool bStatus) {}
 
+	virtual void SetParam(void *param) {};
+
 
 };

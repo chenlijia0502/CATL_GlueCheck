@@ -12,6 +12,6 @@ char	g_savePath[1 << 8];						//存图路径
 int		g_grabWidth;							//采集图宽
 int		g_grabHeight;							//采集图高
 
-
+GrabStatus     g_Grabstatus;						//采集方向
 
 

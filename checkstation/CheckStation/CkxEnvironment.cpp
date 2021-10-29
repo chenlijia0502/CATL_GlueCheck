@@ -67,12 +67,19 @@ int CkxEnvironment::LoadAllObjByXml(char* configPath)
 			return 0;
 		}
 
-		if (!Check::g_GetCheckCardObj().ReadReadJudgeStandardParaByXml(strTemp.c_str(), 0))
+		memset(error, 0, sizeof(error));
+		if (!Check::g_GetCheckCardObj().ReadParamXml(strTemp.c_str(), error))
 		{
 			if (Config::g_GetParameter().m_nLanguageMode)
-				kxPrintf(KX_Err, "品质判定表达式参数载入失败，请重新载入,请保存参数");
+			{
+				strcat_s(error, " 检测参数载入失败，请重新载入，请保存参数");
+				kxPrintf(KX_Err, error);
+			}
 			else
-				kxPrintf(KX_Err, " Quality standard Parameters load failure, please confirm it");
+			{
+				strcat_s(error, " Global Parameters load failure, please confirm it");
+				kxPrintf(KX_Err, error);
+			}
 		}
 
 	}

@@ -175,6 +175,25 @@ bool CKxCheck::ReadReadJudgeStandardParaByXml(const char* lpszFile, int nIndex)
 
 }
 
+bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
+{
+	//
+	//std::string szResult;
+	//int nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测设置", "提取异物灰度", szResult);
+	//if (!nSearchStatus)
+	//{
+	//	sprintf_s(ErrorInfo, 256, "提取异物灰度");
+	//	return false;
+	//}
+
+	//int nStatus = KxXmlFun2::FromStringToInt(szResult, m_nthresh);
+	//if (!nStatus)
+	//{
+	//	return false;
+	//}
+
+}
+
 int CKxCheck::TransferImage(const CKxCaptureImage& card)
 {
 	/*!
@@ -624,6 +643,69 @@ int CKxCheck::AnalyseCheckResult(int nCardID, Json::Value* checkresult)
 	return 1;
 }
 
+void CKxCheck::JudgeWhichROI(const CKxCaptureImage& SrcCapImg)
+{
+	for (int i = 0; i < m_param.m_nROINUM; i++)
+	{
+		if (g_Grabstatus.nGrabTimes == m_param.params[i].m_nGrabTimes)
+		{
+			int ncurstartrow = SrcCapImg.m_ImageID * SrcCapImg.m_Image.nHeight;
+			
+			int ncurendrow = ncurstartrow + SrcCapImg.m_Image.nHeight - 1;// -1 这个操作是把它变成图像索引，与roi同步
+
+			if (ncurendrow < m_param.params[i].m_rcCheckROI.top || ncurstartrow > m_param.params[i].m_rcCheckROI.bottom)
+			{
+				//不符合，直接过
+				continue;
+			}
+			else
+			{
+				//符合，压入待检队列，
+				int nroitop = m_param.params[i].m_rcCheckROI.top;
+
+				int nroibottom = m_param.params[i].m_rcCheckROI.bottom;
+
+				IppiSize roisize;
+
+				int ncopystart;
+
+				if (ncurstartrow < nroitop && ncurendrow > nroitop)//上侧
+				{
+					roisize = { SrcCapImg.m_Image.nWidth, ncurendrow - nroitop + 1 };
+
+					ncopystart = nroitop - ncurstartrow;
+				}
+				else if (ncurstartrow >= nroitop && ncurendrow <= nroibottom)//中间
+				{
+					roisize = { SrcCapImg.m_Image.nWidth,  SrcCapImg.m_Image.nHeight};
+
+					ncopystart = 0;
+				}
+				else//下侧
+				{
+					roisize = { SrcCapImg.m_Image.nWidth,  nroibottom - ncurstartrow + 1 };
+
+					ncopystart = 0;
+				}
+
+				unsigned char *basebuf = m_struct2check[i].m_BigImg.buf;
+
+				ippiCopy_8u_C3R(SrcCapImg.m_Image.buf + ncopystart*SrcCapImg.m_Image.nPitch, SrcCapImg.m_Image.nPitch, 
+					basebuf + m_struct2check[i].m_ncopyrow, m_struct2check[i].m_BigImg.nPitch, roisize);
+
+				m_struct2check[i].m_ncopyrow += roisize.height;
+
+				if (m_struct2check[i].m_ncopyrow == m_struct2check[i].m_BigImg.nHeight - 1)
+				{
+					m_struct2check[i].m_bCanCheck = true;
+				}
+			}
+
+		}
+
+	}
+}
+
 int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 {
 
@@ -631,19 +713,44 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	tbb_start = tick_count::now();
 	
 	//1.转换图像，初始化每次检测
-	TransferImage(SrcCapImg);
+	//TransferImage(SrcCapImg);
+	m_TransferImage.SetImageBuf(SrcCapImg.m_Image.buf, SrcCapImg.m_Image.nWidth, SrcCapImg.m_Image.nHeight, SrcCapImg.m_Image.nPitch, SrcCapImg.m_Image.nChannel, true);
+
 	ClearResult(SrcCapImg.m_CardID);
+	
 	m_finalcheckstatus = CheckResultStatus::_Check_Ok;
 
+	// 2.确认图像属于哪个roi，哪段ID，先不考虑相机采集方向问题
+
+	JudgeWhichROI(SrcCapImg);
 
 	//2.检测
-	for (int i = 0; i < Config::GetGlobalParam().m_nAreakNum; i++)
-	{
-		m_hCheckResult[i].clear();
-		m_bCheckStatus[i] = m_hCheckTools[i]->Check(m_TransferImage, m_DstImg, m_hCheckResult[i]);
+	//for (int i = 0; i < Config::GetGlobalParam().m_nAreakNum; i++)
+	//{
+	//	m_hCheckResult[i].clear();
+	//	m_bCheckStatus[i] = m_hCheckTools[i]->Check(m_TransferImage, m_DstImg, m_hCheckResult[i]);
+	//}
 
+	for (int i = 0; i < m_param.m_nROINUM; i++)
+	{
+		if (m_struct2check[i].m_bCanCheck)
+		{
+			kxCImageBuf solveimg;
+
+			while (m_struct2check[i].GetSolveImg(solveimg))//单个roi，处理完再说别的
+			{
+				m_hCheckTools[0]->SetParam(&m_param.params[i]);
+
+				m_bCheckStatus[0] = m_hCheckTools[0]->Check(solveimg, m_DstImg, m_hCheckResult[0]);
+			}
+
+			m_struct2check[i].m_bCanCheck = false;
+
+		}
 	}
 
+
+	m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_TransferImage, m_DstImg, m_hCheckResult[0]);
 	
 
 
@@ -658,9 +765,6 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	//}, auto_partitioner());
 
 
-
-
-	
 	//3. 分析结果，比如用表达式进行判废（这一步以前的同事设计的时候不把它放在主站的原因是因为耗时原因），这里是对所有区域进行汇合的判废
 	AnalyseCheckResult(SrcCapImg.m_CardID, m_hCheckResult);
 
@@ -676,6 +780,7 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 
 
 CKxCheck   g_CheckObj;
+
 namespace Check
 {
 

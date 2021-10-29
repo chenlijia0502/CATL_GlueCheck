@@ -59,9 +59,30 @@ void CGlueCheck::checkcolordiff(const kxCImageBuf& SrcImg)
 	  思路二：  学习一块区域的高、低
 	*/
 
-	
+
+	// 用库里的方法，检测色差
 
 }
+
+void CGlueCheck::checkyiwu(const kxCImageBuf& SrcImg)
+{
+	//用二值化之后检测，一个高一个低，设置一个范围
+}
+
+void CGlueCheck::checkqipao(const kxCImageBuf& SrcImg)
+{
+	// 检测高亮
+}
+
+void CGlueCheck::checkEdge(const kxCImageBuf& SrcImg)
+{
+	// 首先是提取出最大roi，然后从左边往右数，从右边往左数
+
+
+
+
+}
+
 
 
 int CGlueCheck::Check(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, Json::Value &checkresult)

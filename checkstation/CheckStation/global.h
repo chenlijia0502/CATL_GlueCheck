@@ -134,6 +134,12 @@ struct PreDealImgMsg
 };
 
 
+struct GrabStatus
+{
+	int				nGrabDirection;		//采集方向，用于纠正朝上或朝下的图像
+	int				nGrabTimes;			//针对第几组ROI采集
+};
+const  int  g_ncMAXGRABNUM = 28000; //假设从头走到尾最多这么多行，每一列采集这么多行 
 
 //全局变量申明，定义在global.cpp中
 extern char	g_szCameraDeviceId[1 << 8];				//相机设备ID
@@ -146,14 +152,21 @@ extern char	g_savePath[1 << 8];						//存图路径
 extern int	g_grabWidth;							//采集图宽
 extern int	g_grabHeight;							//采集图高
 
+extern GrabStatus  g_Grabstatus;					//采集状态
+
 
 class CKxCaptureImage
 {
 public:
 	kxCImageBuf	m_Image;
-	int			m_ImageID;
+	int			m_ImageID;// 假设初始为0
 	int			m_CardID;
 	int			m_Type;
+
+	// 涂胶项目
+
+
+
 };
 
 //异常信息中英文翻译
