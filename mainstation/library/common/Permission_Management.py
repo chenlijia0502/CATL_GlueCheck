@@ -10,21 +10,23 @@ from globalparam import ChineseWord
 from globalparam import PermissionLevel
 import struct
 
-
+"""
+    初始版本是比亚迪边检，后经宁德时代下箱体涂胶迭代
+"""
 
 class kxprivilege_management(QtWidgets.QDialog):
     '''
     权限管理类
     '''
     sig_refresh_curpri = QtCore.pyqtSignal(int)
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, nlevelnum = 4):
         '''
         初始化
         '''
         super(kxprivilege_management, self).__init__(parent)
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
-        self.list_strpassword = ['kexin2008' for i in range(2)]#默认初始密码
+        self.list_strpassword = ['root' for i in range(nlevelnum)]#默认初始密码
         self.ncurrentpermission = 0
         self.ChangePasswordDialog = None
         self.__ininconnection()
@@ -38,10 +40,27 @@ class kxprivilege_management(QtWidgets.QDialog):
 
 
     def __initcombox(self):
+        self.ui.comboBox.setStyleSheet("QComboBox{border:1px solid #d7d7d7; border-radius: 3px; padding: 1px 18px 1px 3px;} "
+                        "QComboBox QAbstractItemView::item{height:50px;text-align:center}"  # 下拉选项高度
+                        "QComboBox:editable{ background: white; }"
+                        "QComboBox:!editable{ background: white; color:#666666}"
+                        "QComboBox::drop-down{ subcontrol-origin: padding;subcontrol-position: top right; width: 22px; border-left-width: 1px; border-left-color: #c9c9c9; border-left-style: solid;  border-top-right-radius: 3px; border-bottom-right-radius: 3px; }"
+                        "QComboBox::down-arrow:on {top: 1px; left: 1px;}")
+        listView = QtGui.QListView()
+        listView.setStyleSheet('''QListView{{font-size: 13px}}
+                                QListView::item:!selected{{color: #19649f}}
+                                QListView::item:selected:active{{background-color: rgba({0},{1},{2},{3})}}
+                                QListView::item:selected{{color: white}}''')
+        self.ui.comboBox.setView(listView)
         self.ui.comboBox.addItem("")
         self.ui.comboBox.setItemText(0, ChineseWord.PRODUCER)
         self.ui.comboBox.addItem("")
-        self.ui.comboBox.setItemText(1, ChineseWord.MANAGER)
+        self.ui.comboBox.setItemText(1, ChineseWord.OPERATOR)
+        self.ui.comboBox.addItem("")
+        self.ui.comboBox.setItemText(2, ChineseWord.IMD)
+        self.ui.comboBox.addItem("")
+        self.ui.comboBox.setItemText(3, ChineseWord.MANAGER)
+
 
     def __initchangepassworddialog(self):
         self.ChangePasswordDialog = KxUserChangePasswordDialog(self.str_passwordpath)
@@ -163,10 +182,27 @@ class KxUserChangePasswordDialog(QtWidgets.QDialog):
 
 
     def __initcombox(self):
+        self.ui.comboBox.setStyleSheet(
+            "QComboBox{border:1px solid #d7d7d7; border-radius: 3px; padding: 1px 18px 1px 3px;} "
+            "QComboBox QAbstractItemView::item{height:50px;text-align:center}"  # 下拉选项高度
+            "QComboBox:editable{ background: white; }"
+            "QComboBox:!editable{ background: white; color:#666666}"
+            "QComboBox::drop-down{ subcontrol-origin: padding;subcontrol-position: top right; width: 22px; border-left-width: 1px; border-left-color: #c9c9c9; border-left-style: solid;  border-top-right-radius: 3px; border-bottom-right-radius: 3px; }"
+            "QComboBox::down-arrow:on {top: 1px; left: 1px;}")
+        listView = QtGui.QListView()
+        listView.setStyleSheet('''QListView{{font-size: 13px}}
+                                   QListView::item:!selected{{color: #19649f}}
+                                   QListView::item:selected:active{{background-color: rgba({0},{1},{2},{3})}}
+                                   QListView::item:selected{{color: white}}''')
+        self.ui.comboBox.setView(listView)
         self.ui.comboBox.addItem("")
         self.ui.comboBox.setItemText(0, ChineseWord.PRODUCER)
         self.ui.comboBox.addItem("")
-        self.ui.comboBox.setItemText(1, ChineseWord.MANAGER)
+        self.ui.comboBox.setItemText(1, ChineseWord.OPERATOR)
+        self.ui.comboBox.addItem("")
+        self.ui.comboBox.setItemText(2, ChineseWord.IMD)
+        self.ui.comboBox.addItem("")
+        self.ui.comboBox.setItemText(3, ChineseWord.MANAGER)
 
     def getpassword(self):
         '''

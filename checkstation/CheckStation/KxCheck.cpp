@@ -720,9 +720,6 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	
 	m_finalcheckstatus = CheckResultStatus::_Check_Ok;
 
-	// 2.确认图像属于哪个roi，哪段ID，先不考虑相机采集方向问题
-
-	JudgeWhichROI(SrcCapImg);
 
 	//2.检测
 	//for (int i = 0; i < Config::GetGlobalParam().m_nAreakNum; i++)
@@ -731,26 +728,38 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	//	m_bCheckStatus[i] = m_hCheckTools[i]->Check(m_TransferImage, m_DstImg, m_hCheckResult[i]);
 	//}
 
-	for (int i = 0; i < m_param.m_nROINUM; i++)
+	if (0)
 	{
-		if (m_struct2check[i].m_bCanCheck)
+		// 2.确认图像属于哪个roi，哪段ID，先不考虑相机采集方向问题
+
+		JudgeWhichROI(SrcCapImg);
+
+
+		for (int i = 0; i < m_param.m_nROINUM; i++)
 		{
-			kxCImageBuf solveimg;
-
-			while (m_struct2check[i].GetSolveImg(solveimg))//单个roi，处理完再说别的
+			if (m_struct2check[i].m_bCanCheck)
 			{
-				m_hCheckTools[0]->SetParam(&m_param.params[i]);
+				kxCImageBuf solveimg;
 
-				m_bCheckStatus[0] = m_hCheckTools[0]->Check(solveimg, m_DstImg, m_hCheckResult[0]);
+				while (m_struct2check[i].GetSolveImg(solveimg))//单个roi，处理完再说别的
+				{
+					m_hCheckTools[0]->SetParam(&m_param.params[i]);
+
+					m_bCheckStatus[0] = m_hCheckTools[0]->Check(solveimg, m_DstImg, m_hCheckResult[0]);
+				}
+
+				m_struct2check[i].m_bCanCheck = false;
+
 			}
-
-			m_struct2check[i].m_bCanCheck = false;
-
 		}
+	}
+	else
+	{
+		m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_TransferImage, m_DstImg, m_hCheckResult[0]);
 	}
 
 
-	m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_TransferImage, m_DstImg, m_hCheckResult[0]);
+
 	
 
 

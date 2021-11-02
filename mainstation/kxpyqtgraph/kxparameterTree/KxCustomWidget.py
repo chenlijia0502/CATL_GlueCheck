@@ -1178,8 +1178,8 @@ class KxBoundingParameter(KxParameter):
             bool_new_value = value["isShow"]
 
             if isinstance(bool_new_value, str):
-                bool_new_value = (bool_new_value is "True") \
-                                 or (bool_new_value is "True") \
+                bool_new_value = (bool_new_value == "True") \
+                                 or (bool_new_value == "True") \
                                  or (bool_new_value == "True")  # 有时上面两句判断错误,加这句保险
         return bool_new_value
 
@@ -1405,8 +1405,8 @@ class KxImageInfoParameter(KxParameter):
             bool_new_value = value["isShow"]
 
             if isinstance(bool_new_value, str):
-                bool_new_value = (bool_new_value is "True") \
-                                 or (bool_new_value is "True") \
+                bool_new_value = (bool_new_value == "True") \
+                                 or (bool_new_value == "True") \
                                  or (bool_new_value == "True")  # 有时上面两句判断错误,加这句保险
         return bool_new_value
 
@@ -1683,7 +1683,7 @@ class KxLineRegionParameter(KxParameter):
 
     def value_translate(self, value):
         if isinstance(value, str):
-            value = (value is "True") or (value is "True") or (value == "True")  # 有时上面两句判断错误,加这句保险
+            value = (value == "true") or (value == "True") or (value == True)  # 有时上面两句判断错误,加这句保险
         return value
 
     def __setLineVals(self):

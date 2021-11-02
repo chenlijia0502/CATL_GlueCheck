@@ -51,8 +51,9 @@ class ChineseWord:
     STOPCHECK = u"停止检测"
     STARTOFFLINECHECK = u"开始离线检测"
     STOPOFFLINECHECK = u"停止离线检测"
-    PRODUCER = u'生产员'
-    OPERATOR = u'操作员'
+    PRODUCER = u'操作员'
+    OPERATOR = u'ME工程师'
+    IMD = "IMD解决方案工程师"
     MANAGER = u'管理员'
     CHANGEPASSWORD = u'修改密码'
 

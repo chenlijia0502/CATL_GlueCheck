@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1167</width>
-    <height>803</height>
+    <width>1633</width>
+    <height>1015</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -175,6 +175,32 @@ border-image: url(res/mainpage_normal.png)
              </widget>
             </item>
             <item>
+             <widget class="QPushButton" name="pushButton_worklist">
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>90</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>80</width>
+                <height>90</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <family>Algerian</family>
+                <pointsize>14</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>生产
+记录</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QPushButton" name="pbt_paramset">
               <property name="minimumSize">
                <size>
@@ -276,6 +302,109 @@ border-image: url(res/日志记录.png);
             </size>
            </property>
           </spacer>
+         </item>
+         <item>
+          <widget class="QWidget" name="widget_7" native="true">
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>0</height>
+            </size>
+           </property>
+           <widget class="QLabel" name="label_5">
+            <property name="geometry">
+             <rect>
+              <x>0</x>
+              <y>10</y>
+              <width>161</width>
+              <height>31</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: rgb(255, 255, 255);</string>
+            </property>
+            <property name="text">
+             <string>软件版本：V1.0</string>
+            </property>
+           </widget>
+           <widget class="QLabel" name="label_6">
+            <property name="geometry">
+             <rect>
+              <x>0</x>
+              <y>40</y>
+              <width>161</width>
+              <height>31</height>
+             </rect>
+            </property>
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: rgb(255, 255, 255);</string>
+            </property>
+            <property name="text">
+             <string>操作用户：CATL</string>
+            </property>
+           </widget>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_4">
+           <property name="font">
+            <font>
+             <family>Agency FB</family>
+             <pointsize>14</pointsize>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: rgb(255, 255, 255);</string>
+           </property>
+           <property name="text">
+            <string>权
+限</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="toolButton_userlevel">
+           <property name="minimumSize">
+            <size>
+             <width>60</width>
+             <height>60</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>60</width>
+             <height>60</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QToolButton#toolButton_userlevel
+{ border-image: url(res/lock.png); }  
+
+QToolButton:hover#toolButton_userlevel
+ {background-color:transparent;border:0px;
+background-color:lightBlue;
+}
+</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonFollowStyle</enum>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="QWidget" name="widget" native="true">

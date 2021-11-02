@@ -61,8 +61,8 @@ class Ui_Dialog(object):
         self.comboBox = QtWidgets.QComboBox(self.widget)
         self.comboBox.setMinimumSize(QtCore.QSize(0, 38))
         self.comboBox.setMaximumSize(QtCore.QSize(1111, 11111111))
-        self.comboBox.setStyleSheet("border:1px solid rgb(255, 255, 255);\n"
-"QComboBox::drop-down {height:60px;}")
+#         self.comboBox.setStyleSheet("border:1px solid rgb(255, 255, 255);\n"
+# "QComboBox::drop-down {height:60px;}")
         self.comboBox.setFrame(True)
         self.comboBox.setObjectName("comboBox")
         self.horizontalLayout_2.addWidget(self.comboBox)
@@ -128,11 +128,6 @@ class Ui_Dialog(object):
         Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
         self.label_4.setText(_translate("Dialog", "用户权限切换"))
         self.label.setText(_translate("Dialog", "用户名:"))
-        self.textEdit.setHtml(_translate("Dialog", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
-"p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'SimSun\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
-"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:12pt;\">BYD-极片边检</span></p></body></html>"))
         self.label_2.setText(_translate("Dialog", "权限选择:"))
         self.label_3.setText(_translate("Dialog", "密码："))
         self.pbt_ensure.setText(_translate("Dialog", "确认"))
