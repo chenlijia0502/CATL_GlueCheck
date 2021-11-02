@@ -16,7 +16,7 @@ CGlueCheck::~CGlueCheck()
 
 bool CGlueCheck::ReadParamXml(const char* filePath, char *ErrorInfo, const char * templatepath)
 {
-	std::string szResult;
+	/*std::string szResult;
 	int nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测设置", "提取异物灰度", szResult);
 	if (!nSearchStatus)
 	{
@@ -41,7 +41,7 @@ bool CGlueCheck::ReadParamXml(const char* filePath, char *ErrorInfo, const char 
 	if (!nStatus)
 	{
 		return false;
-	}
+	}*/
 
 
 	return true;
@@ -82,8 +82,6 @@ void CGlueCheck::checkEdge(const kxCImageBuf& SrcImg)
 
 
 }
-
-
 
 int CGlueCheck::Check(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, Json::Value &checkresult)
 {
@@ -139,11 +137,15 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, Json::Valu
 
 	m_hFun.MatToKxImageBuf(m_matarraybgr[2], m_ImgGray);
 
-	m_hFun.KxThreshImage(m_ImgGray, m_ImgThresh, m_nthresh, 255);
+	IppiSize zerosize = {2000, m_ImgGray.nHeight};
+
+	ippiSet_8u_C1R(0, m_ImgGray.buf, m_ImgGray.nPitch, zerosize);
+
+	m_hFun.KxThreshImage(m_ImgGray, m_ImgThresh, m_param.m_ndefectthresh, 255);
 
 	m_hFun.KxOpenImage(m_ImgThresh, m_ImgOpen, 11, 11);
 
-	m_hBlobFun.ToBlobParallel(m_ImgOpen);
+	m_hBlobFun.ToBlobByCV(m_ImgOpen);
 
 	checkresult["defect num"] = 0;
 
@@ -152,8 +154,10 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, Json::Valu
 		for (int i = 0; i < m_hBlobFun.GetBlobCount(); i++)
 		{
 			CKxBlobAnalyse::SingleBlobInfo blobinfo;
+
 			blobinfo = m_hBlobFun.GetSortSingleBlob(i);
-			if (blobinfo.m_nDots > m_nmindots)
+
+			if (blobinfo.m_nDots > m_param.m_ndefectthresh)
 			{
 				Json::Value single;
 				single["Dots"] = blobinfo.m_nDots;

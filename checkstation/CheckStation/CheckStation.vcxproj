@@ -112,7 +112,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\..\include\CameraKey;..\..\..\..\include\zsAlgorithm;..\..\..\..\include\Ipp21;..\..\..\..\include;..\..\..\..\include\mkl21;..\..\..\..\include\tbb21;..\..\..\..\include\jsoncpp184;..\..\..\..\include\KxAsio;..\..\..\..\include\tinyxml2;..\..\..\..\include\hikvision2020;..\..\..\..\include\opencv3413;..\..\..\..\include\python;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include\CameraKey;..\..\..\..\include\zsAlgorithm213;..\..\..\..\include\Ipp21;..\..\..\..\include;..\..\..\..\include\mkl21;..\..\..\..\include\tbb21;..\..\..\..\include\jsoncpp184;..\..\..\..\include\KxAsio;..\..\..\..\include\tinyxml2;..\..\..\..\include\hikvision2020;..\..\..\..\include\opencv3413;..\..\..\..\include\python;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_IPP_SEQUENTIAL_STATIC;MKL_DIRECT_CALL_SEQ;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;_Hikvision;_ENABLE_ATOMIC_ALIGNMENT_FIX;BOOST_ALL_DYN_LINK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -130,7 +130,7 @@
     <Link>
       <AdditionalDependencies>opencv_world3413d.lib;jsoncppD.lib;MvCameraControl.lib;tinyxml2d.lib;python37.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\CheckStation.exe</OutputFile>
-      <AdditionalLibraryDirectories>..\..\..\..\lib\CameraKey;..\..\..\..\lib\boost;..\..\..\..\lib\zsAlgorithm;..\..\..\..\lib\Ipp21\intel64;..\..\..\..\lib\mkl21\intel64;..\..\..\..\lib\tbb21\intel64\vc14;..\..\..\..\lib\opencv3413\vc14;..\..\..\..\lib\jsoncpp184;..\..\..\..\lib\KxAsio;..\..\..\..\lib\tinyxml2;..\..\..\..\lib\hikvision2020\win64;..\..\..\..\lib\python;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\lib\CameraKey;..\..\..\..\lib\boost;..\..\..\..\lib\zsAlgorithm213;..\..\..\..\lib\Ipp21\intel64;..\..\..\..\lib\mkl21\intel64;..\..\..\..\lib\tbb21\intel64\vc14;..\..\..\..\lib\opencv3413\vc14;..\..\..\..\lib\jsoncpp184;..\..\..\..\lib\KxAsio;..\..\..\..\lib\tinyxml2;..\..\..\..\lib\hikvision2020\win64;..\..\..\..\lib\python;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
@@ -167,7 +167,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\..\..\..\include\Sapera-new;..\..\..\..\include\python;..\..\..\..\include\zsAlgorithm;..\..\..\..\include\Ipp21;..\..\..\..\include\mkl21;..\..\..\..\include\tbb21;..\..\..\..\include\KxAsio;..\..\..\..\include\tinyxml2;..\..\..\..\include\boost;..\..\..\..\include\hikvision2020;..\..\..\..\include\jsoncpp184;..\..\..\..\include\opencv3413;..\..\..\..\include\CameraKey;..\..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include\Sapera-new;..\..\..\..\include\python;..\..\..\..\include\zsAlgorithm213;..\..\..\..\include\Ipp21;..\..\..\..\include\mkl21;..\..\..\..\include\tbb21;..\..\..\..\include\KxAsio;..\..\..\..\include\tinyxml2;..\..\..\..\include\boost;..\..\..\..\include\hikvision2020;..\..\..\..\include\jsoncpp184;..\..\..\..\include\opencv3413;..\..\..\..\include\CameraKey;..\..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_IPP_SEQUENTIAL_STATIC;_Hikvision;MKL_DIRECT_CALL_SEQ;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;_ENABLE_ATOMIC_ALIGNMENT_FIX;BOOST_ALL_DYN_LINK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -181,7 +181,7 @@
     <Link>
       <AdditionalDependencies>opencv_world3413.lib;jsoncpp.lib;MvCameraControl.lib;tinyxml2.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\CheckStation.exe</OutputFile>
-      <AdditionalLibraryDirectories>..\..\..\..\lib\boost;..\..\..\..\lib\Sapera-new;..\..\..\..\lib\python;..\..\..\..\lib\zsAlgorithm;..\..\..\..\lib\Ipp21\intel64;..\..\..\..\lib\mkl21\intel64;..\..\..\..\lib\tbb21\intel64\vc14;..\..\..\..\lib\KxAsio;..\..\..\..\lib\tinyxml2;..\..\..\..\lib\protobuf;..\..\..\..\lib\opencv3413\vc14;..\..\..\..\lib\hikvision2020\win64;..\..\..\..\lib\jsoncpp184;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\lib\boost;..\..\..\..\lib\Sapera-new;..\..\..\..\lib\python;..\..\..\..\lib\zsAlgorithm213;..\..\..\..\lib\Ipp21\intel64;..\..\..\..\lib\mkl21\intel64;..\..\..\..\lib\tbb21\intel64\vc14;..\..\..\..\lib\KxAsio;..\..\..\..\lib\tinyxml2;..\..\..\..\lib\protobuf;..\..\..\..\lib\opencv3413\vc14;..\..\..\..\lib\hikvision2020\win64;..\..\..\..\lib\jsoncpp184;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>

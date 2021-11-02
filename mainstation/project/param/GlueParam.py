@@ -13,11 +13,16 @@ from UI.ui_kxglobal1 import Ui_ParamPYLoadWidget
 from PIL import Image
 # from pyqtgraph.imageview.ImageView import ImageView
 
+#节拍  分析
+#
+
+
 
 class GuleParam(KxBaseParamWidget):
     """
               涂胶项目
     """
+    _MAX_ROI_NUM = 32
     def __init__(self, h_parentwidget, n_uid, n_areanum, n_stationid):
         KxBaseParamWidget.__init__(self,n_uid, n_areanum, n_stationid)
         self.h_parent = h_parentwidget
@@ -44,6 +49,7 @@ class GuleParam(KxBaseParamWidget):
     def _initparam(self):
         self.s_imgpath = None
         self.n_qualitytreenum = 0#当前已显示质量检查组数
+        self.n_checkarea = 0#当前检测区域
         self.params.extend([
             {'name': u'主站设置', 'type': 'group', 'visible':False, 'children': [
                 {'name': u'图像信息', 'type': 'imageinfo',
@@ -63,22 +69,23 @@ class GuleParam(KxBaseParamWidget):
                 {'name': '横向重叠行数', 'type': 'int', 'value': 0, 'limits': [1, 5000], 'visible':False},
                 {'name': '纵向重叠行数', 'type': 'int', 'value': 0, 'limits': [1, 5000], 'visible':False}
             ]},
+            {'name': u'检测区域数量', 'type': 'int', 'value': 0, 'step': 1, 'limits': (0, self._MAX_ROI_NUM)},
 
-            {'name': '检测设置', 'type': 'group', 'children': [
-                {'name': '提取异物灰度', 'type': 'int', 'value': 100, 'limits': [0, 255]},
-                {'name': '异物最小点数', 'type': 'int', 'value': 20, 'limits': [0, 20000]},
 
-            ]},
-            {'name': '平面度设置', 'type': 'group', 'children': [
-                {'name': '最大方差设置', 'type': 'int', 'value': 100, 'limits': [0, 255]},
-
-            ]},
         ])
-        self.appendqualityinspectionstandards(self.params)
+
+        #self.appendqualityinspectionstandards(self.params)
+        self._append_checkarea_param(self.params)
         self.p = KxParameter.create(name='params', type='group', children=self.params)
         self.h_parameterTree.setParameters(self.p, showTop=False)
         self.p.param(u'主站设置', u'图像信息').add2view(self.ui.h_gVShowRealImg, self.h_imgitem)
-        self.p.param('质量检查标准', '检查标准组数').sigValueChanged.connect(self._addqualdetectslot)
+        for nindex in range(self._MAX_ROI_NUM):
+             self.p.param(u'检测区域' + str(nindex), u'检测区域').add2view(self.view)
+        self._initsignal()
+
+    def _initsignal(self):
+        self.p.param('检测区域数量').sigValueChanged.connect(self._add_checkarea)
+
 
     def _addqualdetectslot(self, *even):
         if int(even[1]) > self.n_qualitytreenum:
@@ -87,7 +94,19 @@ class GuleParam(KxBaseParamWidget):
         else:
             for n_i in range(int(even[1]), self.n_qualitytreenum):
                 self.p.param('质量检查标准', '质量检查标准' + str(n_i)).hide()
+
         self.n_qualitytreenum = int(even[1])
+
+    def _add_checkarea(self, *even):
+        if int(even[1]) > self.n_checkarea:
+            for n_i in range(int(even[1])):
+                self.p.param('检测区域' + str(n_i)).show()
+                self.p.param('检测区域' + str(n_i), '检测区域').isShow(True)
+        else:
+            for n_i in range(int(even[1]), self.n_checkarea):
+                self.p.param('检测区域' + str(n_i)).hide()
+                self.p.param('检测区域' + str(n_i), '检测区域').isShow(False)
+        self.n_checkarea = int(even[1])
 
 
     def recmsg(self, n_stationid, n_msgtype, tuple_data):
@@ -98,29 +117,46 @@ class GuleParam(KxBaseParamWidget):
         # if n_msgtype == imc_msg.MSG_SEND_REAL_TIME_IMAGE:
         #     self.ReceiveImages(tuple_data[0])
 
-    def appendqualityinspectionstandards(self, dict_params):
-        '''
-        判废标准模块
-        '''
-        # tip 取决子站主站共同定义的json文件
-        s_tip = u'x[0]-点数\nx[1]-能量\nx[2]-左上X\nx[3]-左上Y\nx[4]-缺陷宽\nx[5]-缺陷高\n'
-        self.n_maxstandardnum = 12
-        list_standardschildrenitems = [
-            {'name': '检查标准组数', 'type': 'int', 'value': self.n_qualitytreenum, 'step': 1,
-             'limits': (0, self.n_maxstandardnum)}
-        ]
-        for i in range(0, self.n_maxstandardnum):
+    # def appendqualityinspectionstandards(self, dict_params):
+    #     '''
+    #     判废标准模块
+    #     '''
+    #     # tip 取决子站主站共同定义的json文件
+    #     s_tip = u'x[0]-点数\nx[1]-能量\nx[2]-左上X\nx[3]-左上Y\nx[4]-缺陷宽\nx[5]-缺陷高\n'
+    #     self.n_maxstandardnum = 12
+    #     list_standardschildrenitems = [
+    #         {'name': '检查标准组数', 'type': 'int', 'value': self.n_qualitytreenum, 'step': 1,
+    #          'limits': (0, self.n_maxstandardnum)}
+    #     ]
+    #     for i in range(0, self.n_maxstandardnum):
+    #         list_standardschildrenitems.append(
+    #         {'name': '质量检查标准' + str(i), 'type': 'group', 'expanded': False, 'visible': False, 'children': [
+    #         {'name': '缺陷名', 'type': 'str', 'value': 'defectErr', 'visible': True},
+    #         # {'name': '判废数', 'type': 'int', 'value': 1, 'step': 1, 'limits': (0, 4), 'visible': True},
+    #         {'name': '表达式', 'type': 'kxtext', 'value': 'x[1]>100', 'tip': s_tip, 'visible': True},]}
+    #     )
+    #
+    #
+    #     dict_standardsitem = {'name': '质量检查标准', 'type': 'group',
+    #                           'children': list_standardschildrenitems}
+    #     dict_params.append(dict_standardsitem)
+
+    def _append_checkarea_param(self, dict_params):
+        list_standardschildrenitems = []
+        for i in range(0, self._MAX_ROI_NUM):
             list_standardschildrenitems.append(
-            {'name': '质量检查标准' + str(i), 'type': 'group', 'expanded': False, 'visible': False, 'children': [
-            {'name': '缺陷名', 'type': 'str', 'value': 'defectErr', 'visible': True},
-            # {'name': '判废数', 'type': 'int', 'value': 1, 'step': 1, 'limits': (0, 4), 'visible': True},
-            {'name': '表达式', 'type': 'kxtext', 'value': 'x[1]>100', 'tip': s_tip, 'visible': True},]}
-        )
+                {'name': '检测区域' + str(i), 'type': 'group', 'expanded': False, 'visible': False, 'children': [
+                    {'name': u'检测区域', 'type': 'roiwithtext', 'value': {"isShow": False, "pos": u"0,0,100,100"},
+                      "roi_opt": {"word": '检测区域'+ str(i), "scaleable": True, 'pen':3}, "infovisible": False},
+                    {'name': u'扫描组号', 'type': 'list', 'values': {'0': 0, '1': 1, '2':2, '3':3, '4':4, '5':5},
+                     'value': 0},
+                    {'name': u'扫描方向', 'type': 'list', 'values': {'纵向': 0, '横向': 1}, 'value': 0},
+                    {'name': '提取异物灰度', 'type': 'int', 'value': 100, 'limits': [0, 255]},
+                    {'name': '异物最小点数', 'type': 'int', 'value': 20, 'limits': [0, 20000]},
+                ]}
 
-
-        dict_standardsitem = {'name': '质量检查标准', 'type': 'group',
-                              'children': list_standardschildrenitems}
-        dict_params.append(dict_standardsitem)
+            )
+        dict_params.extend(list_standardschildrenitems)
 
 
 registerkxwidget(name='GuleParam', cls=GuleParam, override=True)

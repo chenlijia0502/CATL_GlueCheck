@@ -187,6 +187,8 @@ class Ui_MainStation_lunzhuan(object):
         self.label_6.setStyleSheet("color: rgb(255, 255, 255);")
         self.label_6.setObjectName("label_6")
         self.horizontalLayout_4.addWidget(self.widget_7)
+        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_4.addItem(spacerItem1)
         self.label_4 = QtWidgets.QLabel(self.widget_top)
         font = QtGui.QFont()
         font.setFamily("Agency FB")

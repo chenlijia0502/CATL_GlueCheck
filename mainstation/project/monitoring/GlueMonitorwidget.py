@@ -93,7 +93,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
 
     def _click2showdefectpos(self, img, BIG_ID, id):
-        self.imgitem.setImage(img)
+        self.imgitem.setImage(img, autoLevels=False)
         self.plotframe([], self.frameitem)
         if BIG_ID in self.dict_showpos:
             list_pos = self.dict_showpos[BIG_ID]
@@ -135,6 +135,9 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
     def clear(self):
         self.dict_showpos = {}
         self.n_curid = None
+        self.plot.clear()
+        self.list_defectwidgt.clear()
+        self.imgitem.clear()
 
 #print ('hone')
 

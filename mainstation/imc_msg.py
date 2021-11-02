@@ -29,7 +29,8 @@ class GlobalMsgSend:
 
     MSG_CLOSECAMERA = 1090#关闭海康相机
 
-
+    MSG_ENDMOVE = 255
+    MSG_ENDALLMOVE = 256
 
 
 """

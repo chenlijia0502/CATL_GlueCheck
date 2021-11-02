@@ -11,6 +11,7 @@
 //#include "Result.CheckResultInfo.pb.h"
 #include "BaseCheckMethod.h"
 #include "json.h"
+#include "GlueCheck.h"
 
 using namespace tbb;
 

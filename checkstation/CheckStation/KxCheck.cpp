@@ -177,20 +177,100 @@ bool CKxCheck::ReadReadJudgeStandardParaByXml(const char* lpszFile, int nIndex)
 
 bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 {
-	//
-	//std::string szResult;
-	//int nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测设置", "提取异物灰度", szResult);
-	//if (!nSearchStatus)
-	//{
-	//	sprintf_s(ErrorInfo, 256, "提取异物灰度");
-	//	return false;
-	//}
+	
+	std::string szResult;
+	int nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测区域数量", szResult);
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "检测区域数量");
+		return false;
+	}
 
-	//int nStatus = KxXmlFun2::FromStringToInt(szResult, m_nthresh);
-	//if (!nStatus)
-	//{
-	//	return false;
-	//}
+	int nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.m_nROINUM);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+	for (int nindex = 0; nindex < m_param.m_nROINUM; nindex++)
+	{
+		char name[64];
+
+		memset(name, 0, 64);
+
+		sprintf_s(name, "检测区域%d", nindex);
+
+		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "检测区域", "pos", szResult);
+		
+		if (!nSearchStatus)
+		{
+			sprintf_s(ErrorInfo, 256, "检测区域");
+			return false;
+		}
+
+		nStatus = KxXmlFun2::FromStringToKxRect(szResult, m_param.params[nindex].m_rcCheckROI);
+		if (!nStatus)
+		{
+			return false;
+		}
+
+		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "扫描组号", szResult);
+
+		if (!nSearchStatus)
+		{
+			sprintf_s(ErrorInfo, 256, "扫描组号");
+			return false;
+		}
+
+		nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.params[nindex].m_nGrabTimes);
+		if (!nStatus)
+		{
+			return false;
+		}
+
+		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "扫描方向", szResult);
+
+		if (!nSearchStatus)
+		{
+			sprintf_s(ErrorInfo, 256, "扫描方向");
+			return false;
+		}
+
+		nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.params[nindex].m_nGrabDirection);
+		if (!nStatus)
+		{
+			return false;
+		}
+
+		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "提取异物灰度", szResult);
+
+		if (!nSearchStatus)
+		{
+			sprintf_s(ErrorInfo, 256, "提取异物灰度");
+			return false;
+		}
+
+		nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.params[nindex].m_ndefectthresh);
+		if (!nStatus)
+		{
+			return false;
+		}
+
+		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "异物最小点数", szResult);
+
+		if (!nSearchStatus)
+		{
+			sprintf_s(ErrorInfo, 256, "异物最小点数");
+			return false;
+		}
+
+		nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.params[nindex].m_ndefectdots);
+		if (!nStatus)
+		{
+			return false;
+		}
+
+	}
 
 }
 
@@ -755,6 +835,10 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	}
 	else
 	{
+		//模拟跑使用单个
+
+		m_hCheckTools[0]->SetParam(&m_param.params[0]);
+
 		m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_TransferImage, m_DstImg, m_hCheckResult[0]);
 	}
 

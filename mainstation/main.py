@@ -16,6 +16,7 @@ import logging
 import time
 from multiprocessing import freeze_support
 from ctypes import *
+from project.other.SerialProcess import CreateSerialProcess
 
 """
     基本的配置
@@ -51,9 +52,12 @@ def killclient(port=8888):
 def setup_hardwareprocess(dict_config):
     """启动硬件通信进程"""
     #TODO 这里写的不好的一点在于不能选择硬件通信方式，后面要完善
-    hardwareudp = CreateHardwareUDPClient(dict_config['softwareaddress'], dict_config['machineaddress'],
-                                          dict_config['n_hardware_port'], dict_config['n_hardwarequeuelen'])
-    hardwareudp.start()
+    #hardwareudp = CreateHardwareUDPClient(dict_config['softwareaddress'], dict_config['machineaddress'],
+    #                                       dict_config['n_hardware_port'], dict_config['n_hardwarequeuelen'])
+    # hardwareudp.start()
+    hardwareserial = CreateSerialProcess(dict_config['hardwarecom'])
+    hardwareserial.start()
+
 
 def setup_communicateprocess(dict_config):
     """启动与子站通信的进程"""

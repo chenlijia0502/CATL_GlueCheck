@@ -8,6 +8,7 @@ from project.monitoring import * #这行import保证实时界面能够挂载
 from project.param import * #这行保证参数设置界面能挂载
 from project.param.ChipParametersetting import ChipParameterSetting
 from project.other.WorkList import WorkListWidget
+from library.ipc import ipc_tool
 
 class kxmainwindow(KXBaseMainWidget):
     def __init__(self, dict_config):
@@ -54,6 +55,7 @@ class kxmainwindow(KXBaseMainWidget):
 
     def _completeconnect(self):
         self.ui.toolButton_userlevel.clicked.connect(self.showpermissiondialog)
+        self.toolbutton_move.clicked.connect(self._ready2dotcheck)
 
     def _setlearnstatus(self):
         if self.ui.toolbtn_learn.isChecked():
@@ -83,3 +85,9 @@ class kxmainwindow(KXBaseMainWidget):
             self.ui.toolButton_userlevel.setText("IMD")
         else:
             self.ui.toolButton_userlevel.setText("管理员")
+
+    def _ready2dotcheck(self):
+        """启动点检或master"""
+        QtWidgets.QMessageBox.warning(self, "提示", "正在进行点检，请勿点击", QtWidgets.QMessageBox.Ok)
+        #让相机去某个固定位置拍照，然后相机进行识别甄选
+        #ipc_tool.sendmsghardware("test")
