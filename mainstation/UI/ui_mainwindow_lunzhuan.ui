@@ -194,9 +194,30 @@ border-image: url(res/mainpage_normal.png)
                 <pointsize>14</pointsize>
                </font>
               </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton#pushButton_worklist
+{background-color:transparent;border:0px;
+border-image: url(res/producerecord.png);
+}
+
+
+QPushButton:hover#pushButton_worklist
+ {background-color:transparent;border:0px;
+background-color:lightBlue;
+}
+
+QPushButton:checked#pushButton_worklist
+ { 
+background-color:lightBlue;border:0px;
+border-image: url(res/producerecord.png);
+
+}
+
+ 
+</string>
+              </property>
               <property name="text">
-               <string>生产
-记录</string>
+               <string/>
               </property>
              </widget>
             </item>

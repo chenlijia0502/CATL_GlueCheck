@@ -4,6 +4,7 @@ from PyQt5 import QtGui, QtWidgets
 from project.monitoring.ZSShowGridWidget import ZSImgListDetectWidget
 import pyqtgraph as pg
 from library.common.KxImageBuf import KxImageBuf
+from project.monitoring.WidgePos import WidgetEdgePos
 import json
 
 class GlueMonitorWidget(KxBaseMonitoringWidget):
@@ -32,6 +33,8 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.mapview = pg.GraphicsLayoutWidget()
         self.plot = self.mapview.addPlot()
         self.verticallayout.addWidget(self.mapview, 1)
+        self.widget_edgepos = WidgetEdgePos()
+        self.verticallayout.addWidget(self.widget_edgepos, 1)
         self.list_defectwidgt = ZSImgListDetectWidget(self)
         self.list_defectwidgt.setMaxGridNum(1000)
         self.list_defectwidgt.SigSelectDefect.connect(self._slotCellClick)

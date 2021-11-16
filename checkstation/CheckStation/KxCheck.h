@@ -163,6 +163,7 @@ private:
 
 	void JudgeWhichROI(const CKxCaptureImage& SrcCapImg);
 
+	void DotCheckImg(const kxCImageBuf& SrcImg);
 	
 public:
 	//检查一张卡片的全流程,包括预处理，处理

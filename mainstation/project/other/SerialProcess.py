@@ -7,18 +7,16 @@ import imc_msg
 import struct
 
 
-MSG_RUN = [0x01, 0x04, 0x02, 0x86, 0xA0, 0x00, 0x01] #给与Y方向运动长度
-MSG_STARTMOTOR = [0x01, 0x02, 0x02, 0x00, 0x00, 0x00]#启动Y方向电机
-MSG_RUNBACKY = [0x01, 0x04, 0x02, 0x79, 0x60, 0xFF, 0xFE] #给与Y方向反向脉冲长度
-MSG_STARTMOTORX = [0x01, 0x02, 0x01, 0x00, 0x00, 0x00]    #启动X方向电机
-MSG_RUNX = [0x01, 0x04, 0x01, 0xEA, 0x60, 0x00, 0x00]     #给与X方向运动长度
-MSG_RETURN = [0x01, 0x02, 0x00]
+
 
 
 class CreateSerialProcess(multiprocessing.Process):
+    _RECMSGLEN = 7
+    _BAURATE = 115200
     def __init__(self, scom):
         super(CreateSerialProcess, self).__init__()
-        self.queue_sendtohardware= ipc_tool.getqueue_hardware_send()#发送数据
+        self.queue_sendtohardware = ipc_tool.getqueue_hardware_send()#发送数据
+        self.queue_hardware_receive = ipc_tool.getqueue_hardware_rereceived()
         self.com = scom
         self.verticalTime = 0   #需要计算
         self.horizontalTime = 0 #次数一定
@@ -26,45 +24,71 @@ class CreateSerialProcess(multiprocessing.Process):
         self.list_queue_send = ipc_tool.getlist_queue_send(self)
 
 
-
-
     def run(self):
-        th = threading.Thread(target=self.serialThread)
-        th.start()
+        self.mySeria = serial.Serial(port=self.com, baudrate=self._BAURATE)# 波特率比较固定，没必要配置
+
+        thread_send = threading.Thread(target=self.serialThread)
+        thread_send.start()
+        thread_receive = threading.Thread(target=self.serialRecThread)
+        thread_receive.start()
 
     def serialThread(self):
-        self.mySeria = serial.Serial(port=self.com, baudrate=115200)# 波特率比较固定，没必要配置
-
         self.flag = 0
         while True:
             if self.mySeria.isOpen():
                 if self.queue_sendtohardware.empty() == False:
-
                     info = self.queue_sendtohardware.get()
+                    self.mySeria.write(info)
+                else:
+                    time.sleep(0.2)
+
+                    # self.verticalTime = info[0]
+                    # self.allorRoi = info[1]
+                    # #MSG_RUN = [1, 4, 2, 134, 160, 0, 1]
+                    #
+                    # if self.allorRoi == 0:#拍整张图, 传入参数是纵向扫描的次数
+                    #     self.verticalTime = 2
+                    #     for i in range(0, self.verticalTime):
+                    #         if i / 2 == 0 or i == 0:#偶数次，正方向走
+                    #             self.inputInstruction(MSG_RUN, MSG_STARTMOTOR)
+                    #             self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_ENDMOVE, '123')
+                    #         else:#奇数次，反方向0
+                    #             self.inputInstruction(MSG_RUNBACKY, MSG_STARTMOTOR)
+                    #             self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_ENDMOVE, '123')
+                    #         if i != self.verticalTime - 1: #最后一次不向y轴移动
+                    #             self.inputInstruction(MSG_RUNX, MSG_STARTMOTORX)
+                    #             #self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_ENDMOVE, '123')
+                    #     if self.verticalTime > 0:
+                    #         self.returnStartPoint(MSG_RETURN)
+                    # else:#拍ROI区域，传入起始的X轴坐标，和终止的X轴坐标
+                    #     #1,将位移的脉冲数修改成指令，先往X轴移动到roi的顶部
+                    #     self.inputInstruction(MSG_RUN, MSG_STARTMOTOR)
+                    # self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_ENDALLMOVE, '123')#整个流程结束，开始上传拼接的图
+
+    def serialRecThread(self):
+        while True:
+            if self.mySeria.isOpen():
+                data = self.mySeria.read(self._RECMSGLEN)
+                print ("com3 receive data: ",self.str_to_hex(data))
+                self.queue_hardware_receive.put(data)
+            else:
+                time.sleep(0.2)
 
 
-                    self.verticalTime = info[0]
-                    self.allorRoi = info[1]
-                    #MSG_RUN = [1, 4, 2, 134, 160, 0, 1]
 
-                    if self.allorRoi == 0:#拍整张图, 传入参数是纵向扫描的次数
-                        self.verticalTime = 2
-                        for i in range(0, self.verticalTime):
-                            if i / 2 == 0 or i == 0:#偶数次，正方向走
-                                self.inputInstruction(MSG_RUN, MSG_STARTMOTOR)
-                                self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_ENDMOVE, '123')
-                            else:#奇数次，反方向0
-                                self.inputInstruction(MSG_RUNBACKY, MSG_STARTMOTOR)
-                                self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_ENDMOVE, '123')
-                            if i != self.verticalTime - 1: #最后一次不向y轴移动
-                                self.inputInstruction(MSG_RUNX, MSG_STARTMOTORX)
-                                #self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_ENDMOVE, '123')
-                        if self.verticalTime > 0:
-                            self.returnStartPoint(MSG_RETURN)
-                    else:#拍ROI区域，传入起始的X轴坐标，和终止的X轴坐标
-                        #1,将位移的脉冲数修改成指令，先往X轴移动到roi的顶部
-                        self.inputInstruction(MSG_RUN, MSG_STARTMOTOR)
-                    self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_ENDALLMOVE, '123')#整个流程结束，开始上传拼接的图
+    def str_to_hex(self, data):
+        sdata = str(data)[2:-1]
+        list_data = sdata.split('\\x')
+        list_hex = []
+        for strdata in list_data:
+            if strdata != '':
+                list_hex.append(int(strdata, 16))
+        return list_hex
+        # print (str(data)[2:-1])
+        # print (len(data))
+        # list_result = struct.unpack("7h", data)
+        # print (list_result)
+        # return list_result
 
 
     def length2instruction(self, length, xOrY):
@@ -93,7 +117,7 @@ class CreateSerialProcess(multiprocessing.Process):
             step1 = self.mySeria.inWaiting()
             if step1 > 6:
                 a1 = self.mySeria.read(step1)
-                print('step1', step1, a1)
+                #print('step1', step1, a1)
                 time.sleep(2)
                 self.mySeria.write(startmotor)
                 while True:

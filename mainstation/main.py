@@ -89,7 +89,7 @@ if __name__ == "__main__":
     except Exception as e:
         pass
 
-    dll = cdll.LoadLibrary("res\\UI_key.dll") # 加密狗加密
+    #dll = cdll.LoadLibrary("res\\UI_key.dll") # 加密狗加密
 
 
     app = QtWidgets.QApplication([])
@@ -102,12 +102,12 @@ if __name__ == "__main__":
         if dialog_login.getstatus() is True:
             dict_config = readconfig.readconfig(MAINSTATION_CONFIG)
             ipc_tool.setsubstationipc(len(dict_config['substation']))
-            ipc_tool.createhardwareipc(int(dict_config['n_hardwarequeuelen']))
+            ipc_tool.createhardwareipc(-1)
             ipc_tool.createglobalparam()
 
             killclient(int(dict_config['substationport']))
 
-            setup_hardwareprocess(dict_config)
+            #setup_hardwareprocess(dict_config)
 
             setup_communicateprocess(dict_config)
 

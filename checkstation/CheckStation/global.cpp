@@ -14,4 +14,6 @@ int		g_grabHeight;							//采集图高
 
 GrabStatus     g_Grabstatus;						//采集方向
 
+bool g_bdotcheckstatus;//点检状态
+
 

@@ -76,27 +76,10 @@ enum MessageType
 	MSG_LEARN_ONE_COMPLETED		= 1009, //单张学习完成
 
 
-	//MSG_SET_RESIIDUE            = 1010,	//设置残差图和偏移值参数
-	//MSG_GET_RESIIDUE            = 1011,
+	MSG_DOT_CHECK_OPEN = 4001,//开启点检
+	MSG_DOT_CHECK_CLOSE = 4002,//关闭点检
+	MSG_DOT_CHECK_RESULT = 4100,//点检检测结果
 
-	
-	//MSG_PARAM_TemplateImg       = 1017,  //模板学习完成
-
-	//MSG_TRIGGLE_CAMERA          = 1018,  //给相机触发
-	//
-	//MSG_GET_LEARN_PAGES         = 1019,   //主站问子站要学习张数
-	//MSG_SEND_LEARN_PAGES        = 1020,   //子站发主站学习张数
-
-	//
-
-	//MSG_ADJUST_CAMERA			= 1023,  //相机自动调焦，获取关键信息值
-	//MSG_ADJUST_CAMERA_RESULT	= 1024,  //相机自动调焦，获取关键信息值
-	//MSG_ADJUST_CAMERA_DONE		= 1043,  //相机自动调焦终止
-
-	//MSG_CONTROL_SLIDEMOTOR		=1025,   //硬件通信改为主站走UDP
-	//MSG_CANNOT_FOCUS			= 1027,  //无法聚焦
-
-	//MSG_CHANGE_ADJUST_MOTOR_STATUS = 1044, //改变切换调焦状态，也即自动还是手动
 
 };
 
@@ -153,6 +136,8 @@ extern int	g_grabWidth;							//采集图宽
 extern int	g_grabHeight;							//采集图高
 
 extern GrabStatus  g_Grabstatus;					//采集状态
+
+extern bool g_bdotcheckstatus;//点检状态
 
 
 class CKxCaptureImage

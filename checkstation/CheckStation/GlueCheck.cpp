@@ -48,7 +48,6 @@ bool CGlueCheck::ReadParamXml(const char* filePath, char *ErrorInfo, const char 
 
 }
 
-
 void CGlueCheck::checkcolordiff(const kxCImageBuf& SrcImg)
 {
 	/*
@@ -57,10 +56,50 @@ void CGlueCheck::checkcolordiff(const kxCImageBuf& SrcImg)
 	  思路一：	G通道与R通道差值，分块进行搜索，判断该块中值大于某个值的数量
 		
 	  思路二：  学习一块区域的高、低
+
+	  思路三： 	// 用库里的方法，检测色差
+
 	*/
 
+	cv::Mat img;
 
-	// 用库里的方法，检测色差
+	m_hFun.KxImageBufToMat(SrcImg, img);
+	
+	cv::Mat hsv[3], bgr[3], hsvimg;
+
+	cv::cvtColor(img, hsvimg, cv::COLOR_BGR2HSV);
+
+	cv::split(img, bgr);
+
+	cv::split(hsvimg, hsv);
+
+	cv::Mat g_b, kernel, dilateimg, erodeimg;
+
+	cv::subtract(bgr[1], bgr[0], g_b);
+
+	kernel = cv::Mat(5, 5, CV_32SC1, cv::Scalar(1));
+
+	cv::erode(g_b, erodeimg, kernel);
+
+	kernel = cv::Mat(7, 7, CV_32SC1, cv::Scalar(1));
+
+	cv::dilate(erodeimg, dilateimg, kernel);
+
+	cv::Mat threshimg, threshimg1;
+
+	cv::threshold(dilateimg, threshimg, 100, 255, cv::THRESH_OTSU);
+
+	static int nindex = 0;
+
+	char path[64];
+
+	sprintf_s(path, "d:\\%d.bmp", nindex);
+
+	cv::imwrite(path, threshimg);
+
+	nindex++;
+
+	//cv::threshold(dilateimg, threshimg1, 8, 255, cv::THRESH_BINARY);
 
 }
 
@@ -128,6 +167,8 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, Json::Valu
 	//		checkresult["defect feature"].append(single);
 	//	}
 	//}
+
+	checkcolordiff(SrcImg);
 
 	cv::Mat srcmat;
 

@@ -165,6 +165,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	::SetUnhandledExceptionFilter(GPTUnhandledExceptionFilter);
 
 	g_Environment.ReadSystemParam();
+	g_bdotcheckstatus = false;
 
 	Graber::g_GetGrabPack().InitCamera();
 	bool bInitIsOk = Graber::g_GetGrabPack().Init();

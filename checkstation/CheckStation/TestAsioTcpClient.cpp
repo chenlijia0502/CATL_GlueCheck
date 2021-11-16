@@ -174,6 +174,12 @@ void CTestAsioTcpClient::OnRecvData(int nStationID, const unsigned char* pData, 
 					GetA();
 					break;
 
+				case MSG_DOT_CHECK_OPEN:
+					g_bdotcheckstatus = true;
+					break;
+				case MSG_DOT_CHECK_CLOSE:
+					g_bdotcheckstatus = false;
+					break;
 				default:
 					break;
 

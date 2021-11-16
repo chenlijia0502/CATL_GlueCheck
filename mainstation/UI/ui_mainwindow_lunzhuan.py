@@ -109,6 +109,27 @@ class Ui_MainStation_lunzhuan(object):
         font.setFamily("Algerian")
         font.setPointSize(14)
         self.pushButton_worklist.setFont(font)
+        self.pushButton_worklist.setStyleSheet("QPushButton#pushButton_worklist\n"
+"{background-color:transparent;border:0px;\n"
+"border-image: url(res/producerecord.png);\n"
+"}\n"
+"\n"
+"\n"
+"QPushButton:hover#pushButton_worklist\n"
+" {background-color:transparent;border:0px;\n"
+"background-color:lightBlue;\n"
+"}\n"
+"\n"
+"QPushButton:checked#pushButton_worklist\n"
+" { \n"
+"background-color:lightBlue;border:0px;\n"
+"border-image: url(res/producerecord.png);\n"
+"\n"
+"}\n"
+"\n"
+" \n"
+"")
+        self.pushButton_worklist.setText("")
         self.pushButton_worklist.setObjectName("pushButton_worklist")
         self.horizontalLayout_2.addWidget(self.pushButton_worklist)
         self.pbt_paramset = QtWidgets.QPushButton(self.widget_5)
@@ -465,8 +486,6 @@ class Ui_MainStation_lunzhuan(object):
         _translate = QtCore.QCoreApplication.translate
         MainStation_lunzhuan.setWindowTitle(_translate("MainStation_lunzhuan", "Form"))
         self.label_2.setText(_translate("MainStation_lunzhuan", "涂胶气泡检查"))
-        self.pushButton_worklist.setText(_translate("MainStation_lunzhuan", "生产\n"
-"记录"))
         self.label_5.setText(_translate("MainStation_lunzhuan", "软件版本：V1.0"))
         self.label_6.setText(_translate("MainStation_lunzhuan", "操作用户：CATL"))
         self.label_4.setText(_translate("MainStation_lunzhuan", "权\n"
