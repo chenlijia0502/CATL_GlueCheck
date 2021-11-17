@@ -51,9 +51,12 @@ MSG_LOG = 1016 #日志
 MSG_A = 2022
 MSG_LEARN_ONE_COMPLETED = 1009
 
+MSG_BUILD_MODEL = 401 # 建模界面触发
+MSG_BUILD_MODEL_IMG = 402 #子站发送回来的建模图像
+
 list_monitoring_module = [MSG_CHECK_RESULT, MSG_A]  # 实时显示界面
 list_params_module = [MSG_SEND_REAL_TIME_IMAGE, MSG_LEARN_ONE_COMPLETED] #参数设置界面
-list_mainwindow_module = [MSG_START_CHECK_IS_READY, MSG_CAMERA_IS_READY, MSG_CHECK_RESULT]#主界面
+list_mainwindow_module = [MSG_START_CHECK_IS_READY, MSG_CAMERA_IS_READY, MSG_CHECK_RESULT, MSG_BUILD_MODEL]#主界面
 
 
 
@@ -114,5 +117,20 @@ class RUNFLAG:
     OFFLINERUN = 2 #离线运行状态是2
 
 
+class HARDWAREBASEMSG:
+    """
+    下位机通信
+    """
+    MSG_REBACKMOTOR_X = [0x01, 0x02, 0x01, 0x02, 0x00, 0x00, 0x00]
 
+    MSG_REBACKMOTOR_Y = [0x01, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00]
 
+    MSG_REBACKMOTOR_XY = [0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+    MSG_STARTMOTOR_X = [0x01, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00]
+
+    MSG_STARTMOTOR_Y = [0x01, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00]
+
+    MSG_MOTOR_X_BASEMOVE = [0x01, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00]
+
+    MSG_MOTOR_Y_BASEMOVE = [0x01, 0x04, 0x02, 0x00, 0x00, 0x00, 0x00]

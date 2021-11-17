@@ -1,3 +1,7 @@
+import time
+import threading
+import logging
+import serial
 from library.mainwindow.BaseMainWindow import KXBaseMainWidget
 from PyQt5 import QtGui,QtCore,QtWidgets
 from PyQt5.QtWidgets import QWidget
@@ -10,11 +14,11 @@ from project.param.ChipParametersetting import ChipParameterSetting
 from project.other.WorkList import WorkListWidget
 from project.mainwindow.DotCheckResultWidget import DotCheckResultWidget
 from library.ipc import ipc_tool
-import time
-import threading
-import serial
+from project.mainwindow.ControlManager import ControlManager
+
 
 class kxmainwindow(KXBaseMainWidget):
+    _BAUDRATE = 115200
     def __init__(self, dict_config):
         super(kxmainwindow, self).__init__(dict_config)
         self.widget_Realtime = KxBaseMonitoringWidget.create(name=dict_config["mointoringwidget_classname"], h_parent=self)
@@ -23,8 +27,8 @@ class kxmainwindow(KXBaseMainWidget):
         self.widget_permission = kxprivilege_management()#权限管理
         self.widge_worklist = WorkListWidget(self)
 
-        #self.mySeria = serial.Serial(port="COM3", baudrate=115200)# 波特率比较固定，没必要配置
-
+        self.mySeria = serial.Serial(port=dict_config['hardwarecom'], baudrate=self._BAUDRATE)# 波特率比较固定，没必要配置
+        self.h_control = ControlManager(self)
 
         self._initstackwidget([self.ui.pbt_realtime, self.ui.pbt_paramset, self.ui.pbt_logview, self.ui.pushButton_worklist],
                               [self.widget_Realtime, self.widget_Paramsetting, self.widget_runlog, self.widge_worklist])
@@ -70,8 +74,8 @@ class kxmainwindow(KXBaseMainWidget):
 
     def _completeconnect(self):
         self.ui.toolButton_userlevel.clicked.connect(self.showpermissiondialog)
-        self.toolbutton_move.clicked.connect(self._ready2dotcheck)
-        self.toolbutton_test.clicked.connect(self._ready2show_machine_move)
+        # self.toolbutton_move.clicked.connect(self._ready2dotcheck)
+        # self.toolbutton_test.clicked.connect(self._ready2show_machine_move)
 
 
     def _setlearnstatus(self):
@@ -103,6 +107,31 @@ class kxmainwindow(KXBaseMainWidget):
         else:
             self.ui.toolButton_userlevel.setText("管理员")
 
+    def recmsg(self, n_stationid, n_msgtype, s_extdata=b''):
+        '''
+        每个界面文件初始化时都设置父窗口成员变量，并在本窗口加此方法，目的是不耦合的给子站发送消息。
+        '''
+        super(kxmainwindow, self).recmsg(n_stationid, n_msgtype, s_extdata)
+        # if n_msgtype == imc_msg.MSG_DOT_CHECK_RESULT:
+        #     self.dialog = DotCheckResultWidget()
+        #     self.dialog.setvalue(0.103, 0.987)
+        #     self.dialog.show()
+        #     self.dialog.exec_()
+        if n_msgtype == imc_msg.MSG_BUILD_MODEL:
+            ipc_tool.kxlog("主站", logging.INFO, "开始全局拍摄建模")
+            self.serial_Reconnect()
+            self.h_control.setserial(self.mySeria)
+            self.h_control.buildmodel(s_extdata)
+
+
+    def serial_Reconnect(self):
+        """
+        保障串口一定是打开状态
+        :return:
+        """
+        if not self.mySeria.isOpen():
+            self.mySeria = serial.Serial(port=self.dict_config['hardwarecom'], baudrate=self._BAUDRATE)
+
     def _ready2dotcheck(self):
         """启动点检或master"""
         #QtWidgets.QMessageBox.warning(self, "提示", "正在进行点检，请勿点击", QtWidgets.QMessageBox.Ok)
@@ -117,214 +146,9 @@ class kxmainwindow(KXBaseMainWidget):
         t = threading.Thread(target=self._controlmachine)
         t.start()
 
-    def translatedis2hex(self, nmovedis):
-        """
-            将移动距离转换为hex ->  转换为两个十六进制
-            例如0x27eab: VALUE1为0x7e,VALUE2为0xab,VALUE3为0x00,VALUE4为0x02,
-        :param nmovedis:
-        :return:
-        """
-        nmovedis = int(nmovedis)
-        smalldata = nmovedis % 65536
-        bigdata = int(nmovedis / 65536)
 
-        VALUE1 = int(smalldata / 256)
-        VALUE2 = smalldata % 256
-        VALUE3 = int(bigdata / 256)
-        VALUE4 = bigdata % 256
+    def openCamera(self):
+        pass#发送给子站，通知打开相机采集图像，并把采集图像返回
 
-        return [VALUE1, VALUE2, VALUE3, VALUE4]
-
-    def str_to_hex(self, data):
-        sdata = str(data)[2:-1]
-        list_data = sdata.split('\\x')
-        list_hex = []
-        for strdata in list_data:
-            if strdata != '':
-                list_hex.append(int(strdata, 16))
-        return list_hex
-
-    def _clear_hardware_recqueue(self):
-        self.mySeria.reset_input_buffer()
-        # while(1):
-        #     if ipc_tool.getqueue_hardware_rereceived().empty() == True:
-        #         break
-        #     else:
-        #         ipc_tool.getqueue_hardware_rereceived().get()
-
-    def _waitfor_hardware_queue_result(self):
-        return
-        # data = self.mySeria.read(7)
-        # return self.str_to_hex(data)
-
-        # while(1):
-        #     if ipc_tool.getqueue_hardware_rereceived().empty() == False:
-        #         list_data = ipc_tool.getqueue_hardware_rereceived().get()
-        #         return list_data
-        #     else:
-        #         time.sleep(0.2)
-
-    def _rebackXY(self):
-        self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_X)
-
-        self._waitfor_hardware_queue_result()
-
-        self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
-
-        self._waitfor_hardware_queue_result()
-
-    def _control_calibrate(self):
-
-        self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_DOT_CHECK_OPEN)
-
-        # 1. 复位
-        self._rebackXY()
-
-        # 2. 移动到标定块位置
-        movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
-
-        movemsgy[3:] = [0x7f, 0xff, 0x00, 0x00]
-
-        ipc_tool.sendmsghardware(movemsgy)
-
-        time.sleep(0.1)
-
-        ipc_tool.sendmsghardware(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
-
-        movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
-
-        movemsgx[3:] = [0x7f, 0xff, 0x00, 0x00]
-
-        ipc_tool.sendmsghardware(movemsgx)
-
-        time.sleep(0.1)
-
-        ipc_tool.sendmsghardware(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
-
-        # 3. 开启检测
-        self.ui.toolbtn_onlinerun.setChecked(True)
-
-        self._onlinerun()
-
-        # 4. 往前走一段采集，触发采集
-        movemsgy[3:] = self.translatedis2hex(200 / 0.01)
-
-        ipc_tool.sendmsghardware(movemsgy)
-
-        time.sleep(0.1)
-        self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_DOT_CHECK_CLOSE)
-
-
-
-    def _controlmachine(self):
-
-        # 发送启动命令 #
-
-
-        # 循环等待控制完成
-
-        # while(1):
-        #     data = self.mySeria.read(7)
-        #     list_data = self.str_to_hex(data)
-        #     if list_data == imc_msg.HARDWAREBASEMSG.MSG_DUIWEI_QIGANG_DONE:# 对位气缸对位成功
-        #         break
-
-        # 1. 复位
-        #self._rebackXY()
-
-        print ("复位")
-        time.sleep(0.1)
-
-        #2. y轴前进
-        movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
-
-        movemsgy[3:] = self.translatedis2hex(int(2500/0.01))
-
-        self.mySeria.write(movemsgy)
-
-        self._waitfor_hardware_queue_result()
-
-        time.sleep(0.1)
-
-        self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
-        print ("Y轴移动")
-
-        self._waitfor_hardware_queue_result()
-
-        self._waitfor_hardware_queue_result()
-        time.sleep(20)
-
-        # 这里将读取到位信息，看到位会收到什么信息 #
-
-        # 3. x轴移动
-        movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
-
-        list_movx = self.translatedis2hex(int(300/0.01))
-
-        movemsgx[3:] = list_movx
-
-        self.mySeria.write(movemsgx)
-
-        self._waitfor_hardware_queue_result()
-
-        time.sleep(0.1)
-
-        self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
-        print ("x轴移动")
-
-        self._waitfor_hardware_queue_result()
-
-        self._waitfor_hardware_queue_result()
-
-        time.sleep(5)
-
-        # 4. y轴移动
-
-        self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
-        self._waitfor_hardware_queue_result()
-        time.sleep(20)
-
-        # 判断y轴移动到上限位 #
-
-        # 5. x轴移动
-
-        self.mySeria.write(movemsgx)
-
-        self._clear_hardware_recqueue()
-
-        time.sleep(0.1)
-
-        self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
-        print ("x轴移动")
-        time.sleep(5)
-
-        self._waitfor_hardware_queue_result()
-
-        # 判断x移动到位 #
-
-        # 6. y轴移动
-        movemsgy[3:] = self.translatedis2hex(2500/0.01)
-
-        self.mySeria.write(movemsgy)
-
-        self._clear_hardware_recqueue()
-
-        time.sleep(0.1)
-
-        self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
-        print ("y轴移动")
-
-        self._waitfor_hardware_queue_result()
-
-
-    def recmsg(self, n_stationid, n_msgtype, s_extdata=b''):
-        '''
-        每个界面文件初始化时都设置父窗口成员变量，并在本窗口加此方法，目的是不耦合的给子站发送消息。
-        '''
-        super(kxmainwindow, self).recmsg(n_stationid, n_msgtype, s_extdata)
-
-        if n_msgtype == imc_msg.MSG_DOT_CHECK_RESULT:
-            self.dialog = DotCheckResultWidget()
-            self.dialog.setvalue(0.103, 0.987)
-            self.dialog.show()
-            self.dialog.exec_()
+    def closeCamera(self):
+        pass

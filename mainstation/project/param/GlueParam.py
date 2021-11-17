@@ -10,7 +10,8 @@ from kxpyqtgraph.kxparameterTree.KxCustomWidget import *
 from library.parametersetting.ParamItemPY.KxBaseWidget import KxBaseParamWidget, registerkxwidget
 from kxpyqtgraph.kxparameterTree.KxParameter import KxParameter
 from UI.ui_kxglobal1 import Ui_ParamPYLoadWidget
-from PIL import Image
+from library.ipc import ipc_tool
+import imc_msg
 # from pyqtgraph.imageview.ImageView import ImageView
 
 #节拍  分析
@@ -23,6 +24,7 @@ class GuleParam(KxBaseParamWidget):
               涂胶项目
     """
     _MAX_ROI_NUM = 32
+    _MAX_SCAN_NUM = 6
     def __init__(self, h_parentwidget, n_uid, n_areanum, n_stationid):
         KxBaseParamWidget.__init__(self,n_uid, n_areanum, n_stationid)
         self.h_parent = h_parentwidget
@@ -56,35 +58,35 @@ class GuleParam(KxBaseParamWidget):
                  'value': {"isShow": True}, "infovisible": True},
                 {'name': '底板路径', 'type':'str'},
             ]},
-            {'name': '相机信息', 'type': 'group', 'visible':False, 'children':[
-                {'name': '图像宽度', 'type': 'str', 'value': '2448'},
-                {'name': '图像高度', 'type': 'str', 'value': '2048'},
-                {'name': '纵向分辨率', 'type': 'str'},
-            ]},
-            {'name': '拍摄控制', 'type': 'group', 'children':[
-                {'name': '横向拍摄长度', 'type': 'int', 'value': 200, 'limits': [1, 5000]},
-                {'name': '纵向拍摄长度', 'type': 'int', 'value': 200, 'limits': [1, 5000]},
-                {'name': '横向拍摄张数', 'type': 'int', 'value': 5, 'limits': [1, 500]},
-                {'name': '纵向拍摄张数', 'type': 'int', 'value': 5, 'limits': [1, 500]},
-                {'name': '横向重叠行数', 'type': 'int', 'value': 0, 'limits': [1, 5000], 'visible':False},
-                {'name': '纵向重叠行数', 'type': 'int', 'value': 0, 'limits': [1, 5000], 'visible':False}
+            {'name': '全局拍摄控制', 'type': 'group', 'children':[
+                {'name': '相机横向像素数', 'type': 'int', 'value': 6000, 'limits': [1, 8192]},
+                {'name': '相机横向分辨率', 'type': 'float', 'value': 0.1, 'limits': [0, 1]},
+                {'name': '拍摄长度', 'type': 'int', 'value': 1000, 'limits': [0, 3000]},
+                {'name': '起拍位置', 'type': 'int', 'value': 0, 'limits':[0, 2000]},
+                {'name': '拍摄组数', 'type': 'int', 'value': 3, 'limits': [1, self._MAX_SCAN_NUM]},
+                {'name': u'全局取图', 'type': 'action'},
+                {'name': u'扫描区域取图', 'type': 'action'},
             ]},
             {'name': u'检测区域数量', 'type': 'int', 'value': 0, 'step': 1, 'limits': (0, self._MAX_ROI_NUM)},
-
+            {'name': u'显示图像', 'type':'list', 'values': {'组数一': 0, '组数二': 1, '组数三':2, '组数四':3,
+                                                        '组数五':4, '组数六':5}},
 
         ])
 
-        #self.appendqualityinspectionstandards(self.params)
+        self._append_scan_area(self.params)
         self._append_checkarea_param(self.params)
         self.p = KxParameter.create(name='params', type='group', children=self.params)
         self.h_parameterTree.setParameters(self.p, showTop=False)
         self.p.param(u'主站设置', u'图像信息').add2view(self.ui.h_gVShowRealImg, self.h_imgitem)
         for nindex in range(self._MAX_ROI_NUM):
              self.p.param(u'检测区域' + str(nindex), u'检测区域').add2view(self.view)
+        for nindex in range(self._MAX_SCAN_NUM):
+             self.p.param('扫描区域' , '扫描区域' + str(nindex)).add2view(self.view)
         self._initsignal()
 
     def _initsignal(self):
         self.p.param('检测区域数量').sigValueChanged.connect(self._add_checkarea)
+        self.p.param('全局拍摄控制', '全局取图').sigActivated.connect(self._captureimg)
 
 
     def _addqualdetectslot(self, *even):
@@ -108,39 +110,6 @@ class GuleParam(KxBaseParamWidget):
                 self.p.param('检测区域' + str(n_i), '检测区域').isShow(False)
         self.n_checkarea = int(even[1])
 
-
-    def recmsg(self, n_stationid, n_msgtype, tuple_data):
-        '''
-        接收子站发送过来的消息
-        '''
-        # import imc_msg
-        # if n_msgtype == imc_msg.MSG_SEND_REAL_TIME_IMAGE:
-        #     self.ReceiveImages(tuple_data[0])
-
-    # def appendqualityinspectionstandards(self, dict_params):
-    #     '''
-    #     判废标准模块
-    #     '''
-    #     # tip 取决子站主站共同定义的json文件
-    #     s_tip = u'x[0]-点数\nx[1]-能量\nx[2]-左上X\nx[3]-左上Y\nx[4]-缺陷宽\nx[5]-缺陷高\n'
-    #     self.n_maxstandardnum = 12
-    #     list_standardschildrenitems = [
-    #         {'name': '检查标准组数', 'type': 'int', 'value': self.n_qualitytreenum, 'step': 1,
-    #          'limits': (0, self.n_maxstandardnum)}
-    #     ]
-    #     for i in range(0, self.n_maxstandardnum):
-    #         list_standardschildrenitems.append(
-    #         {'name': '质量检查标准' + str(i), 'type': 'group', 'expanded': False, 'visible': False, 'children': [
-    #         {'name': '缺陷名', 'type': 'str', 'value': 'defectErr', 'visible': True},
-    #         # {'name': '判废数', 'type': 'int', 'value': 1, 'step': 1, 'limits': (0, 4), 'visible': True},
-    #         {'name': '表达式', 'type': 'kxtext', 'value': 'x[1]>100', 'tip': s_tip, 'visible': True},]}
-    #     )
-    #
-    #
-    #     dict_standardsitem = {'name': '质量检查标准', 'type': 'group',
-    #                           'children': list_standardschildrenitems}
-    #     dict_params.append(dict_standardsitem)
-
     def _append_checkarea_param(self, dict_params):
         list_standardschildrenitems = []
         for i in range(0, self._MAX_ROI_NUM):
@@ -158,6 +127,41 @@ class GuleParam(KxBaseParamWidget):
             )
         dict_params.extend(list_standardschildrenitems)
 
+    def _append_scan_area(self, dict_params):
+
+        list_standardschildrenitems = []
+        for i in range(0, self._MAX_SCAN_NUM):
+            list_standardschildrenitems.append(
+                {'name': u'扫描区域'+str(i), 'type': 'roiwithtext', 'value': {"isShow": False, "pos": u"0,0,100,100"},
+                 "roi_opt": {"word": '扫描区域'+str(i), "scaleable": True, 'pen': 3}, "infovisible": False},
+            )
+        dict_scan = {'name': '扫描区域', 'type': 'group', 'visible':False, 'children':list_standardschildrenitems}
+
+        dict_params.append(dict_scan)
+
+    def _captureimg(self):
+        nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
+        ndisX = int(int(self.p.param('全局拍摄控制', '相机横向像素数').value()) *
+                    float(self.p.param('全局拍摄控制', '相机横向分辨率').value()))
+        ndisY = int(self.p.param('全局拍摄控制', '拍摄长度').value())
+        nXtimes = int(self.p.param('全局拍摄控制', '拍摄列数').value())
+        ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL, [nStartX, ndisX, ndisY, nXtimes]))
+
+    def recmsg(self, n_stationid, n_msgtype, tuple_data):
+        '''
+        接收子站发送过来的消息
+        '''
+        if n_msgtype == imc_msg.MSG_BUILD_MODEL_IMG:
+            self._ReceiveBuildModeImg(tuple_data)
+
+    def _ReceiveBuildModeImg(self, tuple_data):
+        """
+        参考卷绕将图像拼接，并进行显示。而且需要注意当前接收是第几张，因为有个列数问题，按列拼接
+        并且把扫描区域ROI显示出来。后面根据这些扫描区域的位置，确定起拍位置
+        :param tuple_data:
+        :return:
+        """
+        pass
 
 registerkxwidget(name='GuleParam', cls=GuleParam, override=True)
 
