@@ -42,17 +42,29 @@ MSG_CHECK_RESULT = 1 # 检测结果
 MSG_SEND_REAL_TIME_IMAGE = 1015 #发送实时图像
 
 MSG_START_CHECK_IS_READY = 1021#开始检测初始化完成，包括加载参数等
+
 MSG_CAMERA_IS_READY = 1022#相机初始化完成，准备就绪
+
 MSG_CHECK_RESULT_BAD = 1026 #检查结果有坏的情况，让主站通知硬件
 
 MSG_LOG = 1016 #日志
 
-
 MSG_A = 2022
+
 MSG_LEARN_ONE_COMPLETED = 1009
 
+
 MSG_BUILD_MODEL = 401 # 建模界面触发
+
 MSG_BUILD_MODEL_IMG = 402 #子站发送回来的建模图像
+
+MSG_BUILD_MODEL_SECOND = 403 #建模二次确认触发
+
+MSG_BUILD_MODEL_IMG_SECOND = 404 #子站发送回来的二次建模图像
+
+MSG_JUST_OPENCAMERA_BUILDMODEL = 501 #只打开相机
+
+MSG_JUST_CLOSECAMERA_BUILDMODEL = 502 #只关闭相机
 
 list_monitoring_module = [MSG_CHECK_RESULT, MSG_A]  # 实时显示界面
 list_params_module = [MSG_SEND_REAL_TIME_IMAGE, MSG_LEARN_ONE_COMPLETED] #参数设置界面

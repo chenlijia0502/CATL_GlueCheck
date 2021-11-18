@@ -25,6 +25,7 @@ class GuleParam(KxBaseParamWidget):
     """
     _MAX_ROI_NUM = 32
     _MAX_SCAN_NUM = 6
+    _BUILD_MODEL_SCALE_FACTOR = 4#建模的时候对图像进行压缩，不然会卡顿
     def __init__(self, h_parentwidget, n_uid, n_areanum, n_stationid):
         KxBaseParamWidget.__init__(self,n_uid, n_areanum, n_stationid)
         self.h_parent = h_parentwidget
@@ -87,6 +88,7 @@ class GuleParam(KxBaseParamWidget):
     def _initsignal(self):
         self.p.param('检测区域数量').sigValueChanged.connect(self._add_checkarea)
         self.p.param('全局拍摄控制', '全局取图').sigActivated.connect(self._captureimg)
+        self.p.param('全局拍摄控制', '扫描区域取图').sigActivated.connect(self._captureimg_second)
 
 
     def _addqualdetectslot(self, *even):
@@ -140,6 +142,10 @@ class GuleParam(KxBaseParamWidget):
         dict_params.append(dict_scan)
 
     def _captureimg(self):
+        """
+        全局队列将参数送到界面，控制第一次全局拍照参数
+        :return:
+        """
         nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
         ndisX = int(int(self.p.param('全局拍摄控制', '相机横向像素数').value()) *
                     float(self.p.param('全局拍摄控制', '相机横向分辨率').value()))
@@ -147,14 +153,34 @@ class GuleParam(KxBaseParamWidget):
         nXtimes = int(self.p.param('全局拍摄控制', '拍摄列数').value())
         ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL, [nStartX, ndisX, ndisY, nXtimes]))
 
+    def _captureimg_second(self):
+        """
+        第二次采集全局参数，根据roi框的位置进行拍摄
+        :return:
+        """
+        nXtimes = int(self.p.param('全局拍摄控制', '拍摄列数').value())
+        list_posx = []
+        for i in range(nXtimes):
+            list_posx.append(self.p.param('扫描区域', '扫描区域' + str(i)).get_list_pos())
+        list_x = []
+        list_y = []
+        nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
+
+        for roipos in list_posx:
+            list_x.append(int((roipos[0] + roipos[2]) / 2 + nStartX))
+            list_y.append(int(roipos[3]))
+        ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL, [list_x, list_y]))
+
     def recmsg(self, n_stationid, n_msgtype, tuple_data):
         '''
         接收子站发送过来的消息
         '''
         if n_msgtype == imc_msg.MSG_BUILD_MODEL_IMG:
-            self._ReceiveBuildModeImg(tuple_data)
+            self._ReceiveBuildModelImg(tuple_data)
+        elif n_msgtype == imc_msg.MSG_BUILD_MODEL_IMG_SECOND:
+            self._ReceiveBuilModelImgSecond(tuple_data)
 
-    def _ReceiveBuildModeImg(self, tuple_data):
+    def _ReceiveBuildModelImg(self, tuple_data):
         """
         参考卷绕将图像拼接，并进行显示。而且需要注意当前接收是第几张，因为有个列数问题，按列拼接
         并且把扫描区域ROI显示出来。后面根据这些扫描区域的位置，确定起拍位置
@@ -162,6 +188,19 @@ class GuleParam(KxBaseParamWidget):
         :return:
         """
         pass
+
+
+    def _ReceiveBuilModelImgSecond(self, tuple_data):
+        """
+        接收图像进行二次建模。且图像根据扫描组数变为N张，可进行界面选择切换
+        :param tuple_data:
+        :return:
+        """
+        pass
+
+
+    def callback2changecol(self):
+        print ('callback2changecol')
 
 registerkxwidget(name='GuleParam', cls=GuleParam, override=True)
 

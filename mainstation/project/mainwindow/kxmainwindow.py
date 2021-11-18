@@ -74,8 +74,9 @@ class kxmainwindow(KXBaseMainWidget):
 
     def _completeconnect(self):
         self.ui.toolButton_userlevel.clicked.connect(self.showpermissiondialog)
+
         # self.toolbutton_move.clicked.connect(self._ready2dotcheck)
-        # self.toolbutton_test.clicked.connect(self._ready2show_machine_move)
+        self.toolbutton_test.clicked.connect(self.callback2changecol)
 
 
     def _setlearnstatus(self):
@@ -112,16 +113,19 @@ class kxmainwindow(KXBaseMainWidget):
         每个界面文件初始化时都设置父窗口成员变量，并在本窗口加此方法，目的是不耦合的给子站发送消息。
         '''
         super(kxmainwindow, self).recmsg(n_stationid, n_msgtype, s_extdata)
-        # if n_msgtype == imc_msg.MSG_DOT_CHECK_RESULT:
-        #     self.dialog = DotCheckResultWidget()
-        #     self.dialog.setvalue(0.103, 0.987)
-        #     self.dialog.show()
-        #     self.dialog.exec_()
         if n_msgtype == imc_msg.MSG_BUILD_MODEL:
             ipc_tool.kxlog("主站", logging.INFO, "开始全局拍摄建模")
             self.serial_Reconnect()
             self.h_control.setserial(self.mySeria)
-            self.h_control.buildmodel(s_extdata)
+            #self.h_control.buildmodel(s_extdata)
+            t = threading.Thread(target=self.h_control.buildmodel, args=s_extdata)
+            t.start()
+        elif n_msgtype == imc_msg.MSG_BUILD_MODEL_SECOND:
+            ipc_tool.kxlog("主站", logging.INFO, "开始二次建模拍摄")
+            self.serial_Reconnect()
+            self.h_control.setserial(self.mySeria)
+            t = threading.Thread(target=self.h_control.buildmodel, args=s_extdata)
+            t.start()
 
 
     def serial_Reconnect(self):
@@ -131,6 +135,16 @@ class kxmainwindow(KXBaseMainWidget):
         """
         if not self.mySeria.isOpen():
             self.mySeria = serial.Serial(port=self.dict_config['hardwarecom'], baudrate=self._BAUDRATE)
+
+
+    def callback2changecol(self):
+        """
+        回调告知已准备切换列，通知参数界面可进行新列图像拼接
+        :return:
+        """
+        self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2changecol')
+
+
 
     def _ready2dotcheck(self):
         """启动点检或master"""

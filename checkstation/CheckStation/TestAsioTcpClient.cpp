@@ -180,6 +180,13 @@ void CTestAsioTcpClient::OnRecvData(int nStationID, const unsigned char* pData, 
 				case MSG_DOT_CHECK_CLOSE:
 					g_bdotcheckstatus = false;
 					break;
+				case MSG_JUST_OPENCAMERA_BUILDMODEL:
+					RecMsgToOpenCamera_BuildModel(pExtData);
+					break;
+				case MSG_JUST_CLOSECAMERA_BUILDMODEL:
+					RecMsgToCloseCamera_BuildModel(pExtData);
+					break;
+
 				default:
 					break;
 
@@ -188,7 +195,6 @@ void CTestAsioTcpClient::OnRecvData(int nStationID, const unsigned char* pData, 
 	}
 	
 }
-
 
 void CTestAsioTcpClient::GetA()
 {
@@ -442,5 +448,14 @@ void CTestAsioTcpClient::RecMsgToChangeCameraParam(const unsigned char* pExtData
 	Config::GetGlobalParam().m_nExpoureTime = nExpoureTime;
 }
 
+void CTestAsioTcpClient::RecMsgToOpenCamera_BuildModel(const unsigned char* pExtData)
+{
+	// 打开相机
+}
+
+void CTestAsioTcpClient::RecMsgToCloseCamera_BuildModel(const unsigned char* pExtData)
+{
+
+}
 
 CTestAsioTcpClient* g_client ;
