@@ -6,12 +6,18 @@ import sys
 
 sys.path.append("../../../")
 import xmltodict
+import json
+import cv2
+import numpy as np
 from kxpyqtgraph.kxparameterTree.KxCustomWidget import *
 from library.parametersetting.ParamItemPY.KxBaseWidget import KxBaseParamWidget, registerkxwidget
 from kxpyqtgraph.kxparameterTree.KxParameter import KxParameter
 from UI.ui_kxglobal1 import Ui_ParamPYLoadWidget
 from library.ipc import ipc_tool
 import imc_msg
+from project.other.globalparam import StaticConfigParam
+from library.common.KxImageBuf import KxImageBuf
+from project.param.MergeImg import CMergeImg
 # from pyqtgraph.imageview.ImageView import ImageView
 
 #节拍  分析
@@ -33,6 +39,9 @@ class GuleParam(KxBaseParamWidget):
         self.ui.setupUi(self)
         self._initui()
         self._initparam()
+        self.fp = None
+        self.h_mergeobj = CMergeImg()
+
 
     def _initui(self):
         """补充UI，qtdesigner无法一步到位"""
@@ -62,6 +71,7 @@ class GuleParam(KxBaseParamWidget):
             {'name': '全局拍摄控制', 'type': 'group', 'children':[
                 {'name': '相机横向像素数', 'type': 'int', 'value': 6000, 'limits': [1, 8192]},
                 {'name': '相机横向分辨率', 'type': 'float', 'value': 0.1, 'limits': [0, 1]},
+                {'name': '相机纵向像素数', 'type': 'int', 'value': 2000, 'limits': [200, 6600]},
                 {'name': '拍摄长度', 'type': 'int', 'value': 1000, 'limits': [0, 3000]},
                 {'name': '起拍位置', 'type': 'int', 'value': 0, 'limits':[0, 2000]},
                 {'name': '拍摄组数', 'type': 'int', 'value': 3, 'limits': [1, self._MAX_SCAN_NUM]},
@@ -151,6 +161,22 @@ class GuleParam(KxBaseParamWidget):
                     float(self.p.param('全局拍摄控制', '相机横向分辨率').value()))
         ndisY = int(self.p.param('全局拍摄控制', '拍摄长度').value())
         nXtimes = int(self.p.param('全局拍摄控制', '拍摄列数').value())
+
+        imgH = int(self.p.param('全局拍摄控制', '相机纵向像素数').value())
+        imgW = int(self.p.param('全局拍摄控制', '相机横向分辨率').value())
+
+        self.h_mergeobj.clear()
+
+        n_firstbuild_imgnum = (ndisY * StaticConfigParam.DIS2PIXEL) / imgH + 1
+
+        ndisY = min((n_firstbuild_imgnum + 1) * imgH, StaticConfigParam.MAX_Y_LEN * StaticConfigParam.DIS2PIXEL)
+
+        nbigimgH = n_firstbuild_imgnum * imgH / self._BUILD_MODEL_SCALE_FACTOR
+
+        nbigimgW = imgW * nXtimes / self._BUILD_MODEL_SCALE_FACTOR
+
+        self.h_mergeobj.initinfo(n_firstbuild_imgnum, nbigimgW, nbigimgH)
+
         ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL, [nStartX, ndisX, ndisY, nXtimes]))
 
     def _captureimg_second(self):
@@ -181,14 +207,36 @@ class GuleParam(KxBaseParamWidget):
             self._ReceiveBuilModelImgSecond(tuple_data)
 
     def _ReceiveBuildModelImg(self, tuple_data):
-        """
-        参考卷绕将图像拼接，并进行显示。而且需要注意当前接收是第几张，因为有个列数问题，按列拼接
-        并且把扫描区域ROI显示出来。后面根据这些扫描区域的位置，确定起拍位置
-        :param tuple_data:
-        :return:
-        """
-        pass
 
+        dict_result = json.loads(tuple_data)
+        # print (dict_result)
+        img = self._getimage(dict_result)
+        newsize = [int(data / 4) for data in img.shape]
+        resizeimg = cv2.resize(img, newsize[:2])
+        self.h_mergeobj.merge(resizeimg)
+
+
+
+
+
+    def _getimage(self, dict_result):
+        try:
+            readimagepath = dict_result['imagepath']
+            startoffset = dict_result['startoffset']
+            offsetlen = dict_result['imageoffsetlen']
+        except AttributeError:
+            return None
+        if self.fp is None:
+            try:
+                self.fp = open(readimagepath, "rb")
+            except IOError:
+                return None
+        self.fp.seek(startoffset)
+        data = self.fp.read(offsetlen)
+        Img = KxImageBuf()
+        Img.unpack(data)
+        arrImg = Img.Kximage2npArr()
+        return arrImg
 
     def _ReceiveBuilModelImgSecond(self, tuple_data):
         """
@@ -200,7 +248,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def callback2changecol(self):
-        print ('callback2changecol')
+        self.h_mergeobj.IncreaseCol()
 
 registerkxwidget(name='GuleParam', cls=GuleParam, override=True)
 

@@ -240,6 +240,8 @@ void CTestAsioTcpClient::RecMsgHandshake()
 void CTestAsioTcpClient::RecMsgToStartCheck(const unsigned char* pExtData)
 {
 	//停止检测
+	Config::g_GetParameter().m_bIsBuildModelStatus = false;
+
 	Config::g_GetParameter().m_bChangeExpoureTimeStatus = false;
 	g_Environment.StopCheck();
 	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("停止检测"));
@@ -450,12 +452,19 @@ void CTestAsioTcpClient::RecMsgToChangeCameraParam(const unsigned char* pExtData
 
 void CTestAsioTcpClient::RecMsgToOpenCamera_BuildModel(const unsigned char* pExtData)
 {
-	// 打开相机
+	Graber::g_GetGraberBuffer().Init(true);
+	//开始采集
+	Graber::g_GetGrabPack().Stop();
+	//给相机触发
+	Graber::g_GetCamera()->OpenInternalTrigger(1);//外触发
+	Graber::g_GetGrabPack().Start();
+	Config::g_GetParameter().m_bIsBuildModelStatus = true;
 }
 
 void CTestAsioTcpClient::RecMsgToCloseCamera_BuildModel(const unsigned char* pExtData)
 {
-
+	Config::g_GetParameter().m_bIsBuildModelStatus = false;
+	RecMsgToCloseCamera();
 }
 
 CTestAsioTcpClient* g_client ;

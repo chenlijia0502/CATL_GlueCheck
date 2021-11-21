@@ -58,6 +58,9 @@ public:
 	char			m_szCfgFileName[512];
 	int				m_nCardIndex;
 	char			m_szCameraDeviceId[256];
+	char            m_szNetBuildModelSaveImagePath[1 << 8]; //建模的存图队列
+	bool			m_bIsBuildModelStatus;					//当前是否存图状态，是的话直接将图像发送到主站
+
 public:
 	Parameter & GetParameter()
 	{

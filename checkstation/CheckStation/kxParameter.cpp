@@ -23,6 +23,8 @@ CkxParameter::CkxParameter()
 	m_nQueSize = 30;
 	m_nImgType = 1;
 	m_nIndex=0;				
+	m_bIsBuildModelStatus = false;
+	m_szNetBuildModelSaveImagePath[0] = '\0';
 
 	//m_nVariableJugeFlag = 0;
 	//m_bSaveImg = false;

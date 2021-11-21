@@ -76,7 +76,6 @@ class kxmainwindow(KXBaseMainWidget):
         self.ui.toolButton_userlevel.clicked.connect(self.showpermissiondialog)
 
         # self.toolbutton_move.clicked.connect(self._ready2dotcheck)
-        self.toolbutton_test.clicked.connect(self.callback2changecol)
 
 
     def _setlearnstatus(self):

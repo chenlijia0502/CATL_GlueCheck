@@ -20,6 +20,7 @@
 	<Path>
 		<NetWorkSaveImagePath>d:\1.dat</NetWorkSaveImagePath>
 		<NetWorkExposureSaveImagePath>d:\ColorExposureSaveQue1.dat</NetWorkExposureSaveImagePath>
+		<NetBuildModelSaveImagePath>d:\BuildModelSaveImage1.dat</NetBuildModelSaveImagePath>
 	</Path>
 	<GlobalParameter>
 		<QueSize>30</QueSize>

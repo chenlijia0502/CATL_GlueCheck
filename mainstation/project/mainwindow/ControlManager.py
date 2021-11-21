@@ -1,6 +1,7 @@
 import serial
 import time
 import imc_msg
+from project.other.globalparam import StaticConfigParam
 
 def translatedis2hex(nmovedis):
     """
@@ -34,11 +35,11 @@ class ControlManager(object):
     将控制逻辑放到这个类中，方便管理
 
     """
-    _DIS2PULSE = 0.01
     _HARDWARE_QUEUELEN = 7
     def __init__(self, h_parent):
         self.h_parent = h_parent
         self.mySeria = None
+        self._DIS2PULSE = StaticConfigParam.DIS2PULSE
 
     def setserial(self, serial:serial.Serial):
         self.mySeria = serial
@@ -83,9 +84,12 @@ class ControlManager(object):
 
             self.h_parent.closeCamera()
 
+            self.h_parent.callback2changecol()#告知参数界面开始切换下一个列拼图
+
             self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
 
             self._waitfor_hardware_queue_result()
+
 
             if i != ncycletimes - 1:#最后一次不用向右移
 

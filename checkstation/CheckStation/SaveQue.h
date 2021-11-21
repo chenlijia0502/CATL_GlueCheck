@@ -43,3 +43,4 @@ public:
 };
 extern CSaveQue    g_SaveImgQue;
 extern CSaveQue    g_SaveImgQueExposure;
+extern CSaveQue    g_SaveImgQueBuildModel;

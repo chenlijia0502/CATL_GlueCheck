@@ -700,7 +700,9 @@ int CKxCheck::AnalyseCheckResult(int nCardID, Json::Value* checkresult)
 	sendresult["imagepath"] = Config::g_GetParameter().m_szNetSaveImagePath;
 
 	unsigned int nOffset;
+	
 	bool m_bOpenFileStatus = g_SaveImgQue.OpenFile(Config::g_GetParameter().m_szNetSaveImagePath, m_DstImg.nWidth, m_DstImg.nHeight, m_DstImg.nPitch, 500);
+	
 	if (m_bOpenFileStatus)  //文件打开成功
 	{
 		g_SaveImgQue.SaveImg(m_DstImg, nOffset);

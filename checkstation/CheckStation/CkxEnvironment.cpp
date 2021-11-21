@@ -230,6 +230,7 @@ int CkxEnvironment::ReadSystemParam()
 	//路径参数
 	kxGetPrivateProfileString("Path", "NetWorkSaveImagePath", "Z:\\ColorSaveQue.dat", Config::g_GetParameter().m_szNetSaveImagePath, sizeof(Config::g_GetParameter().m_szNetSaveImagePath), iniPath);
 	kxGetPrivateProfileString("Path", "NetWorkExposureSaveImagePath", "Z:\\ColorExposureSaveQue.dat", Config::g_GetParameter().m_szNetExposureSaveImagePath, sizeof(Config::g_GetParameter().m_szNetExposureSaveImagePath), iniPath);
+	kxGetPrivateProfileString("Path", "NetBuildModelSaveImagePath", "Z:\\NetBuildModelSaveImagePath.dat", Config::g_GetParameter().m_szNetBuildModelSaveImagePath, sizeof(Config::g_GetParameter().m_szNetBuildModelSaveImagePath), iniPath);
 
 	//全局检测参数
 	//Config::g_GetParameter().m_nStandardWidth	= kxGetPrivateProfileInt("GlobalParameter", "WarpWidth", 1400, iniPath);

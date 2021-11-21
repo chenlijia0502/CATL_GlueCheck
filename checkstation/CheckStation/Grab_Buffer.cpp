@@ -3,6 +3,7 @@
 #include "Grab_Buffer.h"
 #include "SaveQue.h"
 #include "KxCheck.h"
+#include "json.h"
 
 
 
@@ -161,19 +162,12 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 		m_CaptureQueue.GetRearElement().m_Image.SetImageBuf(buf, nWidth, nHeight, nPitch, nChannel, true, hCall);
 		//m_CaptureQueue.GetRearElement().m_Image.Init(nWidth, nHeight, nChannel);
 		IppiSize roiSize = { nWidth, nHeight };
-		//if (_Type_G8 == nChannel)
-		//{
-		//	ippiCopy_8u_C1R(buf, nPitch, m_CaptureQueue.GetRearElement().m_Image.buf, m_CaptureQueue.GetRearElement().m_Image.nPitch, roiSize);
-		//}
-		//else
-		//{
-		//	ippiCopy_8u_C3R(buf, nPitch, m_CaptureQueue.GetRearElement().m_Image.buf, m_CaptureQueue.GetRearElement().m_Image.nPitch, roiSize);
-		//}
 		if (hCall.nCallStatus != ippStsNoErr)
 		{
 			kxPrintf(KX_INFO, "子站配置参数图宽高设置错误");
 		}
 
+		/*
 		if (Config::g_GetParameter().m_bChangeExpoureTimeStatus && (Config::g_GetParameter().m_nSendImageCount++ % 8))
 		{
 			ConvertBayer2Color(m_CaptureQueue.GetRearElement().m_Image, m_TmpImg);
@@ -199,41 +193,48 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 			}
 
 		}
+		*/
 
-		//if (Config::g_GetParameter().m_bChangeExpoureTimeStatus && Config::g_GetParameter().m_nGrabFlag)
-		//{
-		//	m_TmpImg = m_CaptureQueue.GetRearElement().m_Image;
 
-		//	unsigned int nOffset;
-		//	if (g_SaveImgQueExposure.m_fp == NULL)
-		//		g_SaveImgQueExposure.OpenFile(Config::g_GetParameter().m_szNetExposureSaveImagePath, m_TmpImg.nWidth, m_TmpImg.nHeight, m_TmpImg.nPitch, 10);
-		//	g_SaveImgQueExposure.SaveImg(m_TmpImg, nOffset);
-		//	//auto m_fp = _fsopen("d:\\123.bmp", "wb", _SH_DENYNO);
-		//	//m_TmpImg.Write(m_fp);
-		//	//fclose(m_fp);
+		if (Config::g_GetParameter().m_bIsBuildModelStatus)// 建模状态则把结果直接发过去
+		{
+			Json::Value sendresult;
+			
+			sendresult["imagepath"] = Config::g_GetParameter().m_szNetBuildModelSaveImagePath;
 
-		//	std::ostringstream os;
-		//	os.write(reinterpret_cast<const char *>(&Config::g_GetParameter().m_szNetExposureSaveImagePath), sizeof(char)* 256);
+			bool m_bOpenFileStatus = g_SaveImgQueBuildModel.OpenFile(Config::g_GetParameter().m_szNetBuildModelSaveImagePath,
+				m_CaptureQueue.GetRearElement().m_Image.nWidth, m_CaptureQueue.GetRearElement().m_Image.nHeight, m_CaptureQueue.GetRearElement().m_Image.nPitch, 500);
 
-		//	if (!g_bIsSimulate)
-		//	{
-		//		string  szNet = m_hBaseFun.FormatIntToString(Config::g_GetParameter().m_nCurrentUIid) + m_hBaseFun.FormatIntToString(nOffset) + m_hBaseFun.FormatIntToString(m_TmpImg.nPitch) + m_hBaseFun.FormatIntToString(m_TmpImg.nHeight) + os.str();
-		//		if (Net::IsExistNetObj())
-		//		{
-		//			Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_SEND_REAL_TIME_IMAGE), int(szNet.size()), szNet.c_str());
-		//		}
-		//	}
+			if (m_bOpenFileStatus)  //文件打开成功
+			{
+				unsigned int nOffset;
 
-		//}
+				g_SaveImgQue.SaveImg(m_CaptureQueue.GetRearElement().m_Image, nOffset);
+				sendresult["startoffset"] = nOffset;
+				sendresult["imageoffsetlen"] = m_CaptureQueue.GetRearElement().m_Image.nHeight * m_CaptureQueue.GetRearElement().m_Image.nPitch + 5 * 4;//这个‘值’看g_SaveImgQue.SaveImg()，存储的数据偏移+5个int
+			}
+			else
+			{
+				char word[256];
+				sprintf_s(word, 256, "存图路径打开失败：%s", Config::g_GetParameter().m_szNetBuildModelSaveImagePath);
+				kxPrintf(KX_Err, word);
+			}
 
-		//if (!Config::g_GetParameter().m_bChangeExpoureTimeStatus）//yl 2020.08.24 这里由于在开始检查进入RecMsgToStartCheck后m_bChangeExpoureTimeStatus置为false，在硬触发时未能将数据push到check，遂注释
-		//if (Config::g_GetParameter().m_bChangeExpoureTimeStatus)  
-		//{
-		m_CaptureQueue.GetRearElement().m_ImageID = m_nNowID;
-		m_CaptureQueue.GetRearElement().m_CardID = m_nNowID;
-		m_CaptureQueue.GetRearElement().m_Type = nChannel;
-		m_CaptureQueue.Push();
-		//}
+			std::string sendstr = sendresult.toStyledString();
+			if (Net::IsExistNetObj())
+			{
+				Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_BUILD_MODEL_IMG), int(sendstr.size()), sendstr.c_str());
+			}
+
+		}
+		else
+		{
+			m_CaptureQueue.GetRearElement().m_ImageID = m_nNowID;
+			m_CaptureQueue.GetRearElement().m_CardID = m_nNowID;
+			m_CaptureQueue.GetRearElement().m_Type = nChannel;
+			m_CaptureQueue.Push();
+		}
+
 	}
 	else
 	{

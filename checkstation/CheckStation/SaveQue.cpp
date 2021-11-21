@@ -26,7 +26,10 @@ bool CSaveQue::OpenFile(const char* lpszFile, int nImgWidth, int nImgHeight, int
 	}
 	else
 	{
-		m_fp = _fsopen(lpszFile, "wb", _SH_DENYNO);
+		if (m_fp == NULL)
+		{
+			m_fp = _fsopen(lpszFile, "wb", _SH_DENYNO);
+		}
 		if (m_fp == NULL)
 		{
 			kxPrintf(KX_Err, "´ò¿ª´æÍ¼Â·¾¶%sÊ§°Ü", lpszFile);
@@ -122,3 +125,4 @@ bool CSaveQue::OpenVariableInfoFile(const char* lpszFile)
 
 CSaveQue    g_SaveImgQue;
 CSaveQue    g_SaveImgQueExposure;
+CSaveQue    g_SaveImgQueBuildModel;
