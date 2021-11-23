@@ -49,8 +49,8 @@ class ControlManager(object):
         :param list_info: [nStartX, ndisX, ndisY, nXtimes] [起拍X位置， 单次X移动距离， 单次Y移动距离， X次数]
         :return:
         """
-        #TODO: 现在相机的控制是开环的，应该是控制电机移动多少之后判断图像是否已采集够，采集够则停止运动
-        #TODO: 先把整个框架写出来，后面再进行补充
+
+        self._clear_hardware_recqueue()# 清除接收缓存
 
         self.h_parent.closeCamera()
 
@@ -72,7 +72,7 @@ class ControlManager(object):
 
             self.h_parent.openCamera()
 
-            time.sleep(5)
+            time.sleep(1)# 开环延时，给与相机打开时间准备
 
             movemsgy[3:] = translatedis2hex(list_info[2] / self._DIS2PULSE)
 
@@ -80,7 +80,8 @@ class ControlManager(object):
 
             self._waitfor_hardware_queue_result()
 
-            time.sleep(2)
+            while self.h_parent.callback2judgeisfull() != True:
+                time.sleep(0.5)
 
             self.h_parent.closeCamera()
 
@@ -90,7 +91,6 @@ class ControlManager(object):
 
             self._waitfor_hardware_queue_result()
 
-
             if i != ncycletimes - 1:#最后一次不用向右移
 
                 movemsgx[3:] = translatedis2hex(list_info[1] / self._DIS2PULSE)
@@ -99,12 +99,20 @@ class ControlManager(object):
 
                 self._waitfor_hardware_queue_result()
 
+        while self.h_parent.callback2judgeisfull() != True:
+            time.sleep(0.5)
+
+        self.h_parent.callback2showbigimg()
+
+
     def buildmodel_seconde(self, list_info):
         """
         二次建模控制
         :param list_info: [[list_x, list_y]]
         :return:
         """
+        self._clear_hardware_recqueue()# 清除接收缓存
+
         self.h_parent.closeCamera()
 
         self._rebackXY()
@@ -139,15 +147,15 @@ class ControlManager(object):
 
             self._waitfor_hardware_queue_result()
 
-            time.sleep(2)#等待拍完
+            while not self.h_parent.callback2judgeisfull_second():
+
+                time.sleep(0.5)
 
             self.h_parent.closeCamera()
 
             self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
 
             self._waitfor_hardware_queue_result()
-
-
 
 
     def _clear_hardware_recqueue(self):
@@ -166,6 +174,7 @@ class ControlManager(object):
         else:
             while(1):
                 data = self.mySeria.read(self._HARDWARE_QUEUELEN)
+                data = str_to_hex(data)
                 if data != info:
                     continue
                 else:

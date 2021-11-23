@@ -625,7 +625,7 @@ class ModelManage(QtWidgets.QWidget):
             s_createtime = str(self.h_modellistmodel.item(n_row, 2).text())
             s_exinfo = str(self.h_modellistmodel.item(n_row, 3).text())
 
-            self.h_paramchanges.emit(self.s_dirpath + s_modelname + '\\', True)
+            self.h_paramchanges.emit(self.s_dirpath + s_modelname + '\\', False)
 
             # 将上一段底色置白
             if self.n_curmodelindex is not None:

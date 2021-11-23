@@ -9,7 +9,7 @@
 	<isopenplc>1</isopenplc>
 	<paramsdir>d:\Param-gule\</paramsdir>
 	<sendtcpdatalatertime>0.5</sendtcpdatalatertime>
-	<hardwarecom>COM3</hardwarecom>
+	<hardwarecom>COM5</hardwarecom>
 	<n_hardware_port>7</n_hardware_port>
 	<n_hardwarequeuelen>6</n_hardwarequeuelen>
 	<softwareaddress>192.168.0.20</softwareaddress>

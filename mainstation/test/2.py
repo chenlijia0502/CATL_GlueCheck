@@ -1,15 +1,6 @@
-import serial
-import time
 
 
-mySeria = serial.Serial(port="com3", baudrate=115200)  # 波特率比较固定，没必要配置
+list_a = [1,2]
 
-#mySeria.write([1, 2, 3, 4, 5, 6])
-# while 1:
-#     data = mySeria.read(7)
-#     print (data)
-#     time.sleep(10)
-#     mySeria.reset_input_buffer()
-#     data = mySeria.read(7)
-#     print (data)
-#     break
+if 2 < len(list_a) and list_a[2]>0:
+    print('done')

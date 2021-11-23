@@ -17,13 +17,17 @@ from library.ipc import ipc_tool
 import imc_msg
 from project.other.globalparam import StaticConfigParam
 from library.common.KxImageBuf import KxImageBuf
-from project.param.MergeImg import CMergeImg
+from project.param.MergeImg import CMergeImg, CMergeImgToList
+from PIL import Image
 # from pyqtgraph.imageview.ImageView import ImageView
 
 #节拍  分析
 #
 
-
+class BuildStatus:#建模状态
+    STATUS_INIT = 0
+    STATUS_ALL = 1
+    STATUS_SECOND = 2
 
 class GuleParam(KxBaseParamWidget):
     """
@@ -41,6 +45,9 @@ class GuleParam(KxBaseParamWidget):
         self._initparam()
         self.fp = None
         self.h_mergeobj = CMergeImg()
+        self.h_mergelistobj = CMergeImgToList()
+        self.build_status = BuildStatus.STATUS_INIT
+        self.list_img = []
 
 
     def _initui(self):
@@ -62,12 +69,14 @@ class GuleParam(KxBaseParamWidget):
         self.s_imgpath = None
         self.n_qualitytreenum = 0#当前已显示质量检查组数
         self.n_checkarea = 0#当前检测区域
-        self.params.extend([
-            {'name': u'主站设置', 'type': 'group', 'visible':False, 'children': [
+        dict_head = {'name': u'主站设置', 'type': 'group', 'visible':False, 'children': [
                 {'name': u'图像信息', 'type': 'imageinfo',
                  'value': {"isShow": True}, "infovisible": True},
-                {'name': '底板路径', 'type':'str'},
-            ]},
+            ]}
+        list_path = [{'name': '底板路径' + str(i), 'type': 'str'} for i in range(self._MAX_SCAN_NUM)]
+        dict_head['children'].extend(list_path)
+        self.params.append(dict_head)
+        self.params.extend([
             {'name': '全局拍摄控制', 'type': 'group', 'children':[
                 {'name': '相机横向像素数', 'type': 'int', 'value': 6000, 'limits': [1, 8192]},
                 {'name': '相机横向分辨率', 'type': 'float', 'value': 0.1, 'limits': [0, 1]},
@@ -78,6 +87,8 @@ class GuleParam(KxBaseParamWidget):
                 {'name': u'全局取图', 'type': 'action'},
                 {'name': u'扫描区域取图', 'type': 'action'},
             ]},
+            {'name': '建模图像缩放系数', 'type': 'str', 'value':str(self._BUILD_MODEL_SCALE_FACTOR),'visible':False,
+             'readonly':True },
             {'name': u'检测区域数量', 'type': 'int', 'value': 0, 'step': 1, 'limits': (0, self._MAX_ROI_NUM)},
             {'name': u'显示图像', 'type':'list', 'values': {'组数一': 0, '组数二': 1, '组数三':2, '组数四':3,
                                                         '组数五':4, '组数六':5}},
@@ -99,7 +110,7 @@ class GuleParam(KxBaseParamWidget):
         self.p.param('检测区域数量').sigValueChanged.connect(self._add_checkarea)
         self.p.param('全局拍摄控制', '全局取图').sigActivated.connect(self._captureimg)
         self.p.param('全局拍摄控制', '扫描区域取图').sigActivated.connect(self._captureimg_second)
-
+        self.p.param('显示图像').sigValueChanged.connect(self._changeshowimg)
 
     def _addqualdetectslot(self, *even):
         if int(even[1]) > self.n_qualitytreenum:
@@ -165,19 +176,22 @@ class GuleParam(KxBaseParamWidget):
         imgH = int(self.p.param('全局拍摄控制', '相机纵向像素数').value())
         imgW = int(self.p.param('全局拍摄控制', '相机横向分辨率').value())
 
-        self.h_mergeobj.clear()
-
         n_firstbuild_imgnum = (ndisY * StaticConfigParam.DIS2PIXEL) / imgH + 1
 
         ndisY = min((n_firstbuild_imgnum + 1) * imgH, StaticConfigParam.MAX_Y_LEN * StaticConfigParam.DIS2PIXEL)
 
-        nbigimgH = n_firstbuild_imgnum * imgH / self._BUILD_MODEL_SCALE_FACTOR
+        nbigimgH = int(n_firstbuild_imgnum * imgH / self._BUILD_MODEL_SCALE_FACTOR)
 
-        nbigimgW = imgW * nXtimes / self._BUILD_MODEL_SCALE_FACTOR
+        nbigimgW = int(imgW * nXtimes / self._BUILD_MODEL_SCALE_FACTOR)
+
+        self.h_mergeobj.clear()
 
         self.h_mergeobj.initinfo(n_firstbuild_imgnum, nbigimgW, nbigimgH)
 
+        self.build_status = BuildStatus.STATUS_ALL
+
         ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL, [nStartX, ndisX, ndisY, nXtimes]))
+
 
     def _captureimg_second(self):
         """
@@ -185,38 +199,135 @@ class GuleParam(KxBaseParamWidget):
         :return:
         """
         nXtimes = int(self.p.param('全局拍摄控制', '拍摄列数').value())
-        list_posx = []
-        for i in range(nXtimes):
-            list_posx.append(self.p.param('扫描区域', '扫描区域' + str(i)).get_list_pos())
-        list_x = []
-        list_y = []
+
         nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
 
+        imgW = int(self.p.param('全局拍摄控制', '相机横向分辨率').value())
+
+        imgH = int(self.p.param('全局拍摄控制', '相机纵向像素数').value())
+
+        # 二次建模，对一次建模的roi进行隐藏，只需记录结果即可
+        for n_i in range(int(nXtimes)):
+
+            self.p.param('扫描区域', '扫描区域' + str(n_i)).isShow(False)
+
+        list_posx = []
+
+        list_x = []
+
+        list_y = []
+
+        list_buildimgnum = []
+
+        list_bigimgH = []
+
+        for i in range(nXtimes):
+
+            list_posx.append(self.p.param('扫描区域', '扫描区域' + str(i)).get_list_pos())
+
         for roipos in list_posx:
-            list_x.append(int((roipos[0] + roipos[2]) / 2 + nStartX))
-            list_y.append(int(roipos[3]))
+
+            list_x.append(int((roipos[0] + roipos[2]) / 2 + nStartX) * self._BUILD_MODEL_SCALE_FACTOR)
+
+            list_y.append(int(roipos[3]) * self._BUILD_MODEL_SCALE_FACTOR)
+
+        # list_y记录y轴移动距离，但是需要考虑图像每次拍摄取整以及可能丢步的问题
+
+        for nindex, y in enumerate(list_y):
+
+            n_build_imgnum = (y * StaticConfigParam.DIS2PIXEL) / imgH + 1
+
+            ndisY = min((n_build_imgnum + 1) * imgH, StaticConfigParam.MAX_Y_LEN * StaticConfigParam.DIS2PIXEL)
+
+            list_y[nindex] = ndisY
+
+            list_buildimgnum.append(n_build_imgnum)
+
+            list_bigimgH.append(int(n_build_imgnum * imgH / self._BUILD_MODEL_SCALE_FACTOR))
+
+        self.h_mergelistobj.clear()
+
+        self.h_mergelistobj.initinfo(list_buildimgnum, imgW, list_bigimgH)
+
+        self.build_status = BuildStatus.STATUS_SECOND
+
         ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL, [list_x, list_y]))
+
 
     def recmsg(self, n_stationid, n_msgtype, tuple_data):
         '''
         接收子站发送过来的消息
         '''
         if n_msgtype == imc_msg.MSG_BUILD_MODEL_IMG:
-            self._ReceiveBuildModelImg(tuple_data)
-        elif n_msgtype == imc_msg.MSG_BUILD_MODEL_IMG_SECOND:
-            self._ReceiveBuilModelImgSecond(tuple_data)
+            if self.build_status == BuildStatus.STATUS_ALL:
+                self._ReceiveBuildModelImg(tuple_data)
+            elif self.build_status == BuildStatus.STATUS_SECOND:
+                self._ReceiveBuilModelImgSecond(tuple_data)
+
+
+    def loadparameters(self):
+        super(GuleParam, self).loadparameters()
+
+        self.list_img = []
+
+        list_path = []
+
+        nXtimes = int(self.p.param('全局拍摄控制', '拍摄列数').value())
+
+        for i in range(nXtimes):
+
+            list_path.append(self.p.param('主站设置', '底板路径' + str(i)).value())
+
+        for imgpath in list_path:
+
+            if os.path.isfile(imgpath):
+
+                with open(imgpath, 'rb') as curfp:
+
+                    imageori = copy.copy(Image.open(curfp))
+
+                    list_path.append(np.array(imageori))
+            else:
+                self.list_img.append(None)
+
+        for nindex, img in enumerate(self.list_img):
+
+            if img is not None:
+
+                self.h_imgitem.setImage(img, autoLevels=False)
+
+                self.p.param('显示图像').setValue(nindex)
+
+
+    def saveparameters(self):
+        self._setbaseimgpath()
+        for nindex, img in enumerate(self.list_img):
+            if img is not None:
+                image = np.array(img)
+                imagesave = Image.fromarray(image)
+                szSaveDir = self.p.param("主站设置", "底板路径" + str(nindex)).value()
+                imagesave.save(szSaveDir)
+        super(GuleParam, self).saveparameters()
+
+    def _changeshowimg(self, *even):
+        nindex = even[1]
+        if nindex < len(self.list_img) and self.list_img[nindex] != None:
+            self.h_imgitem.setImage(self.list_img[nindex])
+
+    def _setbaseimgpath(self):
+        list_str = self.str_filedirectory.split('\\')
+        for i in range(self._MAX_SCAN_NUM):
+            list_str[-1] = str(i) + '.bmp'
+            imgpath = "\\".join(list_str)
+            self.p.param('主站设置', '底板路径' + str(i)).setValue(imgpath)
+
 
     def _ReceiveBuildModelImg(self, tuple_data):
-
         dict_result = json.loads(tuple_data)
-        # print (dict_result)
         img = self._getimage(dict_result)
         newsize = [int(data / 4) for data in img.shape]
         resizeimg = cv2.resize(img, newsize[:2])
         self.h_mergeobj.merge(resizeimg)
-
-
-
 
 
     def _getimage(self, dict_result):
@@ -238,17 +349,53 @@ class GuleParam(KxBaseParamWidget):
         arrImg = Img.Kximage2npArr()
         return arrImg
 
+
     def _ReceiveBuilModelImgSecond(self, tuple_data):
         """
         接收图像进行二次建模。且图像根据扫描组数变为N张，可进行界面选择切换
         :param tuple_data:
         :return:
         """
-        pass
+        dict_result = json.loads(tuple_data)
+        img = self._getimage(dict_result)
+        newsize = [int(data / self._BUILD_MODEL_SCALE_FACTOR) for data in img.shape]
+        resizeimg = cv2.resize(img, newsize[:2])
+        self.h_mergelistobj.merge(resizeimg)
 
 
     def callback2changecol(self):
         self.h_mergeobj.IncreaseCol()
+
+
+    def callback2showbigimg(self):
+        self.h_imgitem.setImage(self.h_mergeobj.bigimg)
+
+        nXtimes = int(self.p.param('全局拍摄控制', '拍摄列数').value())
+
+        for n_i in range(int(nXtimes)):
+
+            self.p.param('扫描区域', '扫描区域' + str(n_i)).isShow(True)
+
+
+    def callback2judgeisfull(self):
+        return self.h_mergeobj.IsFull()
+
+
+    def callback2changecol_second(self):
+        self.h_mergelistobj.IncreaseCol()
+
+
+    def callback2showbigimg_second(self):
+        self.list_img = self.h_mergelistobj.list_bigimg
+
+        self.h_imgitem.setImage(self.list_img[0])
+
+        self.p.param("显示图像").setValue(0)
+
+
+    def callback2judgeisfull_second(self):
+        return self.h_mergelistobj.IsFull()
+
 
 registerkxwidget(name='GuleParam', cls=GuleParam, override=True)
 

@@ -82,7 +82,7 @@ enum MessageType
 
 	MSG_BUILD_MODEL_IMG = 402, //子站发送回来的建模图像
 
-	MSG_BUILD_MODEL_IMG_SECOND = 404, //子站发送二次建模图像
+	//MSG_BUILD_MODEL_IMG_SECOND = 404, //子站发送二次建模图像
 
 	MSG_JUST_OPENCAMERA_BUILDMODEL = 501, //只打开相机
 

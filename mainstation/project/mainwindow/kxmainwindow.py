@@ -143,6 +143,40 @@ class kxmainwindow(KXBaseMainWidget):
         """
         self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2changecol')
 
+    def callback2showbigimg(self):
+        """
+        回调告知全部拍完，进行演示
+        :return:
+        """
+        self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2showbigimg')
+
+    def callback2judgeisfull(self):
+        """
+        判断当前列是否拼接完
+        :return:
+        """
+        return self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2judgeisfull')
+
+    def callback2changecol_second(self):
+        """
+        二次取图建模，回调告知已准备切换列，通知参数界面可进行新列图像拼接
+        :return:
+        """
+        self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2changecol_second')
+
+    def callback2showbigimg_second(self):
+        """
+        二次取图建模，回调告知全部拍完，进行演示
+        :return:
+        """
+        self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2showbigimg_second')
+
+    def callback2judgeisfull_second(self):
+        """
+        二次取图建模，判断当前列是否拼接完
+        :return:
+        """
+        return self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2judgeisfull_second')
 
 
     def _ready2dotcheck(self):
