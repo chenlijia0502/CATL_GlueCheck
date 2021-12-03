@@ -118,6 +118,7 @@ int CCamera_HK::Stop()
 	if (MV_OK == nRet || MV_OK == MV_E_CALLORDER)//临时加个调用顺序错误
 	{
 		m_bStop = true;
+		printf("stop successed\n");
 	}
 	else
 	{
@@ -144,12 +145,12 @@ int CCamera_HK::Start()
 	if (MV_OK != nRet)
 	{
 		printf("Start Grabbing fail! nRet [0x%x]\n", nRet);
-		m_bStop = false;
+		m_bStop = true;
 
 	}
 	else
 	{
-		m_bStop = true;
+		m_bStop = false;
 	}
 
 

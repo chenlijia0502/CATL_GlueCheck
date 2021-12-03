@@ -184,6 +184,7 @@ int CkxEnvironment::ReadSystemParam()
 	kxGetPrivateProfileString("Camera", "CardName", "Xcelera-CL+_PX8_1", Config::g_GetParameter().m_szCardName, sizeof(Config::g_GetParameter().m_szCardName), iniPath);
 	kxGetPrivateProfileString("Camera", "ConfigName", ".\\P4_Default_Default.ccf", Config::g_GetParameter().m_szCfgFileName, sizeof(Config::g_GetParameter().m_szCfgFileName), iniPath);
 	Config::g_GetParameter().m_nCardIndex = kxGetPrivateProfileInt("Camera", "CardIndex", 1, iniPath);
+	Config::g_GetParameter().m_nIndex = kxGetPrivateProfileInt("Camera", "CardIndex", 1, iniPath);
 
 	//相机Bayer格式
 	kxGetPrivateProfileString("Camera", "BayerMode", "GRBG", szTemp, sizeof(szTemp), iniPath);
@@ -240,7 +241,6 @@ int CkxEnvironment::ReadSystemParam()
 	Config::g_GetParameter().m_nLanguageMode = kxGetPrivateProfileInt("GlobalParameter", "LanguageMode", 1, iniPath);
 	Config::g_GetParameter().m_nSendInfoInterval = kxGetPrivateProfileInt("GlobalParameter", "SendInfoInterval", 1, iniPath);
 	Config::g_GetParameter().m_nSaveImgTotalCounts = kxGetPrivateProfileInt("GlobalParameter", "SaveImgTotalCounts", 1000, iniPath);
-	Config::g_GetParameter().m_nIndex = kxGetPrivateProfileInt("GlobalParameter", "SaveImgTotalCounts", 1000, iniPath);
 	g_SimulateTimeStep = kxGetPrivateProfileInt("GlobalParameter", "SimulateTimeStep", 200, iniPath);
 
 	

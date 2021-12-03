@@ -18,4 +18,7 @@ def translatedis2hex(nmovedis):
 
     return [VALUE1, VALUE2, VALUE3, VALUE4]
 
-print (translatedis2hex(163499))
+#print (translatedis2hex(163499))
+
+
+A = {'d':[1,2 ,3 ,4]}

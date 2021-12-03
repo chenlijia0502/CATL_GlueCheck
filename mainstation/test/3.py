@@ -1,12 +1,26 @@
 
 import serial
 import time
-mySeria = serial.Serial(port='COM5', baudrate=115200)  # 波特率比较固定，没必要配置
+mySeria = serial.Serial(port='COM1', baudrate=115200, bytesize=8, stopbits=1)  # 波特率比较固定，没必要配置
 
-time.sleep(5)
-print ("开始清除")
-mySeria.reset_input_buffer()
+# time.sleep(5)
+# print ("开始清除")
+# mySeria.reset_input_buffer()
 
-data = mySeria.read(7)
+SEND = [0x01, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00]
+#SEND = [0xff, 0xff, 0xff, 0x31, 0x01, 0x01, 0x01]
 
-print (data)
+mySeria.write(SEND)
+
+data = mySeria.read(7).hex()
+
+
+def str_to_hex(data):
+    list_hex = []
+    for i in range(0, len(data), 2):
+        list_hex.append(int(data[i:i+2], 16))
+    return list_hex
+
+
+print (str_to_hex(data))
+

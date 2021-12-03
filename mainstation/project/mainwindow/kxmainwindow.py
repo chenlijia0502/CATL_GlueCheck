@@ -7,10 +7,10 @@ from PyQt5 import QtGui,QtCore,QtWidgets
 from PyQt5.QtWidgets import QWidget
 from library.common.BaseRunLog import KxBaseRunLog
 from library.monitoring.BaseMonitoringWidget import  KxBaseMonitoringWidget
+from library.parametersetting.BaseParameterSetting import KxBaseParameterSetting
 from library.common.Permission_Management import kxprivilege_management
 from project.monitoring import * #这行import保证实时界面能够挂载
 from project.param import * #这行保证参数设置界面能挂载
-from project.param.ChipParametersetting import ChipParameterSetting
 from project.other.WorkList import WorkListWidget
 from project.mainwindow.DotCheckResultWidget import DotCheckResultWidget
 from library.ipc import ipc_tool
@@ -22,7 +22,7 @@ class kxmainwindow(KXBaseMainWidget):
     def __init__(self, dict_config):
         super(kxmainwindow, self).__init__(dict_config)
         self.widget_Realtime = KxBaseMonitoringWidget.create(name=dict_config["mointoringwidget_classname"], h_parent=self)
-        self.widget_Paramsetting = ChipParameterSetting(hparent=self, dict_config=dict_config)#参数设置
+        self.widget_Paramsetting = KxBaseParameterSetting(hparent=self, dict_config=dict_config)#参数设置
         self.widget_runlog = KxBaseRunLog(self)#日志
         self.widget_permission = kxprivilege_management()#权限管理
         self.widge_worklist = WorkListWidget(self)
@@ -117,13 +117,13 @@ class kxmainwindow(KXBaseMainWidget):
             self.serial_Reconnect()
             self.h_control.setserial(self.mySeria)
             #self.h_control.buildmodel(s_extdata)
-            t = threading.Thread(target=self.h_control.buildmodel, args=s_extdata)
+            t = threading.Thread(target=self.h_control.buildmodel,args =s_extdata)
             t.start()
         elif n_msgtype == imc_msg.MSG_BUILD_MODEL_SECOND:
             ipc_tool.kxlog("主站", logging.INFO, "开始二次建模拍摄")
             self.serial_Reconnect()
             self.h_control.setserial(self.mySeria)
-            t = threading.Thread(target=self.h_control.buildmodel, args=s_extdata)
+            t = threading.Thread(target=self.h_control.buildmodel_second, args=s_extdata)
             t.start()
 
 
@@ -179,23 +179,25 @@ class kxmainwindow(KXBaseMainWidget):
         return self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2judgeisfull_second')
 
 
-    def _ready2dotcheck(self):
-        """启动点检或master"""
-        #QtWidgets.QMessageBox.warning(self, "提示", "正在进行点检，请勿点击", QtWidgets.QMessageBox.Ok)
-        #让相机去某个固定位置拍照，然后相机进行识别甄选
-        t = threading.Thread(target=self._control_calibrate)
-        t.start()
-
-    def _ready2show_machine_move(self):
-        """启动设备"""
-        #QtWidgets.QMessageBox.warning(self, "提示", "设备正在测试运行", QtWidgets.QMessageBox.Ok)
-        #让相机去某个固定位置拍照，然后相机进行识别甄选
-        t = threading.Thread(target=self._controlmachine)
-        t.start()
+    # def _ready2dotcheck(self):
+    #     """启动点检或master"""
+    #     #QtWidgets.QMessageBox.warning(self, "提示", "正在进行点检，请勿点击", QtWidgets.QMessageBox.Ok)
+    #     #让相机去某个固定位置拍照，然后相机进行识别甄选
+    #     t = threading.Thread(target=self._control_calibrate)
+    #     t.start()
+    #
+    # def _ready2show_machine_move(self):
+    #     """启动设备"""
+    #     #QtWidgets.QMessageBox.warning(self, "提示", "设备正在测试运行", QtWidgets.QMessageBox.Ok)
+    #     #让相机去某个固定位置拍照，然后相机进行识别甄选
+    #     t = threading.Thread(target=self._controlmachine)
+    #     t.start()
 
 
     def openCamera(self):
-        pass#发送给子站，通知打开相机采集图像，并把采集图像返回
+        #发送给子站，通知打开相机采集图像，并把采集图像返回
+        self.sendmsg(0, imc_msg.MSG_JUST_OPENCAMERA_BUILDMODEL)
 
     def closeCamera(self):
-        pass
+        self.sendmsg(0, imc_msg.MSG_JUST_CLOSECAMERA_BUILDMODEL)
+

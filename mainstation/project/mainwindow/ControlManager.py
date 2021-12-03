@@ -21,14 +21,21 @@ def translatedis2hex(nmovedis):
 
     return [VALUE1, VALUE2, VALUE3, VALUE4]
 
+# def str_to_hex(data):
+#     sdata = str(data)[2:-1]
+#     list_data = sdata.split('\\x')
+#     list_hex = []
+#     for strdata in list_data:
+#         if strdata != '':
+#             list_hex.append(int(strdata, 16))
+#     return list_hex
+
 def str_to_hex(data):
-    sdata = str(data)[2:-1]
-    list_data = sdata.split('\\x')
     list_hex = []
-    for strdata in list_data:
-        if strdata != '':
-            list_hex.append(int(strdata, 16))
+    for i in range(0, len(data), 2):
+        list_hex.append(int(data[i:i+2], 16))
     return list_hex
+
 
 class ControlManager(object):
     """
@@ -44,25 +51,34 @@ class ControlManager(object):
     def setserial(self, serial:serial.Serial):
         self.mySeria = serial
 
-    def buildmodel(self, list_info):
+    def buildmodel(self, *list_info):
         """
         :param list_info: [nStartX, ndisX, ndisY, nXtimes] [起拍X位置， 单次X移动距离， 单次Y移动距离， X次数]
         :return:
         """
-
         self._clear_hardware_recqueue()# 清除接收缓存
 
         self.h_parent.closeCamera()
 
         self._rebackXY()
 
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_ALL_LIGHT)
+
+        self._waitfor_hardware_queue_result()
+
         movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
 
         movemsgx[3:] = translatedis2hex(list_info[0] / self._DIS2PULSE)
 
-        self.mySeria.write(movemsgx)
+        self._clear_hardware_recqueue()
+
+        self._sendhardwaremsg(movemsgx)
 
         self._waitfor_hardware_queue_result()
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
 
         movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
 
@@ -76,46 +92,72 @@ class ControlManager(object):
 
             movemsgy[3:] = translatedis2hex(list_info[2] / self._DIS2PULSE)
 
-            self.mySeria.write(movemsgy)
+            self._sendhardwaremsg(movemsgy)
 
             self._waitfor_hardware_queue_result()
 
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
             while self.h_parent.callback2judgeisfull() != True:
+
                 time.sleep(0.5)
 
             self.h_parent.closeCamera()
 
-            self.h_parent.callback2changecol()#告知参数界面开始切换下一个列拼图
+            time.sleep(3)
 
-            self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
+            self._clear_hardware_recqueue()  # 清除接收缓存
 
-            self._waitfor_hardware_queue_result()
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
+
+            #self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
 
             if i != ncycletimes - 1:#最后一次不用向右移
 
+                self.h_parent.callback2changecol()  # 告知参数界面开始切换下一个列拼图
+
                 movemsgx[3:] = translatedis2hex(list_info[1] / self._DIS2PULSE)
 
-                self.mySeria.write(movemsgx)
+                print ("fa song bian shang yidong juli: ", movemsgx)
+
+                self._sendhardwaremsg(movemsgx)
 
                 self._waitfor_hardware_queue_result()
 
-        while self.h_parent.callback2judgeisfull() != True:
-            time.sleep(0.5)
+                self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
+
+                self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
+
+        # while self.h_parent.callback2judgeisfull() != True:
+        #
+        #     time.sleep(0.5)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
 
         self.h_parent.callback2showbigimg()
 
 
-    def buildmodel_seconde(self, list_info):
+
+    def buildmodel_second(self, *list_info):
         """
         二次建模控制
         :param list_info: [[list_x, list_y]]
         :return:
         """
+
         self._clear_hardware_recqueue()# 清除接收缓存
 
         self.h_parent.closeCamera()
 
         self._rebackXY()
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_ALL_LIGHT)
+
+        self._waitfor_hardware_queue_result()
 
         movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
 
@@ -135,17 +177,25 @@ class ControlManager(object):
 
             movemsgx[3:] = translatedis2hex(x_realmove / self._DIS2PULSE)
 
-            self.mySeria.write(movemsgx)
+            self._sendhardwaremsg(movemsgx)
 
             self._waitfor_hardware_queue_result()
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
 
             self.h_parent.openCamera()
 
             movemsgy[3:] = translatedis2hex(y / self._DIS2PULSE)
 
-            self.mySeria.write(movemsgy)
+            self._sendhardwaremsg(movemsgy)
 
             self._waitfor_hardware_queue_result()
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
 
             while not self.h_parent.callback2judgeisfull_second():
 
@@ -153,9 +203,21 @@ class ControlManager(object):
 
             self.h_parent.closeCamera()
 
-            self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
+            time.sleep(1)
 
-            self._waitfor_hardware_queue_result()
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
+
+            #self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+            if i != len(list_info[0]) - 1:
+
+                self.h_parent.callback2changecol_second()
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
+
+        self.h_parent.callback2showbigimg_second()
 
 
     def _clear_hardware_recqueue(self):
@@ -168,33 +230,48 @@ class ControlManager(object):
         等待答复，如果确认是一直在等待某个值就一直等
         :return:
         """
+        print("HOPE REC: ", info)
+
         if info == None:
-            data = self.mySeria.read(self._HARDWARE_QUEUELEN)
-            return
+            data = self.mySeria.read(self._HARDWARE_QUEUELEN).hex()
+            print ('None rec: ', data)
         else:
             while(1):
-                data = self.mySeria.read(self._HARDWARE_QUEUELEN)
+                data = self.mySeria.read(self._HARDWARE_QUEUELEN).hex()
+                print('read ori data: ', data)
                 data = str_to_hex(data)
+                print ('read data: ', data)
                 if data != info:
                     continue
                 else:
                     break
+        time.sleep(0.2)
+        return
         # return self.str_to_hex(data)
 
 
 
     def _rebackXY(self):
 
-        self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_X)
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_X)
 
-        self._waitfor_hardware_queue_result()
+        #self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
 
-        self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
 
-        self._waitfor_hardware_queue_result()
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
+
+        #self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
 
 
 
+
+    def _sendhardwaremsg(self, info):
+        print('send, ', info)
+        self.mySeria.write(info)
+        time.sleep(0.5)
 
     # def _control_calibrate(self):
     #

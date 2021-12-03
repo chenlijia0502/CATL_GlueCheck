@@ -110,7 +110,7 @@ class GuleParam(KxBaseParamWidget):
         self.p.param('检测区域数量').sigValueChanged.connect(self._add_checkarea)
         self.p.param('全局拍摄控制', '全局取图').sigActivated.connect(self._captureimg)
         self.p.param('全局拍摄控制', '扫描区域取图').sigActivated.connect(self._captureimg_second)
-        self.p.param('显示图像').sigValueChanged.connect(self._changeshowimg)
+        #self.p.param('显示图像').sigValueChanged.connect(self._changeshowimg)
 
     def _addqualdetectslot(self, *even):
         if int(even[1]) > self.n_qualitytreenum:
@@ -171,20 +171,22 @@ class GuleParam(KxBaseParamWidget):
         ndisX = int(int(self.p.param('全局拍摄控制', '相机横向像素数').value()) *
                     float(self.p.param('全局拍摄控制', '相机横向分辨率').value()))
         ndisY = int(self.p.param('全局拍摄控制', '拍摄长度').value())
-        nXtimes = int(self.p.param('全局拍摄控制', '拍摄列数').value())
+        nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
         imgH = int(self.p.param('全局拍摄控制', '相机纵向像素数').value())
-        imgW = int(self.p.param('全局拍摄控制', '相机横向分辨率').value())
+        imgW = int(self.p.param('全局拍摄控制', '相机横向像素数').value())
 
         n_firstbuild_imgnum = (ndisY * StaticConfigParam.DIS2PIXEL) / imgH + 1
 
-        ndisY = min((n_firstbuild_imgnum + 1) * imgH, StaticConfigParam.MAX_Y_LEN * StaticConfigParam.DIS2PIXEL)
+        ndisY = min((n_firstbuild_imgnum + 1) * imgH /  StaticConfigParam.DIS2PIXEL, StaticConfigParam.MAX_Y_LEN )
 
         nbigimgH = int(n_firstbuild_imgnum * imgH / self._BUILD_MODEL_SCALE_FACTOR)
 
-        nbigimgW = int(imgW * nXtimes / self._BUILD_MODEL_SCALE_FACTOR)
+        nbigimgW = int(imgW / self._BUILD_MODEL_SCALE_FACTOR) * nXtimes
 
         self.h_mergeobj.clear()
+
+        print(n_firstbuild_imgnum, nbigimgW, nbigimgH)
 
         self.h_mergeobj.initinfo(n_firstbuild_imgnum, nbigimgW, nbigimgH)
 
@@ -198,11 +200,11 @@ class GuleParam(KxBaseParamWidget):
         第二次采集全局参数，根据roi框的位置进行拍摄
         :return:
         """
-        nXtimes = int(self.p.param('全局拍摄控制', '拍摄列数').value())
+        nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
         nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
 
-        imgW = int(self.p.param('全局拍摄控制', '相机横向分辨率').value())
+        imgW = int(self.p.param('全局拍摄控制', '相机横向像素数').value())
 
         imgH = int(self.p.param('全局拍摄控制', '相机纵向像素数').value())
 
@@ -227,7 +229,7 @@ class GuleParam(KxBaseParamWidget):
 
         for roipos in list_posx:
 
-            list_x.append(int((roipos[0] + roipos[2]) / 2 + nStartX) * self._BUILD_MODEL_SCALE_FACTOR)
+            list_x.append(int(int((roipos[0] + roipos[2]) / 2 + nStartX) * self._BUILD_MODEL_SCALE_FACTOR / StaticConfigParam.DIS2PIXEL))
 
             list_y.append(int(roipos[3]) * self._BUILD_MODEL_SCALE_FACTOR)
 
@@ -235,23 +237,27 @@ class GuleParam(KxBaseParamWidget):
 
         for nindex, y in enumerate(list_y):
 
-            n_build_imgnum = (y * StaticConfigParam.DIS2PIXEL) / imgH + 1
+            n_build_imgnum = int(y / imgH) + 1
 
-            ndisY = min((n_build_imgnum + 1) * imgH, StaticConfigParam.MAX_Y_LEN * StaticConfigParam.DIS2PIXEL)
+            ndisY = min(int((n_build_imgnum + 1) * imgH / StaticConfigParam.DIS2PIXEL), StaticConfigParam.MAX_Y_LEN)
 
             list_y[nindex] = ndisY
 
             list_buildimgnum.append(n_build_imgnum)
 
-            list_bigimgH.append(int(n_build_imgnum * imgH / self._BUILD_MODEL_SCALE_FACTOR))
+            list_bigimgH.append(int(n_build_imgnum * int(imgH / self._BUILD_MODEL_SCALE_FACTOR)))
 
         self.h_mergelistobj.clear()
 
-        self.h_mergelistobj.initinfo(list_buildimgnum, imgW, list_bigimgH)
+        print ('init info: ',list_buildimgnum, int(imgW / self._BUILD_MODEL_SCALE_FACTOR), list_bigimgH)
+
+        self.h_mergelistobj.initinfo(list_buildimgnum, int(imgW / self._BUILD_MODEL_SCALE_FACTOR), list_bigimgH)
 
         self.build_status = BuildStatus.STATUS_SECOND
 
-        ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL, [list_x, list_y]))
+        print ([list_x, list_y])
+
+        ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL_SECOND, [list_x, list_y]))
 
 
     def recmsg(self, n_stationid, n_msgtype, tuple_data):
@@ -272,7 +278,7 @@ class GuleParam(KxBaseParamWidget):
 
         list_path = []
 
-        nXtimes = int(self.p.param('全局拍摄控制', '拍摄列数').value())
+        nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
         for i in range(nXtimes):
 
@@ -310,7 +316,7 @@ class GuleParam(KxBaseParamWidget):
         super(GuleParam, self).saveparameters()
 
     def _changeshowimg(self, *even):
-        nindex = even[1]
+        nindex = int(even[1])
         if nindex < len(self.list_img) and self.list_img[nindex] != None:
             self.h_imgitem.setImage(self.list_img[nindex])
 
@@ -325,8 +331,8 @@ class GuleParam(KxBaseParamWidget):
     def _ReceiveBuildModelImg(self, tuple_data):
         dict_result = json.loads(tuple_data)
         img = self._getimage(dict_result)
-        newsize = [int(data / 4) for data in img.shape]
-        resizeimg = cv2.resize(img, newsize[:2])
+        newsize = (int(img.shape[1] / self._BUILD_MODEL_SCALE_FACTOR), int(img.shape[0] / self._BUILD_MODEL_SCALE_FACTOR))
+        resizeimg = cv2.resize(img, newsize)
         self.h_mergeobj.merge(resizeimg)
 
 
@@ -358,8 +364,8 @@ class GuleParam(KxBaseParamWidget):
         """
         dict_result = json.loads(tuple_data)
         img = self._getimage(dict_result)
-        newsize = [int(data / self._BUILD_MODEL_SCALE_FACTOR) for data in img.shape]
-        resizeimg = cv2.resize(img, newsize[:2])
+        newsize = (int(img.shape[1] / self._BUILD_MODEL_SCALE_FACTOR), int(img.shape[0] / self._BUILD_MODEL_SCALE_FACTOR))
+        resizeimg = cv2.resize(img, newsize)
         self.h_mergelistobj.merge(resizeimg)
 
 
@@ -368,9 +374,10 @@ class GuleParam(KxBaseParamWidget):
 
 
     def callback2showbigimg(self):
+        print ('callback2showbigimg')
         self.h_imgitem.setImage(self.h_mergeobj.bigimg)
 
-        nXtimes = int(self.p.param('全局拍摄控制', '拍摄列数').value())
+        nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
         for n_i in range(int(nXtimes)):
 
@@ -378,6 +385,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def callback2judgeisfull(self):
+        print ("callback2judgeisfull: ", self.h_mergeobj.IsFull())
         return self.h_mergeobj.IsFull()
 
 
@@ -387,6 +395,8 @@ class GuleParam(KxBaseParamWidget):
 
     def callback2showbigimg_second(self):
         self.list_img = self.h_mergelistobj.list_bigimg
+
+        print ("shape", len(self.list_img), self.list_img[0].shape)
 
         self.h_imgitem.setImage(self.list_img[0])
 

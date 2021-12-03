@@ -20,7 +20,9 @@ class CMergeImg(object):
 
     def initinfo(self, firstbuild_imgnum, nw, nh):
         self.n_firstbuild_imgnum = firstbuild_imgnum
-        self.bigimg = np.zeros((nh, nw), np.uint8)
+        self.bigimg = np.zeros((nh, nw, 3), np.uint8)
+        print(self.bigimg.shape)
+
 
     def IncreaseCol(self):
         """
@@ -48,7 +50,9 @@ class CMergeImg(object):
         :param img:
         :return:
         """
+        print ("self.n_curcol_imgnum: ", self.n_curcol_imgnum, self.n_firstbuild_imgnum)
         if self.n_curcol_imgnum == self.n_firstbuild_imgnum:# 当前列已填满
+            print('----------- full --------------')
             return False
         nH, nW, nC = img.shape
         self.bigimg[self.n_curcol_imgnum * nH : (self.n_curcol_imgnum + 1) * nH, self.n_curcol * nW:(self.n_curcol + 1) * nW] = img
@@ -74,7 +78,7 @@ class CMergeImgToList(object):
     def initinfo(self, list_build_imgnum, nw, list_h):
         self.list_build_imgnum = list_build_imgnum
         for nh in list_h:
-            self.list_bigimg.append(np.zeros((nh, nw), np.uint8))
+            self.list_bigimg.append(np.zeros((nh, nw, 3), np.uint8))
 
     def IncreaseCol(self):
         """
@@ -104,5 +108,6 @@ class CMergeImgToList(object):
         if self.n_curcol_imgnum == self.list_build_imgnum[self.n_curcol]:# 当前列已填满
             return False
         nH, nW, nC = img.shape
+        print (self.list_bigimg[self.n_curcol].shape, img.shape)
         self.list_bigimg[self.n_curcol][self.n_curcol_imgnum * nH : (self.n_curcol_imgnum + 1) * nH] = img
         self.n_curcol_imgnum += 1

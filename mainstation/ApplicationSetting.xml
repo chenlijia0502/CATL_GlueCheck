@@ -9,7 +9,7 @@
 	<isopenplc>1</isopenplc>
 	<paramsdir>d:\Param-gule\</paramsdir>
 	<sendtcpdatalatertime>0.5</sendtcpdatalatertime>
-	<hardwarecom>COM5</hardwarecom>
+	<hardwarecom>COM1</hardwarecom>
 	<n_hardware_port>7</n_hardware_port>
 	<n_hardwarequeuelen>6</n_hardwarequeuelen>
 	<softwareaddress>192.168.0.20</softwareaddress>
@@ -20,7 +20,7 @@
 		<substation1>
 			<stationstatu>1</stationstatu>
 			<picturepath>d:\PlateEdgeCheck</picturepath>
-			<exepath>K:\VS_project\NEW\project\FrameWork\CheckStation\CheckStation.exe</exepath>
+			<exepath>E:\nd-gulecheck\checkstation\CheckStation\CheckStation.exe</exepath>
 			<ui_parameter_terms>
 				<KxGlobal></KxGlobal>
 				<GuleParam></GuleParam>

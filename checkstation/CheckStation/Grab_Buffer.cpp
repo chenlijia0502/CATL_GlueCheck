@@ -155,104 +155,114 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 {
 	m_nNowID++;
 
-	if (!m_CaptureQueue.IsFull())
+	if (Config::g_GetParameter().m_bIsBuildModelStatus)// 建模状态则把结果直接发过去
 	{
-		KxCallStatus hCall;
-		hCall.Clear();
-		m_CaptureQueue.GetRearElement().m_Image.SetImageBuf(buf, nWidth, nHeight, nPitch, nChannel, true, hCall);
-		//m_CaptureQueue.GetRearElement().m_Image.Init(nWidth, nHeight, nChannel);
-		IppiSize roiSize = { nWidth, nHeight };
-		if (hCall.nCallStatus != ippStsNoErr)
-		{
-			kxPrintf(KX_INFO, "子站配置参数图宽高设置错误");
-		}
+		kxCImageBuf recimg;
 
-		/*
-		if (Config::g_GetParameter().m_bChangeExpoureTimeStatus && (Config::g_GetParameter().m_nSendImageCount++ % 8))
-		{
-			ConvertBayer2Color(m_CaptureQueue.GetRearElement().m_Image, m_TmpImg);
+		recimg.Init(nWidth, nHeight, nChannel);
 
+		recimg.SetImageBuf(buf, nWidth, nHeight, nPitch, nChannel, true);
+
+		Json::Value sendresult;
+
+		sendresult["imagepath"] = Config::g_GetParameter().m_szNetBuildModelSaveImagePath;
+
+		bool m_bOpenFileStatus = g_SaveImgQueBuildModel.OpenFile(Config::g_GetParameter().m_szNetBuildModelSaveImagePath,
+			recimg.nWidth, recimg.nHeight, recimg.nPitch, 500);
+
+		if (m_bOpenFileStatus)  //文件打开成功
+		{
 			unsigned int nOffset;
-			if (g_SaveImgQueExposure.m_fp == NULL)
-				g_SaveImgQueExposure.OpenFile(Config::g_GetParameter().m_szNetExposureSaveImagePath, m_TmpImg.nWidth, m_TmpImg.nHeight, m_TmpImg.nPitch, 10);
-			g_SaveImgQueExposure.SaveImg(m_TmpImg, nOffset);
-			//auto m_fp = _fsopen("d:\\123.bmp", "wb", _SH_DENYNO);
-			//m_TmpImg.Write(m_fp);
-			//fclose(m_fp);
 
-			std::ostringstream os;
-			os.write(reinterpret_cast<const char *>(&Config::g_GetParameter().m_szNetExposureSaveImagePath), sizeof(char)* 256);
-
-			if (!g_bIsSimulate)
-			{
-				string  szNet = m_hBaseFun.FormatIntToString(Config::g_GetParameter().m_nCurrentUIid) + m_hBaseFun.FormatIntToString(nOffset) + m_hBaseFun.FormatIntToString(m_TmpImg.nPitch) + m_hBaseFun.FormatIntToString(m_TmpImg.nHeight) + os.str();
-				if (Net::IsExistNetObj())
-				{
-					Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_SEND_REAL_TIME_IMAGE), int(szNet.size()), szNet.c_str());
-				}
-			}
-
-		}
-		*/
-
-
-		if (Config::g_GetParameter().m_bIsBuildModelStatus)// 建模状态则把结果直接发过去
-		{
-			Json::Value sendresult;
-			
-			sendresult["imagepath"] = Config::g_GetParameter().m_szNetBuildModelSaveImagePath;
-
-			bool m_bOpenFileStatus = g_SaveImgQueBuildModel.OpenFile(Config::g_GetParameter().m_szNetBuildModelSaveImagePath,
-				m_CaptureQueue.GetRearElement().m_Image.nWidth, m_CaptureQueue.GetRearElement().m_Image.nHeight, m_CaptureQueue.GetRearElement().m_Image.nPitch, 500);
-
-			if (m_bOpenFileStatus)  //文件打开成功
-			{
-				unsigned int nOffset;
-
-				g_SaveImgQue.SaveImg(m_CaptureQueue.GetRearElement().m_Image, nOffset);
-				sendresult["startoffset"] = nOffset;
-				sendresult["imageoffsetlen"] = m_CaptureQueue.GetRearElement().m_Image.nHeight * m_CaptureQueue.GetRearElement().m_Image.nPitch + 5 * 4;//这个‘值’看g_SaveImgQue.SaveImg()，存储的数据偏移+5个int
-			}
-			else
-			{
-				char word[256];
-				sprintf_s(word, 256, "存图路径打开失败：%s", Config::g_GetParameter().m_szNetBuildModelSaveImagePath);
-				kxPrintf(KX_Err, word);
-			}
-
-			std::string sendstr = sendresult.toStyledString();
-			if (Net::IsExistNetObj())
-			{
-				Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_BUILD_MODEL_IMG), int(sendstr.size()), sendstr.c_str());
-			}
-
+			g_SaveImgQueBuildModel.SaveImg(recimg, nOffset);
+			sendresult["startoffset"] = nOffset;
+			sendresult["imageoffsetlen"] = recimg.nHeight * recimg.nPitch + 5 * 4;//这个‘值’看g_SaveImgQue.SaveImg()，存储的数据偏移+5个int
 		}
 		else
 		{
+			char word[256];
+			sprintf_s(word, 256, "存图路径打开失败：%s", Config::g_GetParameter().m_szNetBuildModelSaveImagePath);
+			kxPrintf(KX_Err, word);
+		}
+
+		std::string sendstr = sendresult.toStyledString();
+		if (Net::IsExistNetObj())
+		{
+			Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_BUILD_MODEL_IMG), int(sendstr.size()), sendstr.c_str());
+		}
+		return;
+	}
+	else
+	{
+		if (!m_CaptureQueue.IsFull())
+		{
+			KxCallStatus hCall;
+			hCall.Clear();
+			m_CaptureQueue.GetRearElement().m_Image.SetImageBuf(buf, nWidth, nHeight, nPitch, nChannel, true, hCall);
+			//m_CaptureQueue.GetRearElement().m_Image.Init(nWidth, nHeight, nChannel);
+			IppiSize roiSize = { nWidth, nHeight };
+			if (hCall.nCallStatus != ippStsNoErr)
+			{
+				kxPrintf(KX_INFO, "子站配置参数图宽高设置错误");
+			}
+
+			/*
+			if (Config::g_GetParameter().m_bChangeExpoureTimeStatus && (Config::g_GetParameter().m_nSendImageCount++ % 8))
+			{
+				ConvertBayer2Color(m_CaptureQueue.GetRearElement().m_Image, m_TmpImg);
+
+				unsigned int nOffset;
+				if (g_SaveImgQueExposure.m_fp == NULL)
+					g_SaveImgQueExposure.OpenFile(Config::g_GetParameter().m_szNetExposureSaveImagePath, m_TmpImg.nWidth, m_TmpImg.nHeight, m_TmpImg.nPitch, 10);
+				g_SaveImgQueExposure.SaveImg(m_TmpImg, nOffset);
+				//auto m_fp = _fsopen("d:\\123.bmp", "wb", _SH_DENYNO);
+				//m_TmpImg.Write(m_fp);
+				//fclose(m_fp);
+
+				std::ostringstream os;
+				os.write(reinterpret_cast<const char *>(&Config::g_GetParameter().m_szNetExposureSaveImagePath), sizeof(char)* 256);
+
+				if (!g_bIsSimulate)
+				{
+					string  szNet = m_hBaseFun.FormatIntToString(Config::g_GetParameter().m_nCurrentUIid) + m_hBaseFun.FormatIntToString(nOffset) + m_hBaseFun.FormatIntToString(m_TmpImg.nPitch) + m_hBaseFun.FormatIntToString(m_TmpImg.nHeight) + os.str();
+					if (Net::IsExistNetObj())
+					{
+						Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_SEND_REAL_TIME_IMAGE), int(szNet.size()), szNet.c_str());
+					}
+				}
+
+			}
+			*/
+
+
+
+
 			m_CaptureQueue.GetRearElement().m_ImageID = m_nNowID;
 			m_CaptureQueue.GetRearElement().m_CardID = m_nNowID;
 			m_CaptureQueue.GetRearElement().m_Type = nChannel;
 			m_CaptureQueue.Push();
+
 		}
+		else
+		{
+			kxPrintf(KX_WARNING, "采集队列溢出");
+			//-----------TODO 一下为测试部分，测试队列溢出卡住的图像是什么样---------------//
+			CKxBaseFunction fun;
+			char savedir[256];
+			sprintf_s(savedir, sizeof(savedir), "d:\\wrong\\%d", Config::g_GetParameter().m_nNetStationId);
+			if (_access("d:\\wrong\\", 0))
+				_mkdir("d:\\wrong\\");
+			if (_access(savedir, 0))
+				_mkdir(savedir);
+			char saveszname[256];
+			sprintf_s(saveszname, sizeof(saveszname), "d:\\wrong\\%d\\%d.bmp", Config::g_GetParameter().m_nNetStationId, testnum++ % 100);
+			fun.SaveBMPImage_h(saveszname, m_CaptureQueue.Top().m_Image);
 
+
+		}
 	}
-	else
-	{
-		kxPrintf(KX_WARNING, "采集队列溢出");
-		//-----------TODO 一下为测试部分，测试队列溢出卡住的图像是什么样---------------//
-		CKxBaseFunction fun;
-		char savedir[256];
-		sprintf_s(savedir, sizeof(savedir), "d:\\wrong\\%d", Config::g_GetParameter().m_nNetStationId);
-		if (_access("d:\\wrong\\", 0))
-			_mkdir("d:\\wrong\\");
-		if (_access(savedir, 0))
-			_mkdir(savedir);
-		char saveszname[256];
-		sprintf_s(saveszname, sizeof(saveszname), "d:\\wrong\\%d\\%d.bmp", Config::g_GetParameter().m_nNetStationId, testnum++ % 100);
-		fun.SaveBMPImage_h(saveszname, m_CaptureQueue.Top().m_Image);
 
 
-	}
 
 
 
