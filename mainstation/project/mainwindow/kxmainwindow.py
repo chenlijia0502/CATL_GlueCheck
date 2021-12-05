@@ -15,23 +15,27 @@ from project.other.WorkList import WorkListWidget
 from project.mainwindow.DotCheckResultWidget import DotCheckResultWidget
 from library.ipc import ipc_tool
 from project.mainwindow.ControlManager import ControlManager
+from project.mainwindow.SerialManager import SerialManager
 
 
 class kxmainwindow(KXBaseMainWidget):
     _BAUDRATE = 115200
+    _HARDWARE_QUEUELEN = 7
     def __init__(self, dict_config):
         super(kxmainwindow, self).__init__(dict_config)
         self.widget_Realtime = KxBaseMonitoringWidget.create(name=dict_config["mointoringwidget_classname"], h_parent=self)
         self.widget_Paramsetting = KxBaseParameterSetting(hparent=self, dict_config=dict_config)#参数设置
         self.widget_runlog = KxBaseRunLog(self)#日志
         self.widget_permission = kxprivilege_management()#权限管理
-        self.widge_worklist = WorkListWidget(self)
+        self.widget_worklist = WorkListWidget(self)
 
-        self.mySeria = serial.Serial(port=dict_config['hardwarecom'], baudrate=self._BAUDRATE)# 波特率比较固定，没必要配置
+        self.mySeria = SerialManager(h_parent=self, port=dict_config['hardwarecom'], baudrate=self._BAUDRATE, nreadbuffersize=self._HARDWARE_QUEUELEN)# 波特率比较固定，没必要配置
         self.h_control = ControlManager(self)
+        self.h_checkcontrolthread = CheckControlThread()
+        self.h_checkcontrolthread.start()
 
         self._initstackwidget([self.ui.pbt_realtime, self.ui.pbt_paramset, self.ui.pbt_logview, self.ui.pushButton_worklist],
-                              [self.widget_Realtime, self.widget_Paramsetting, self.widget_runlog, self.widge_worklist])
+                              [self.widget_Realtime, self.widget_Paramsetting, self.widget_runlog, self.widget_worklist])
         self._completeui()
         self._completeconnect()
         self.ui.label_2.setText("下箱体托盘检测")
@@ -117,7 +121,7 @@ class kxmainwindow(KXBaseMainWidget):
             self.serial_Reconnect()
             self.h_control.setserial(self.mySeria)
             #self.h_control.buildmodel(s_extdata)
-            t = threading.Thread(target=self.h_control.buildmodel,args =s_extdata)
+            t = threading.Thread(target=self.h_control.buildmodel, args =s_extdata)
             t.start()
         elif n_msgtype == imc_msg.MSG_BUILD_MODEL_SECOND:
             ipc_tool.kxlog("主站", logging.INFO, "开始二次建模拍摄")
@@ -133,7 +137,8 @@ class kxmainwindow(KXBaseMainWidget):
         :return:
         """
         if not self.mySeria.isOpen():
-            self.mySeria = serial.Serial(port=self.dict_config['hardwarecom'], baudrate=self._BAUDRATE)
+            #self.mySeria = serial.Serial(port=self.dict_config['hardwarecom'], baudrate=self._BAUDRATE)
+            self.mySeria.reconnect()
 
 
     def callback2changecol(self):
@@ -179,21 +184,6 @@ class kxmainwindow(KXBaseMainWidget):
         return self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2judgeisfull_second')
 
 
-    # def _ready2dotcheck(self):
-    #     """启动点检或master"""
-    #     #QtWidgets.QMessageBox.warning(self, "提示", "正在进行点检，请勿点击", QtWidgets.QMessageBox.Ok)
-    #     #让相机去某个固定位置拍照，然后相机进行识别甄选
-    #     t = threading.Thread(target=self._control_calibrate)
-    #     t.start()
-    #
-    # def _ready2show_machine_move(self):
-    #     """启动设备"""
-    #     #QtWidgets.QMessageBox.warning(self, "提示", "设备正在测试运行", QtWidgets.QMessageBox.Ok)
-    #     #让相机去某个固定位置拍照，然后相机进行识别甄选
-    #     t = threading.Thread(target=self._controlmachine)
-    #     t.start()
-
-
     def openCamera(self):
         #发送给子站，通知打开相机采集图像，并把采集图像返回
         self.sendmsg(0, imc_msg.MSG_JUST_OPENCAMERA_BUILDMODEL)
@@ -201,3 +191,90 @@ class kxmainwindow(KXBaseMainWidget):
     def closeCamera(self):
         self.sendmsg(0, imc_msg.MSG_JUST_CLOSECAMERA_BUILDMODEL)
 
+
+    def callback2warnguangshan(self):
+        """
+        串口收到光栅信号，回调报警
+        :return:
+        """
+        print("callback2warnguangshan")
+
+
+    def call2back2getcaptureinfo(self):
+        """
+        获取检测所需移动位置参数
+        :return:
+        """
+
+        return self.widget_Paramsetting.str2paramitemfun(0, 1, 'call2back2getcaptureinfo')
+
+
+    def _onlinerun(self):
+        super(kxmainwindow, self)._onlinerun()
+
+        if self.ui.toolbtn_onlinerun.isChecked():  # 开始检测
+
+            self.h_checkcontrolthread.setstatus(True)
+
+            list_posinfo = self.call2back2getcaptureinfo()
+
+            self.h_checkcontrolthread.setinfo(list_posinfo)
+
+            self.h_checkcontrolthread.setSerial(self.mySeria)
+
+        else:
+
+            self.h_checkcontrolthread.setstatus(False)
+
+
+
+class CheckControlThread(threading.Thread):
+    def __init__(self):
+        super(CheckControlThread, self).__init__()
+        self.b_runstaus = False
+        self.list_info = []
+        self.serial = None
+
+
+    def setstatus(self, bstatus):
+        """
+        设置运行状态，开始检测为True，停止检测为False
+        :param bstatus:
+        :return:
+        """
+        self.b_runstaus = bstatus
+
+
+    def setinfo(self, list_info):
+        """
+        设置运动路径
+        :param  list_info:  [list_x, list_y]
+        :return:
+        """
+        self.list_info = list_info
+
+    def setSerial(self, serials:SerialManager):
+        self.serial = serials
+
+
+    def run(self):
+        """
+        执行检测需要的动作
+        :return:
+        """
+        while (1):
+
+            if self.b_runstaus:
+
+                #动作1
+
+                #动作完判断
+                if not self.b_runstaus: continue
+
+                #动作2
+
+                #..........
+
+            else:
+
+                time.sleep(0.5)

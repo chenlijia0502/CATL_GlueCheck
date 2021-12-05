@@ -48,6 +48,7 @@ class GuleParam(KxBaseParamWidget):
         self.h_mergelistobj = CMergeImgToList()
         self.build_status = BuildStatus.STATUS_INIT
         self.list_img = []
+        self.h_bigimage = None
 
 
     def _initui(self):
@@ -84,6 +85,7 @@ class GuleParam(KxBaseParamWidget):
                 {'name': '拍摄长度', 'type': 'int', 'value': 1000, 'limits': [0, 3000]},
                 {'name': '起拍位置', 'type': 'int', 'value': 0, 'limits':[0, 2000]},
                 {'name': '拍摄组数', 'type': 'int', 'value': 3, 'limits': [1, self._MAX_SCAN_NUM]},
+                {'name': '横向重叠区域', 'type': 'int', 'value': 1, 'limits': [1, 2000]},
                 {'name': u'全局取图', 'type': 'action'},
                 {'name': u'扫描区域取图', 'type': 'action'},
             ]},
@@ -110,7 +112,8 @@ class GuleParam(KxBaseParamWidget):
         self.p.param('检测区域数量').sigValueChanged.connect(self._add_checkarea)
         self.p.param('全局拍摄控制', '全局取图').sigActivated.connect(self._captureimg)
         self.p.param('全局拍摄控制', '扫描区域取图').sigActivated.connect(self._captureimg_second)
-        #self.p.param('显示图像').sigValueChanged.connect(self._changeshowimg)
+        self.p.param('显示图像').sigValueChanged.connect(self._changeshowimg)
+        self.p.param('全局拍摄控制', '横向重叠区域').sigValueChanged.connect(self._adjustbigimgsize)
 
     def _addqualdetectslot(self, *even):
         if int(even[1]) > self.n_qualitytreenum:
@@ -168,13 +171,20 @@ class GuleParam(KxBaseParamWidget):
         :return:
         """
         nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
-        ndisX = int(int(self.p.param('全局拍摄控制', '相机横向像素数').value()) *
-                    float(self.p.param('全局拍摄控制', '相机横向分辨率').value()))
+        # ndisX = int(int(self.p.param('全局拍摄控制', '相机横向像素数').value()) *
+        #             float(self.p.param('全局拍摄控制', '相机横向分辨率').value()))
+
+
         ndisY = int(self.p.param('全局拍摄控制', '拍摄长度').value())
         nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
         imgH = int(self.p.param('全局拍摄控制', '相机纵向像素数').value())
         imgW = int(self.p.param('全局拍摄控制', '相机横向像素数').value())
+
+        if nXtimes > 1:
+            ndisX = StaticConfigParam.MAX_X_LEN / (nXtimes - 1)
+        else:
+            ndisX = StaticConfigParam.MAX_X_LEN
 
         n_firstbuild_imgnum = (ndisY * StaticConfigParam.DIS2PIXEL) / imgH + 1
 
@@ -317,7 +327,7 @@ class GuleParam(KxBaseParamWidget):
 
     def _changeshowimg(self, *even):
         nindex = int(even[1])
-        if nindex < len(self.list_img) and self.list_img[nindex] != None:
+        if nindex < len(self.list_img):
             self.h_imgitem.setImage(self.list_img[nindex])
 
     def _setbaseimgpath(self):
@@ -374,8 +384,9 @@ class GuleParam(KxBaseParamWidget):
 
 
     def callback2showbigimg(self):
-        print ('callback2showbigimg')
         self.h_imgitem.setImage(self.h_mergeobj.bigimg)
+
+        self.h_bigimage = self.h_mergeobj.bigimg
 
         nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
@@ -385,7 +396,6 @@ class GuleParam(KxBaseParamWidget):
 
 
     def callback2judgeisfull(self):
-        print ("callback2judgeisfull: ", self.h_mergeobj.IsFull())
         return self.h_mergeobj.IsFull()
 
 
@@ -396,8 +406,6 @@ class GuleParam(KxBaseParamWidget):
     def callback2showbigimg_second(self):
         self.list_img = self.h_mergelistobj.list_bigimg
 
-        print ("shape", len(self.list_img), self.list_img[0].shape)
-
         self.h_imgitem.setImage(self.list_img[0])
 
         self.p.param("显示图像").setValue(0)
@@ -405,6 +413,58 @@ class GuleParam(KxBaseParamWidget):
 
     def callback2judgeisfull_second(self):
         return self.h_mergelistobj.IsFull()
+
+    def call2back2getcaptureinfo(self):
+        nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
+
+        nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
+
+        imgH = int(self.p.param('全局拍摄控制', '相机纵向像素数').value())
+
+        # 二次建模，对一次建模的roi进行隐藏，只需记录结果即可
+        for n_i in range(int(nXtimes)):
+            self.p.param('扫描区域', '扫描区域' + str(n_i)).isShow(False)
+
+        list_posx = []
+
+        list_x = []
+
+        list_y = []
+
+        for i in range(nXtimes):
+            list_posx.append(self.p.param('扫描区域', '扫描区域' + str(i)).get_list_pos())
+
+        for roipos in list_posx:
+            list_x.append(int(int(
+                (roipos[0] + roipos[2]) / 2 + nStartX) * self._BUILD_MODEL_SCALE_FACTOR / StaticConfigParam.DIS2PIXEL))
+
+            list_y.append(int(roipos[3]) * self._BUILD_MODEL_SCALE_FACTOR)
+
+        # list_y记录y轴移动距离，但是需要考虑图像每次拍摄取整以及可能丢步的问题
+
+        for nindex, y in enumerate(list_y):
+            n_build_imgnum = int(y / imgH) + 1
+
+            ndisY = min(int((n_build_imgnum + 1) * imgH / StaticConfigParam.DIS2PIXEL), StaticConfigParam.MAX_Y_LEN)
+
+            list_y[nindex] = ndisY
+
+        return [list_x, list_y]
+
+
+    def _adjustbigimgsize(self):
+        if self.h_bigimage is not None:
+            nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
+            nOversize = int(self.p.param('全局拍摄控制', '横向重叠区域').value())
+            h, w, c = self.h_bigimage.shape
+            nsingleimgw = int(w / nXtimes)
+            newsingleimgw = int(nsingleimgw - nOversize * 2)
+            print (nXtimes, nOversize, h, w, c, nsingleimgw, newsingleimgw)
+
+            newimg = np.zeros((h, newsingleimgw * nXtimes, c), np.uint8)
+            for i in range(nXtimes):
+                newimg[:, newsingleimgw*i:newsingleimgw*(i+1)] = self.h_bigimage[:, nsingleimgw * i + nOversize:nsingleimgw * i  + nOversize + newsingleimgw]
+            self.h_imgitem.setImage(newimg, autoLevels=False)
 
 
 registerkxwidget(name='GuleParam', cls=GuleParam, override=True)

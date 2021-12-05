@@ -1,7 +1,8 @@
-import serial
+
 import time
 import imc_msg
 from project.other.globalparam import StaticConfigParam
+from project.mainwindow.SerialManager import SerialManager
 
 def translatedis2hex(nmovedis):
     """
@@ -48,7 +49,7 @@ class ControlManager(object):
         self.mySeria = None
         self._DIS2PULSE = StaticConfigParam.DIS2PULSE
 
-    def setserial(self, serial:serial.Serial):
+    def setserial(self, serial:SerialManager):
         self.mySeria = serial
 
     def buildmodel(self, *list_info):
@@ -84,7 +85,11 @@ class ControlManager(object):
 
         ncycletimes = list_info[3]
 
+        nrecordx = 0
+
         for i in range(ncycletimes):
+
+            print ("---------------------------- 准备启动y轴电机 --------------------------------------------")
 
             self.h_parent.openCamera()
 
@@ -112,7 +117,7 @@ class ControlManager(object):
 
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
 
-            #self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
 
             self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
 
@@ -120,7 +125,9 @@ class ControlManager(object):
 
                 self.h_parent.callback2changecol()  # 告知参数界面开始切换下一个列拼图
 
-                movemsgx[3:] = translatedis2hex(list_info[1] / self._DIS2PULSE)
+                nrecordx += list_info[1]
+
+                movemsgx[3:] = translatedis2hex(nrecordx / self._DIS2PULSE)
 
                 print ("fa song bian shang yidong juli: ", movemsgx)
 
@@ -207,7 +214,7 @@ class ControlManager(object):
 
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
 
-            #self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
 
             self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
 
@@ -233,11 +240,11 @@ class ControlManager(object):
         print("HOPE REC: ", info)
 
         if info == None:
-            data = self.mySeria.read(self._HARDWARE_QUEUELEN).hex()
+            data = self.mySeria.read().hex()
             print ('None rec: ', data)
         else:
             while(1):
-                data = self.mySeria.read(self._HARDWARE_QUEUELEN).hex()
+                data = self.mySeria.read().hex()
                 print('read ori data: ', data)
                 data = str_to_hex(data)
                 print ('read data: ', data)
@@ -255,13 +262,13 @@ class ControlManager(object):
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_X)
 
-        #self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
 
         self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
 
-        #self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
 
         self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
 
