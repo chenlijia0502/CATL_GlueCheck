@@ -243,8 +243,6 @@ class kxmainwindow(KXBaseMainWidget):
             self.h_control.setcheckstatus(False)
 
 
-
-
     def changeCameraCapturedirection(self, status=False):
         if status == False:
             self.sendmsg(0, imc_msg.MSG_CHANGE_CAMERA_INFO_REVERSE)

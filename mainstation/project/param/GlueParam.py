@@ -19,6 +19,7 @@ from project.other.globalparam import StaticConfigParam
 from library.common.KxImageBuf import KxImageBuf
 from project.param.MergeImg import CMergeImg, CMergeImgToList
 from PIL import Image
+from project.param.WaitDialogWithText import WaitDialogWithText
 # from pyqtgraph.imageview.ImageView import ImageView
 
 #节拍  分析
@@ -49,6 +50,7 @@ class GuleParam(KxBaseParamWidget):
         self.build_status = BuildStatus.STATUS_INIT
         self.list_img = []
         self.h_bigimage = None
+        self.threadWaitDialog = WaitDialogWithText('正在建模，请稍候...')
 
 
     def _initui(self):
@@ -170,6 +172,11 @@ class GuleParam(KxBaseParamWidget):
         全局队列将参数送到界面，控制第一次全局拍照参数
         :return:
         """
+        self.threadWaitDialog.clear()
+        self.threadWaitDialog.setProcessBarRange(0, 100)
+        self.threadWaitDialog.show()
+        QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+
         nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
         # ndisX = int(int(self.p.param('全局拍摄控制', '相机横向像素数').value()) *
         #             float(self.p.param('全局拍摄控制', '相机横向分辨率').value()))
@@ -210,6 +217,11 @@ class GuleParam(KxBaseParamWidget):
         第二次采集全局参数，根据roi框的位置进行拍摄
         :return:
         """
+        self.threadWaitDialog.clear()
+        self.threadWaitDialog.setProcessBarRange(0, 100)
+        self.threadWaitDialog.show()
+        QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+
         nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
         nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
@@ -384,6 +396,9 @@ class GuleParam(KxBaseParamWidget):
     def callback2changecol(self):
         self.h_mergeobj.IncreaseCol()
 
+        self.threadWaitDialog.setProcessBarVal(20)
+
+
 
     def callback2showbigimg(self):
         self.h_imgitem.setImage(self.h_mergeobj.bigimg)
@@ -396,6 +411,9 @@ class GuleParam(KxBaseParamWidget):
 
             self.p.param('扫描区域', '扫描区域' + str(n_i)).isShow(True)
 
+        self.threadWaitDialog.close()
+
+
 
     def callback2judgeisfull(self):
         return self.h_mergeobj.IsFull()
@@ -404,6 +422,8 @@ class GuleParam(KxBaseParamWidget):
     def callback2changecol_second(self):
         self.h_mergelistobj.IncreaseCol()
 
+        self.threadWaitDialog.setProcessBarVal(20)
+
 
     def callback2showbigimg_second(self):
         self.list_img = self.h_mergelistobj.list_bigimg
@@ -411,6 +431,9 @@ class GuleParam(KxBaseParamWidget):
         self.h_imgitem.setImage(self.list_img[0])
 
         self.p.param("显示图像").setValue(0)
+
+        self.threadWaitDialog.close()
+
 
 
     def callback2judgeisfull_second(self):

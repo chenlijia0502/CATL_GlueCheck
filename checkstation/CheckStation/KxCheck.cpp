@@ -40,8 +40,8 @@ void CKxCheck::InitCheckMethod()
 
 void CKxCheck::ReleaseCheckMethod()
 {//开发者在这写上释放资源
-	for (int i = 0; i < Config::GetGlobalParam().m_nAreakNum; i++)
-		delete m_hCheckTools[i];
+	//for (int i = 0; i < Config::GetGlobalParam().m_nAreakNum; i++)
+	delete m_hCheckTools[0];
 	//delete 
 	//delete 
 }
@@ -884,7 +884,9 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	//total_e = tick_count::now();
 	//printf("check a image  %d: ----- cost : %f ms\n", card.m_CardID, (total_e - total_s).seconds() * 1000);
 	*/
+	
 	SaveImg(CheckResultStatus(m_finalcheckstatus));
+	
 	//tbb_end = tick_count::now();
 	//printf_s("----- cost : %f ms\n", (tbb_end - tbb_start).seconds() * 1000);
 
