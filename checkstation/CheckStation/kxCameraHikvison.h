@@ -24,6 +24,9 @@ public:
 
 	void* gethandle() { return m_camerahandle; }
 
+	void ReverseScanDirection(int nStatus);
+
+
 	//----------------------------------------------------------------------
 private:
 

@@ -83,7 +83,7 @@ void CkxFileRead::readAllPic( string path )
 			continue;
 		}
 
-		//cv::Mat img = cv::imread(iter->c_str(), 0);
+		//cv::Mat img = cv::imread(iter->c_str(), 1);
 		//m_readImg.Init(img.cols, img.rows, img.channels());
 		//m_readImg.SetImageBuf(img.data, img.cols, img.rows, img.step, img.channels(), false);
 

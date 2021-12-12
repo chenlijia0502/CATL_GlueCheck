@@ -170,7 +170,8 @@ class ControlManager(object):
 
         movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
 
-        nlastmovex = 0
+        # nlastmovex = 0
+
 
         for i in range(len(list_info[0])):
 
@@ -178,11 +179,11 @@ class ControlManager(object):
 
             y = list_info[1][i]
 
-            x_realmove = x - nlastmovex #让电机移动在上次的基础上移动
+            # x_realmove = x - nlastmovex #让电机移动在上次的基础上移动
+            #
+            # nlastmovex = x
 
-            nlastmovex = x
-
-            movemsgx[3:] = translatedis2hex(x_realmove / self._DIS2PULSE)
+            movemsgx[3:] = translatedis2hex(x / self._DIS2PULSE)
 
             self._sendhardwaremsg(movemsgx)
 
@@ -280,6 +281,172 @@ class ControlManager(object):
         self.mySeria.write(info)
         time.sleep(0.5)
 
+
+    def test_saveimg(self):
+        # 复位Y，
+
+        self._clear_hardware_recqueue()  # 清除接收缓存
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+        self.h_parent.openCamera()
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_LIGHT1)
+
+        self._waitfor_hardware_queue_result()
+
+        movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
+
+        y = 2000
+
+        movemsgy[3:] = translatedis2hex(y / self._DIS2PULSE)
+
+        self._sendhardwaremsg(movemsgy)
+
+        self._waitfor_hardware_queue_result()
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+        time.sleep(5)
+
+        self.h_parent.closeCamera()
+
+        time.sleep(1)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_LIGHT2)
+
+        self._waitfor_hardware_queue_result()
+
+        self.h_parent.changeCameraCapturedirection()
+
+        time.sleep(2)
+
+        self.h_parent.openCamera()
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+        time.sleep(5)
+
+        print('----------done-----------')
+
+
+    def setcheckstatus(self, bstatus):
+        self.b_checkstatus = bstatus
+
+
+    def check_control(self, list_info):
+        """
+        检测控制，跟二次建模一样的轨迹，不一样的是加了过程判断以及取图反转
+        :param list_info: [[list_x, list_y]]
+        :return:
+        """
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIAJIN)
+
+        time.sleep(5)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_SHENG)
+
+        time.sleep(8)
+
+        self._clear_hardware_recqueue()  # 清除接收缓存
+
+        self.h_parent.closeCamera()
+
+        self._rebackXY()
+
+        if not self.b_checkstatus:  return
+
+        movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
+
+        movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
+
+        for i in range(len(list_info[0])):
+
+            x = list_info[0][i]
+
+            y = list_info[1][i]
+
+            movemsgx[3:] = translatedis2hex(x / self._DIS2PULSE)
+
+            self._sendhardwaremsg(movemsgx)
+
+            self._waitfor_hardware_queue_result()
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
+
+            if i != 0:
+
+                self.h_parent.sendmsg_changecol()# 通知子站图像换列，做好标记
+
+            if not self.b_checkstatus:  return
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_LIGHT1)
+
+            self._waitfor_hardware_queue_result()
+
+            self.h_parent.onlyopencamera()
+
+            movemsgy[3:] = translatedis2hex(y / self._DIS2PULSE)
+
+            self._sendhardwaremsg(movemsgy)
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+            if not self.b_checkstatus:  return
+
+            time.sleep(1)
+
+            self.h_parent.closeCamera()
+
+            self.h_parent.changeCameraCapturedirection()
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_LIGHT2)
+
+            self._waitfor_hardware_queue_result()
+
+            self.h_parent.onlyopencamera()
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+            if not self.b_checkstatus:  return
+
+            time.sleep(1)
+
+            self.h_parent.closeCamera()
+
+            self.h_parent.changeCameraCapturedirection(True)
+
+
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIANG)
+
+        time.sleep(8)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_SONGKAI)
+
+        time.sleep(5)
+
+
     # def _control_calibrate(self):
     #
     #     self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_DOT_CHECK_OPEN)
@@ -374,6 +541,7 @@ class ControlManager(object):
     #     time.sleep(0.1)
     #
     #     self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
+    #
     #     print("x轴移动")
     #
     #     self._waitfor_hardware_queue_result()

@@ -41,6 +41,7 @@ public:
 	enum THRESH_TYPE
 	{
 		_BINARY,// 大于某个值设为255，其余全为0
+
 		_BINARY_INV,// 小于某个值设为255，其余全为0
 
 	}; 
@@ -58,11 +59,11 @@ private:
 	kxCImageBuf		m_ImgSubresult;
 	kxCImageBuf		m_MarkImg;
 	cv::Mat		m_MatState, m_MatLabel, m_MatCentroids;
+	cv::Mat	m_Matblack;
 
 public:
 	/*
 	fun:	投影得到单行或单列图像，并进行归一化
-	author: HYH
 	nDir   _Horizontal_Project_Dir = 1 代表水平，_Vertical_Project_Dir = 0 代表垂直
 	*/
 	void CreatProjectImg(const kxCImageBuf& SrcImg, cv::Mat& DstImg, int nDir, int nscalefactor = 1);
@@ -70,13 +71,11 @@ public:
 
 	/*
 	fun:	二值化
-	author: HYH
 	*/
 	int ThreshImg(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, int nthresh, THRESH_TYPE nthreshtype);
 
 	/*
 	fun:	图像垂直、水平投影之后进行模板匹配（会归一化）
-	author:	HYH
 	minConfidence 最小置信度，水平垂直两次定位需分别与之对比
 	nDirection 定位方向 _Horizontal_Project_Dir = 1 代表水平，_Vertical_Project_Dir = 0 代表垂直
 	return:  0为OK, 1为垂直定位失败，2为水平定位失败
@@ -105,17 +104,10 @@ public:
 	void MatchUseSSD(const kxCImageBuf& SrcImg, const kxCImageBuf& Templateimg, int ntype, kxPoint<int>& matchresult);// 
 
 
-	/*
-	fun:	计算孔洞个数（明显缺口认为也是孔洞）
-	author:	HYH
-	SrcImg 为单八连通域二值化图
-	*/
-	void CalculateHoleNums(const kxCImageBuf& SrcImg, int &nholenums);
-	void CalculateHoleNums(const cv::Mat& SrcImg, int &nholenums);
 
 
 	// 分割RGB三通道图
-	//void SplitRGB(const kxCImageBuf& SrcImg, kxCImageBuf* dstimgarray);
+	void SplitRGB(const kxCImageBuf& SrcImg, kxCImageBuf* dstimgarray);
 
 
 
@@ -134,26 +126,11 @@ public:
 
 	/*
 		fun:	将SrcImg 与 templateimg分成四块匹配，找到全局最佳结果
-		author:	HYH
 		匹配方法： TM_SQDIFF
 	*/
 	float MatchTemplateInBlock(cv::Mat &SrcImg, cv::Mat &templateimg, cv::Point& pos);
 	float MatchTemplateInBlock(const kxCImageBuf& SrcImg, const kxCImageBuf& templateimg, kxPoint<int>& pos);
 
-	/*
-		fun: 输入一张二值化图像，centerpoint为中心，得到nDirectionNum个方向上非零数据的点数之和，结果会被放回 presult 数组中
-		author: HYH
-		nDirectionNum： 主要为2 4 8，2即0°与90°，4即0°，45°，90°，135°，8即更加细分。其余情况默认4
-
-	*/
-	void CalEachDirectionPointNum(const cv::Mat& SrcImg, cv::Point& centerpoint, int *presult, int nDirectionNum=4);
-	void CalEachDirectionPointNum(const kxCImageBuf& SrcImg, kxPoint<int>& centerpoint, int *presult, int nDirectionNum=4);
-
-	/*
-		输入一张二值化图像，centerpoint为中心，得到angle角度方向上非零数据的点数之和
-	*/
-	void CalSingleDirectionPointNum(const cv::Mat& SrcImg, cv::Point& centerpoint, int angle, int &nnum);
-	void CalSingleDirectionPointNum(const kxCImageBuf& SrcImg, kxPoint<int>& centerpoint, int angle, int &nnum);
 
 
 	/*
@@ -169,5 +146,39 @@ public:
 	void ZSFilterSpecklesWithBlob(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, int nMaxSpeckleSize, int nconnectivity);
 
 	void ZSFilterSpecklesWithBlob(const cv::Mat& SrcImg, cv::Mat& DstImg, int nMaxSpeckleSize, int nconnectivity);
+
+
+	/*
+		fun: 填充孔洞
+	*/
+	void FillHoles(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg);
+
+
+	//------------------------------- 待写 --------------------------------//
+	
+	/*
+		fun: 输入一张二值化图像，centerpoint为中心，得到nDirectionNum个方向上非零数据的点数之和，结果会被放回 presult 数组中
+		nDirectionNum： 主要为2 4 8，2即0°与90°，4即0°，45°，90°，135°，8即更加细分。其余情况默认4
+
+	*/
+	void CalEachDirectionPointNum(const cv::Mat& SrcImg, cv::Point& centerpoint, int *presult, int nDirectionNum = 4);
+	void CalEachDirectionPointNum(const kxCImageBuf& SrcImg, kxPoint<int>& centerpoint, int *presult, int nDirectionNum = 4);
+
+	/*
+		输入一张二值化图像，centerpoint为中心，得到angle角度方向上非零数据的点数之和
+	*/
+	void CalSingleDirectionPointNum(const cv::Mat& SrcImg, cv::Point& centerpoint, int angle, int &nnum);
+	void CalSingleDirectionPointNum(const kxCImageBuf& SrcImg, kxPoint<int>& centerpoint, int angle, int &nnum);
+
+
+	/*
+		fun:	计算孔洞个数（明显缺口认为也是孔洞）
+		author:	HYH
+		SrcImg 为单八连通域二值化图
+	*/
+	void CalculateHoleNums(const kxCImageBuf& SrcImg, int &nholenums);
+	void CalculateHoleNums(const cv::Mat& SrcImg, int &nholenums);
+
+
 
 };

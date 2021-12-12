@@ -347,6 +347,10 @@ bool CCamera_HK::PrintDeviceInfo(MV_CC_DEVICE_INFO* pstMVDevInfo)
 	return true;
 }
 
+void CCamera_HK::ReverseScanDirection(int nStatus)
+{
+	int nRet = MV_CC_SetBoolValue(m_camerahandle, "ReverseScanDirection", nStatus);
+}
 
 
 //void CCamera_HK::XferCallback(unsigned char * pData, MV_FRAME_OUT_INFO_EX* pFrameInfo, void* pUser)

@@ -88,6 +88,14 @@ enum MessageType
 
 	MSG_JUST_CLOSECAMERA_BUILDMODEL = 502, //只关闭相机
 
+	MSG_CHANGE_CAMERA_INFO_REVERSE = 601, //修改相机取图方向
+
+	MSG_RECOVER_CAMERA_INFO_REVERSE = 602, //重置相机取图方向
+
+	MSG_JUST_OPENCAMERA = 603,//只是打开相机
+
+	MSG_CHANGE_CAPTURE_COL = 604,
+
 
 };
 
@@ -127,7 +135,14 @@ struct PreDealImgMsg
 
 struct GrabStatus
 {
-	int				nGrabDirection;		//采集方向，用于纠正朝上或朝下的图像
+	void init()
+	{
+		nGrabDirection = 0;
+
+		nGrabTimes = 0;
+	}
+
+	int				nGrabDirection;		//采集方向，用于纠正朝上或朝下的图像.0为朝上，1为朝下
 	int				nGrabTimes;			//针对第几组ROI采集
 };
 const  int  g_ncMAXGRABNUM = 28000; //假设从头走到尾最多这么多行，每一列采集这么多行 

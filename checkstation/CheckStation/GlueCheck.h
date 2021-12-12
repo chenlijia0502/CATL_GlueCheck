@@ -4,6 +4,7 @@
 #include "KxWarpStretch.h"
 #include "KxBaseFunction.h"
 #include "KxBlobAnalyse.h"
+#include "EmpiricaAlgorithm.h"
 
 class CGlueCheck : public BaseCheckMethod
 {
@@ -45,10 +46,20 @@ private:
 	cv::Mat					 m_matarraybgr[3];
 	kxCImageBuf				 m_ImgGray;
 	kxCImageBuf				 m_ImgThresh;
+	kxCImageBuf				 m_ImgClose;
 	kxCImageBuf				 m_ImgOpen;
 
 	kxCImageBuf				 m_ImgRGB[3];
 
+	CEmpiricaAlgorithm		 m_hAlg;
+
+	kxCImageBuf				 m_ImgmaxRegion;
+	kxCImageBuf				 m_ImgGlueMask;//蓝胶掩膜
+	kxCImageBuf				 m_ImgR_Mask;
+
+	kxCImageBuf				 m_ImgG_R;
+	kxCImageBuf				 m_ImgG_B;
+	kxCImageBuf				 m_ImgsubResult;
 
 
 private:
@@ -60,6 +71,6 @@ private:
 
 	void checkEdge(const kxCImageBuf& SrcImg);
 
-
+	void GetGlueMask();//用特定方法提取掩膜
 
 };

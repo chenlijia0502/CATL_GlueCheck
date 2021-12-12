@@ -186,7 +186,19 @@ void CTestAsioTcpClient::OnRecvData(int nStationID, const unsigned char* pData, 
 				case MSG_JUST_CLOSECAMERA_BUILDMODEL:
 					RecMsgToCloseCamera_BuildModel(pExtData);
 					break;
-
+				case MSG_CHANGE_CAMERA_INFO_REVERSE:
+					RecMsgToChangeCameraCaptureDirection(1);
+					break;
+				case MSG_RECOVER_CAMERA_INFO_REVERSE:
+					RecMsgToChangeCameraCaptureDirection(0);
+					break;
+				case MSG_JUST_OPENCAMERA:
+					RecMsgJustOpenCamera();
+					break;
+				case MSG_CHANGE_CAPTURE_COL:
+					g_Grabstatus.nGrabTimes++;
+					break;
+				
 				default:
 					break;
 
@@ -235,8 +247,6 @@ void CTestAsioTcpClient::RecMsgHandshake()
 	}
 }
 
-
-
 void CTestAsioTcpClient::RecMsgToStartCheck(const unsigned char* pExtData)
 {
 	//停止检测
@@ -276,17 +286,11 @@ void CTestAsioTcpClient::RecMsgToStartCheck(const unsigned char* pExtData)
 		return; //参数加载失败，不检查
 	}
 
-	//关闭内触发模式
-	//if (Config::g_GetParameter().m_bChangeExpoureTimeStatus)
-	//{
-	//	Graber::g_GetGrabPack().Stop();
-	//	Graber::g_GetCamera()->OpenInternalTrigger(1);
-	//	
-	//}
 	Graber::g_GetGraberBuffer().Init(true);
 	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("载入模板完成"));
-	//给内触发模式打开
-	//Graber::g_GetCamera()->OpenInternalTrigger(0);
+	
+	Graber::g_GetCamera()->ReverseScanDirection(0);// 代表相机正着走触发
+	g_Grabstatus.init();
 	g_Environment.StartCheck();
 	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("开始检测"));
 	std::ostringstream os;
@@ -358,6 +362,8 @@ void CTestAsioTcpClient::RecMsgToStartSimulate(const unsigned char* pExtData)
 	}
 	else
 		kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("开始模拟检查_路径为：%s"), pStimulateDir);
+	
+	g_Grabstatus.init();
 	g_Environment.StartSimulation(pStimulateDir);
 
 
@@ -465,6 +471,29 @@ void CTestAsioTcpClient::RecMsgToCloseCamera_BuildModel(const unsigned char* pEx
 {
 	Config::g_GetParameter().m_bIsBuildModelStatus = false;
 	RecMsgToCloseCamera();
+}
+
+void CTestAsioTcpClient::RecMsgToChangeCameraCaptureDirection(int nstatus)
+{
+	printf_s("改变相机采集方向");
+	if (nstatus > 0)
+	{
+		Graber::g_GetCamera()->ReverseScanDirection(1);
+	}
+	else
+	{
+		Graber::g_GetCamera()->ReverseScanDirection(0);
+	}
+}
+
+void CTestAsioTcpClient::RecMsgJustOpenCamera()
+{
+	Graber::g_GetGraberBuffer().Init(true);
+	//开始采集
+	Graber::g_GetGrabPack().Stop();
+	//给相机触发
+	Graber::g_GetCamera()->OpenInternalTrigger(1);//外触发
+	Graber::g_GetGrabPack().Start();
 }
 
 CTestAsioTcpClient* g_client ;

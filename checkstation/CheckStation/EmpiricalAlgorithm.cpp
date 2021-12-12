@@ -1043,3 +1043,54 @@ void CEmpiricaAlgorithm::ZSFilterSpecklesWithBlob(const cv::Mat& SrcImg, cv::Mat
 
 
 }
+
+void CEmpiricaAlgorithm::SplitRGB(const kxCImageBuf& SrcImg, kxCImageBuf* dstimgarray)
+{
+	if (SrcImg.nChannel != 3)
+	{
+		return;
+	}
+
+	Ipp8u* pbufarray[3];
+
+	for (int i = 0; i < 3; i++)
+	{
+		dstimgarray[i].Init(SrcImg.nWidth, SrcImg.nHeight);
+
+		pbufarray[i] = dstimgarray[i].buf;
+	}
+
+	IppiSize imgsize = { SrcImg.nWidth, SrcImg.nHeight};
+
+	ippiCopy_8u_C3P3R(SrcImg.buf, SrcImg.nPitch, pbufarray, dstimgarray[0].nPitch, imgsize);
+
+
+}
+
+void CEmpiricaAlgorithm::FillHoles(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg)
+{
+	if (SrcImg.nChannel != 1)
+		return;
+
+	m_Matblack = cv::Mat(SrcImg.nHeight + 2, SrcImg.nWidth + 2, CV_8UC1, cv::Scalar(0));
+
+	IppiSize imgsize = { SrcImg.nWidth, SrcImg.nHeight};
+
+	ippiCopy_8u_C1R(SrcImg.buf, SrcImg.nPitch, m_Matblack.data + 1 + m_Matblack.step, m_Matblack.step, imgsize);
+
+	cv::Point seed = {0, 0};
+
+	cv::Mat blackclone = m_Matblack.clone();
+
+	cv::floodFill(m_Matblack, seed, 255);
+
+	IppiSize bigimgsize = { m_Matblack.cols, m_Matblack.rows};
+
+	ippiSub_8u_C1IRSfs(blackclone.data, blackclone.step, m_Matblack.data, m_Matblack.step, bigimgsize, 0);
+
+	cv::Mat whiteimg = cv::Mat(m_Matblack.size(), m_Matblack.type(), cv::Scalar(255));
+
+	ippiSub_8u_C1IRSfs(m_Matblack.data, m_Matblack.step, whiteimg.data, whiteimg.step, bigimgsize, 0);
+
+	DstImg.SetImageBuf(whiteimg.data + 1 + whiteimg.step, SrcImg.nWidth, SrcImg.nHeight, whiteimg.step, whiteimg.channels(), true);
+}

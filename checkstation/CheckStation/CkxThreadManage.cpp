@@ -134,8 +134,6 @@ void CkxThreadManage::fun1()
 	}
 }
 
-
-
 void CkxThreadManage::SimulationAllPic(std::string strPath)
 {
 	try

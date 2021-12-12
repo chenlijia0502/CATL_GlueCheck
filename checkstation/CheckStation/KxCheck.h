@@ -59,6 +59,7 @@ public:
 	{
 		CGlueCheck::SingleParam		params[_MAX_GROUPNUM];
 		int				m_nROINUM;
+		int				m_nimgscalefactor;//Í¼ÏñËõ·ÅÏµÊý
 	};
 
 	struct PrepareToCheck

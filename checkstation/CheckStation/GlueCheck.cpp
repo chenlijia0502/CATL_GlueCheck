@@ -115,59 +115,133 @@ void CGlueCheck::checkqipao(const kxCImageBuf& SrcImg)
 
 void CGlueCheck::checkEdge(const kxCImageBuf& SrcImg)
 {
-	// 首先是提取出最大roi，然后从左边往右数，从右边往左数
+	//得到一个空心边缘
+
+	cv::Mat matMask = cv::Mat(m_ImgGlueMask.nHeight, m_ImgGlueMask.nWidth, CV_8UC1, m_ImgGlueMask.buf);
+
+	cv::Rect outrect = cv::boundingRect(matMask);
+
+	m_ImgR_Mask.Init(matMask.cols, matMask.rows);
+
+	IppiSize imgsize = { m_ImgR_Mask.nWidth, m_ImgR_Mask.nHeight};
+
+	ippiSub_8u_C1RSfs(m_ImgGlueMask.buf, m_ImgGlueMask.nPitch, m_ImgRGB[0].buf, m_ImgRGB[0].nPitch, m_ImgR_Mask.buf, m_ImgR_Mask.nPitch, imgsize, 0);
+
+	const int ncstep = 10;//N个点搜一次边
+
+	const int nthresh = 18;
+
+
+	//  搜索方法统一为先搜到蓝胶的，再往蓝胶另一侧搜索
+	
+	//搜左侧
+
+
+	int nleftpoints = outrect.height / ncstep;
+
+	int *pleftpos_edge = new int[nleftpoints];
+
+	int *pleftpos_gule = new int[nleftpoints];
+
+
+	int i = 0;
+
+	for (int y = outrect.y; y < outrect.y + outrect.height; y+=ncstep)
+	{
+		pleftpos_gule[i] = outrect.x;
+
+		for (int x = outrect.x; x < m_ImgGlueMask.nWidth; x++)
+		{
+			if (m_ImgGlueMask.buf[y*m_ImgGlueMask.nPitch + x] == 255)
+			{
+				pleftpos_gule[i] = x;
+
+				break;
+			}
+		}
+
+		i++;
+	}
+
+	i = 0;
+
+	const int noffset = 5;// 胶体周边会有反光，影响搜边
+
+	for (int y = outrect.y; y < outrect.y + outrect.height; y += ncstep)
+	{
+		pleftpos_edge[i] = gMax(pleftpos_gule[i] - noffset, 0);
+
+		for (int x = pleftpos_edge[i]; x >= 0; x--)
+		{
+			if (m_ImgR_Mask.buf[y*m_ImgR_Mask.nPitch + x] >= nthresh)
+			{
+				pleftpos_edge[i] = x;
+
+				break;
+			}
+		}
+
+		i++;
+
+	}
+
+
+	delete[] pleftpos_edge;
+
+	delete[] pleftpos_gule;
+
+	// 搜右侧
+
+	// 搜上
+
+	// 搜下
+
+	//RANSAC拟合直线，计算误差
+
 
 
 
 
 }
 
+void CGlueCheck::GetGlueMask()
+{
+
+	//提取涂胶掩膜
+	IppiSize imgsize = { m_ImgRGB[2].nWidth, m_ImgRGB[2].nHeight};
+
+	m_ImgThresh.Init(m_ImgRGB[2].nWidth, m_ImgRGB[2].nHeight);
+
+	m_ImgG_R.Init(m_ImgRGB[2].nWidth, m_ImgRGB[2].nHeight);
+
+	m_ImgG_B.Init(m_ImgRGB[2].nWidth, m_ImgRGB[2].nHeight);
+
+	m_ImgsubResult.Init(m_ImgRGB[2].nWidth, m_ImgRGB[2].nHeight);
+
+	ippiSub_8u_C1RSfs(m_ImgRGB[0].buf, m_ImgRGB[0].nPitch, m_ImgRGB[1].buf, m_ImgRGB[1].nPitch, m_ImgG_R.buf, m_ImgG_R.nPitch, imgsize, 0);
+
+	ippiSub_8u_C1RSfs(m_ImgRGB[2].buf, m_ImgRGB[2].nPitch, m_ImgRGB[1].buf, m_ImgRGB[1].nPitch, m_ImgG_B.buf, m_ImgG_B.nPitch, imgsize, 0);
+
+	ippiAdd_8u_C1RSfs(m_ImgG_R.buf, m_ImgG_R.nPitch, m_ImgG_B.buf, m_ImgG_B.nPitch, m_ImgsubResult.buf, m_ImgsubResult.nPitch, imgsize, 0);
+
+	m_hAlg.ThreshImg(m_ImgsubResult, m_ImgThresh, 50, CEmpiricaAlgorithm::_BINARY);
+
+	m_hFun.KxCloseImage(m_ImgThresh, m_ImgClose, 11, 11);
+
+	m_hFun.KxOpenImage(m_ImgClose, m_ImgOpen, 11, 11);
+	
+	m_hBlobFun.SelectMaxRegionByDots(m_ImgOpen, m_ImgmaxRegion);
+
+	//这里只是针对颜色的提取，必须加一层外部提取，把孔闭了
+
+	m_hAlg.FillHoles(m_ImgmaxRegion, m_ImgGlueMask);
+}
+
 int CGlueCheck::Check(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, Json::Value &checkresult)
 {
 
 
-
-	//checkresult["checkstatus"] = _Check_Err;// 我这里属于一棒子打死，后面要改的。
-	//int nstartx = m_hWarpStrech.GetParameter().m_rcCheckArea.left;
-	//int nstarty = m_hWarpStrech.GetParameter().m_rcCheckArea.top;
-	//int nstartx = 0;
-	//int nstarty = 0;
-	//if (nStatus == 0)
-	//{
-	//	Json::Value single;
-	//	single["Dots"] = 100000;
-	//	single["Energy"] = 100000;
-	//	single["pos"].append(nstartx);
-	//	single["pos"].append(nstarty);
-	//	single["pos"].append(m_hWarpStrech.GetParameter().m_rcCheckArea.Width());
-	//	single["pos"].append(m_hWarpStrech.GetParameter().m_rcCheckArea.Height());
-	//	//single["posX"] = m_hWarpStrech.GetParameter().m_rcCheckArea.left;
-	//	//single["posY"] = m_hWarpStrech.GetParameter().m_rcCheckArea.top;
-	//	//single["width"] = m_hWarpStrech.GetParameter().m_rcCheckArea.Width();
-	//	//single["height"] = m_hWarpStrech.GetParameter().m_rcCheckArea.Height();
-	//	checkresult["defect feature"].append(single);
-	//	checkresult["defect num"] = 1;
-	//}
-	//else
-	//{
-	//	checkresult["defect num"] = m_hSurfaceCheck.GetCheckResult().m_nCount;
-	//	for (int i = 0; i < m_hSurfaceCheck.GetCheckResult().m_nCount; i++)
-	//	{
-	//		Json::Value single;
-	//		single["Dots"] = m_hSurfaceCheck.GetCheckResult().m_hBlobInfo[i].m_nDots;
-	//		single["Energy"] = m_hSurfaceCheck.GetCheckResult().m_hBlobInfo[i].m_nEnergy;
-	//		single["pos"].append(nstartx + m_hSurfaceCheck.GetCheckResult().m_hBlobInfo[i].m_nLeft);
-	//		single["pos"].append(nstarty + m_hSurfaceCheck.GetCheckResult().m_hBlobInfo[i].m_nTop);
-	//		single["pos"].append(m_hSurfaceCheck.GetCheckResult().m_hBlobInfo[i].m_nBlobWidth);
-	//		single["pos"].append(m_hSurfaceCheck.GetCheckResult().m_hBlobInfo[i].m_nBlobHeight);
-	//		//single["posX"] = m_hSurfaceCheck.GetCheckResult().m_hBlobInfo[i].m_nLeft;
-	//		//single["posY"] = m_hSurfaceCheck.GetCheckResult().m_hBlobInfo[i].m_nTop;;
-	//		//single["width"] = m_hSurfaceCheck.GetCheckResult().m_hBlobInfo[i].m_nBlobWidth;
-	//		//single["height"] = m_hSurfaceCheck.GetCheckResult().m_hBlobInfo[i].m_nBlobHeight;
-	//		checkresult["defect feature"].append(single);
-	//	}
-	//}
-
+	/*
 	checkcolordiff(SrcImg);
 
 	cv::Mat srcmat;
@@ -213,9 +287,34 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, Json::Valu
 		}
 
 	}
+	*/
 
+	m_hAlg.SplitRGB(SrcImg, m_ImgRGB);
+
+	GetGlueMask();
+
+	//checkEdge(SrcImg);
+
+	/*
+	kxCImageBuf colorimg, andimg, otherimg;
+
+	colorimg.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight, 3);
+
+	andimg.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight, 3);
+
+	otherimg.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight, 3);
+
+	IppiSize imgsize = { m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight };
+
+	ippiCopy_8u_C1C3R(m_ImgGlueMask.buf, m_ImgGlueMask.nPitch, colorimg.buf, colorimg.nPitch, imgsize);
+
+	ippiSub_8u_C3RSfs(colorimg.buf, colorimg.nPitch, SrcImg.buf, SrcImg.nPitch, otherimg.buf, otherimg.nPitch, imgsize, 0);
+
+	ippiSub_8u_C3RSfs(otherimg.buf, otherimg.nPitch, SrcImg.buf, SrcImg.nPitch, andimg.buf, andimg.nPitch, imgsize, 0);
+
+	*/
 	DstImg = SrcImg;
-
+	 
 	return 1;
 }
 

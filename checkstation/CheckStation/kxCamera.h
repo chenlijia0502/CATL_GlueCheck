@@ -47,6 +47,8 @@ public:
 	virtual int  OpenSoftwareControl();
 	virtual void Alarm(int nAlarmStatus, int nTime = 1000);
 
+	virtual void ReverseScanDirection(int nStatus) {}
+
 	struct Parameter 
 	{
 		void* pEnvirment;

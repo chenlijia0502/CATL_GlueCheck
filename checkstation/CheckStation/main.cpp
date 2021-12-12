@@ -182,6 +182,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		sprintf_s(szInfo, 1024, "相机%d初始化失败", Config::g_GetParameter().m_nNetStationId);
 		kxPrintf(KX_Err, szInfo);
 	}
+
+
 	std::ostringstream os;
 	os.write(reinterpret_cast<const char *>(&nStatus), sizeof(int));
 	std::string str = os.str();

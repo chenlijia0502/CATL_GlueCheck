@@ -31,6 +31,7 @@ class kxmainwindow(KXBaseMainWidget):
 
         self.mySeria = SerialManager(h_parent=self, port=dict_config['hardwarecom'], baudrate=self._BAUDRATE, nreadbuffersize=self._HARDWARE_QUEUELEN)# 波特率比较固定，没必要配置
         self.h_control = ControlManager(self)
+        self.h_control.setserial(self.mySeria)
         self.h_checkcontrolthread = CheckControlThread()
         self.h_checkcontrolthread.start()
 
@@ -78,8 +79,10 @@ class kxmainwindow(KXBaseMainWidget):
 
     def _completeconnect(self):
         self.ui.toolButton_userlevel.clicked.connect(self.showpermissiondialog)
+        self.toolbutton_move.clicked.connect(self._emitmove)
 
-        # self.toolbutton_move.clicked.connect(self._ready2dotcheck)
+    def _emitmove(self):
+        self.h_checkcontrolthread.emits()
 
 
     def _setlearnstatus(self):
@@ -188,8 +191,17 @@ class kxmainwindow(KXBaseMainWidget):
         #发送给子站，通知打开相机采集图像，并把采集图像返回
         self.sendmsg(0, imc_msg.MSG_JUST_OPENCAMERA_BUILDMODEL)
 
+
     def closeCamera(self):
         self.sendmsg(0, imc_msg.MSG_JUST_CLOSECAMERA_BUILDMODEL)
+
+
+    def onlyopencamera(self):
+        self.sendmsg(0, imc_msg.MSG_JUST_OPENCAMERA)
+
+
+    def sendmsg_changecol(self):
+        self.sendmsg(0, imc_msg.MSG_CHANGE_CAPTURE_COL)
 
 
     def callback2warnguangshan(self):
@@ -214,17 +226,31 @@ class kxmainwindow(KXBaseMainWidget):
 
         if self.ui.toolbtn_onlinerun.isChecked():  # 开始检测
 
-            self.h_checkcontrolthread.setstatus(True)
-
             list_posinfo = self.call2back2getcaptureinfo()
 
             self.h_checkcontrolthread.setinfo(list_posinfo)
 
-            self.h_checkcontrolthread.setSerial(self.mySeria)
+            self.h_control.setcheckstatus(True)
+
+            self.h_checkcontrolthread.setControlmanger(self.h_control)
+
+            self.h_checkcontrolthread.setstatus(True)
 
         else:
 
             self.h_checkcontrolthread.setstatus(False)
+
+            self.h_control.setcheckstatus(False)
+
+
+
+
+    def changeCameraCapturedirection(self, status=False):
+        if status == False:
+            self.sendmsg(0, imc_msg.MSG_CHANGE_CAMERA_INFO_REVERSE)
+        else:
+            self.sendmsg(0, imc_msg.MSG_RECOVER_CAMERA_INFO_REVERSE)
+
 
 
 
@@ -233,7 +259,8 @@ class CheckControlThread(threading.Thread):
         super(CheckControlThread, self).__init__()
         self.b_runstaus = False
         self.list_info = []
-        self.serial = None
+        self.controlmanger = None
+        self.b_emit = False
 
 
     def setstatus(self, bstatus):
@@ -253,9 +280,12 @@ class CheckControlThread(threading.Thread):
         """
         self.list_info = list_info
 
-    def setSerial(self, serials:SerialManager):
-        self.serial = serials
+    def setControlmanger(self, serials:ControlManager):
 
+        self.controlmanger = serials
+
+    def emits(self):
+        self.b_emit = True
 
     def run(self):
         """
@@ -264,9 +294,14 @@ class CheckControlThread(threading.Thread):
         """
         while (1):
 
-            if self.b_runstaus:
+            if self.b_runstaus and self.b_emit:
+
+                self.b_emit = False
 
                 #动作1
+
+
+                self.controlmanger.check_control(self.list_info)
 
                 #动作完判断
                 if not self.b_runstaus: continue

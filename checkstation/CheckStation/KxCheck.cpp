@@ -192,6 +192,19 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 		return false;
 	}
 
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "建模图像缩放系数", szResult);
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "建模图像缩放系数");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.m_nimgscalefactor);
+	if (!nStatus)
+	{
+		return false;
+	}
+
 	for (int nindex = 0; nindex < m_param.m_nROINUM; nindex++)
 	{
 		char name[64];
@@ -213,6 +226,8 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 		{
 			return false;
 		}
+
+		m_param.params[nindex].m_rcCheckROI.mulC(m_param.m_nimgscalefactor);
 
 		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "扫描组号", szResult);
 
@@ -387,7 +402,7 @@ int CKxCheck::ClearIndex()
 	return 1;
 }
 
-void CKxCheck::SaveImg(CheckResultStatus status)
+void CKxCheck::	SaveImg(CheckResultStatus status)
 {
 	if (m_estatus == SaveImgStatus::_SAVEALL)
 	{
@@ -729,9 +744,10 @@ void CKxCheck::JudgeWhichROI(const CKxCaptureImage& SrcCapImg)
 {
 	for (int i = 0; i < m_param.m_nROINUM; i++)
 	{
+
 		if (g_Grabstatus.nGrabTimes == m_param.params[i].m_nGrabTimes)
 		{
-			int ncurstartrow = SrcCapImg.m_ImageID * SrcCapImg.m_Image.nHeight;
+			int ncurstartrow = (SrcCapImg.m_ImageID - 1) * SrcCapImg.m_Image.nHeight;
 			
 			int ncurendrow = ncurstartrow + SrcCapImg.m_Image.nHeight - 1;// -1 这个操作是把它变成图像索引，与roi同步
 
@@ -765,19 +781,22 @@ void CKxCheck::JudgeWhichROI(const CKxCaptureImage& SrcCapImg)
 				}
 				else//下侧
 				{
+
 					roisize = { SrcCapImg.m_Image.nWidth,  nroibottom - ncurstartrow + 1 };
 
 					ncopystart = 0;
 				}
 
+				m_struct2check[i].m_BigImg.Init(SrcCapImg.m_Image.nWidth, m_param.params[i].m_rcCheckROI.Height(), SrcCapImg.m_Image.nChannel);
+
 				unsigned char *basebuf = m_struct2check[i].m_BigImg.buf;
 
-				ippiCopy_8u_C3R(SrcCapImg.m_Image.buf + ncopystart*SrcCapImg.m_Image.nPitch, SrcCapImg.m_Image.nPitch, 
-					basebuf + m_struct2check[i].m_ncopyrow, m_struct2check[i].m_BigImg.nPitch, roisize);
+				ippiCopy_8u_C3R(SrcCapImg.m_Image.buf + ncopystart * SrcCapImg.m_Image.nPitch, SrcCapImg.m_Image.nPitch, 
+					basebuf + m_struct2check[i].m_ncopyrow * m_struct2check[i].m_BigImg.nPitch, m_struct2check[i].m_BigImg.nPitch, roisize);
 
 				m_struct2check[i].m_ncopyrow += roisize.height;
 
-				if (m_struct2check[i].m_ncopyrow == m_struct2check[i].m_BigImg.nHeight - 1)
+				if (m_struct2check[i].m_ncopyrow == m_struct2check[i].m_BigImg.nHeight)
 				{
 					m_struct2check[i].m_bCanCheck = true;
 				}
@@ -796,122 +815,78 @@ void CKxCheck::DotCheckImg(const kxCImageBuf& SrcImg)
 
 int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 {
-	if (g_bdotcheckstatus)
+	
+	tick_count tbb_start, tbb_end;
+	tbb_start = tick_count::now();
+
+	//1.转换图像，初始化每次检测
+	//TransferImage(SrcCapImg);
+	m_TransferImage.SetImageBuf(SrcCapImg.m_Image.buf, SrcCapImg.m_Image.nWidth, SrcCapImg.m_Image.nHeight, SrcCapImg.m_Image.nPitch, SrcCapImg.m_Image.nChannel, true);
+
+	/*
+	ClearResult(SrcCapImg.m_CardID);
+	
+	m_finalcheckstatus = CheckResultStatus::_Check_Ok;
+
+
+	//2.检测
+	//for (int i = 0; i < Config::GetGlobalParam().m_nAreakNum; i++)
+	//{
+	//	m_hCheckResult[i].clear();
+	//	m_bCheckStatus[i] = m_hCheckTools[i]->Check(m_TransferImage, m_DstImg, m_hCheckResult[i]);
+	//}
+
+	if (1)
 	{
-		m_TransferImage.SetImageBuf(SrcCapImg.m_Image.buf, SrcCapImg.m_Image.nWidth, SrcCapImg.m_Image.nHeight, SrcCapImg.m_Image.nPitch, SrcCapImg.m_Image.nChannel, true);
+		// 2.确认图像属于哪个roi，哪段ID，先不考虑相机采集方向问题
 
-		DotCheckImg(m_TransferImage);
+		JudgeWhichROI(SrcCapImg);
 
-		Json::Value sendresult;
-		//JudgeCheckStaus(checkresult[0], sendresult);
-
-		sendresult["id"] = 0;
-		sendresult["imagepath"] = Config::g_GetParameter().m_szNetSaveImagePath;
-
-		unsigned int nOffset;
-		bool m_bOpenFileStatus = g_SaveImgQue.OpenFile(Config::g_GetParameter().m_szNetSaveImagePath, m_TransferImage.nWidth, m_TransferImage.nHeight, m_TransferImage.nPitch, 500);
-		if (m_bOpenFileStatus)  //文件打开成功
+		for (int i = 0; i < m_param.m_nROINUM; i++)
 		{
-			g_SaveImgQue.SaveImg(m_TransferImage, nOffset);
-			sendresult["startoffset"] = nOffset;
-			sendresult["imageoffsetlen"] = m_TransferImage.nHeight * m_TransferImage.nPitch + 5 * 4;//这个‘值’看g_SaveImgQue.SaveImg()，存储的数据偏移+5个int
-		}
-		else
-		{
-			char word[256];
-			sprintf_s(word, 256, "存图路径打开失败：%s", Config::g_GetParameter().m_szNetSaveImagePath);
-			kxPrintf(KX_Err, word);
-		}
 
-		std::string sendstr = sendresult.toStyledString();
-		if (Net::IsExistNetObj())
-		{
-			Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_DOT_CHECK_RESULT), int(sendstr.size()), sendstr.c_str());
+			if (m_struct2check[i].m_bCanCheck)
+			{
+
+				m_hCheckTools[0]->SetParam(&m_param.params[i]);
+
+				m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_struct2check[i].m_BigImg, m_DstImg, m_hCheckResult[0]);
+
+				m_struct2check[i].m_bCanCheck = false;
+
+			}
 		}
-
-
 	}
 	else
 	{
-		tick_count tbb_start, tbb_end;
-		tbb_start = tick_count::now();
+		//模拟跑使用单个
 
-		//1.转换图像，初始化每次检测
-		//TransferImage(SrcCapImg);
-		m_TransferImage.SetImageBuf(SrcCapImg.m_Image.buf, SrcCapImg.m_Image.nWidth, SrcCapImg.m_Image.nHeight, SrcCapImg.m_Image.nPitch, SrcCapImg.m_Image.nChannel, true);
+		m_hCheckTools[0]->SetParam(&m_param.params[0]);
 
-		ClearResult(SrcCapImg.m_CardID);
+		m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_TransferImage, m_DstImg, m_hCheckResult[0]);
 
-		m_finalcheckstatus = CheckResultStatus::_Check_Ok;
-
-
-		//2.检测
-		//for (int i = 0; i < Config::GetGlobalParam().m_nAreakNum; i++)
-		//{
-		//	m_hCheckResult[i].clear();
-		//	m_bCheckStatus[i] = m_hCheckTools[i]->Check(m_TransferImage, m_DstImg, m_hCheckResult[i]);
-		//}
-
-		if (0)
-		{
-			// 2.确认图像属于哪个roi，哪段ID，先不考虑相机采集方向问题
-
-			JudgeWhichROI(SrcCapImg);
-
-
-			for (int i = 0; i < m_param.m_nROINUM; i++)
-			{
-				if (m_struct2check[i].m_bCanCheck)
-				{
-					kxCImageBuf solveimg;
-
-					while (m_struct2check[i].GetSolveImg(solveimg))//单个roi，处理完再说别的
-					{
-						m_hCheckTools[0]->SetParam(&m_param.params[i]);
-
-						m_bCheckStatus[0] = m_hCheckTools[0]->Check(solveimg, m_DstImg, m_hCheckResult[0]);
-					}
-
-					m_struct2check[i].m_bCanCheck = false;
-
-				}
-			}
-		}
-		else
-		{
-			//模拟跑使用单个
-
-			m_hCheckTools[0]->SetParam(&m_param.params[0]);
-
-			m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_TransferImage, m_DstImg, m_hCheckResult[0]);
-		}
-
-
-
-
-
-
-		//// 并行版本，开发者自行选择
-		//parallel_for(blocked_range<int>(0, Config::GetGlobalParam().m_nAreakNum),
-		//	[&](const blocked_range<int>& range)
-		//{
-		//	for (int index = range.begin(); index != range.end(); index++)
-		//	{
-		//		m_bCheckStatus[i] = m_hCheckTools[i]->Check(m_TransferImage, m_DstImg, m_hCheckResult[i]);
-		//	}
-		//}, auto_partitioner());
-
-
-		//3. 分析结果，比如用表达式进行判废（这一步以前的同事设计的时候不把它放在主站的原因是因为耗时原因），这里是对所有区域进行汇合的判废
-		AnalyseCheckResult(SrcCapImg.m_CardID, m_hCheckResult);
-
-		//total_e = tick_count::now();
-		//printf("check a image  %d: ----- cost : %f ms\n", card.m_CardID, (total_e - total_s).seconds() * 1000);
-
-		SaveImg(CheckResultStatus(m_finalcheckstatus));
-		tbb_end = tick_count::now();
-		printf("----- cost : %f ms\n", (tbb_end - tbb_start).seconds() * 1000);
 	}
+
+	//// 并行版本，开发者自行选择
+	//parallel_for(blocked_range<int>(0, Config::GetGlobalParam().m_nAreakNum),
+	//	[&](const blocked_range<int>& range)
+	//{
+	//	for (int index = range.begin(); index != range.end(); index++)
+	//	{
+	//		m_bCheckStatus[i] = m_hCheckTools[i]->Check(m_TransferImage, m_DstImg, m_hCheckResult[i]);
+	//	}
+	//}, auto_partitioner());
+
+
+	//3. 分析结果，比如用表达式进行判废（这一步以前的同事设计的时候不把它放在主站的原因是因为耗时原因），这里是对所有区域进行汇合的判废
+	AnalyseCheckResult(SrcCapImg.m_CardID, m_hCheckResult);
+
+	//total_e = tick_count::now();
+	//printf("check a image  %d: ----- cost : %f ms\n", card.m_CardID, (total_e - total_s).seconds() * 1000);
+	*/
+	SaveImg(CheckResultStatus(m_finalcheckstatus));
+	//tbb_end = tick_count::now();
+	//printf_s("----- cost : %f ms\n", (tbb_end - tbb_start).seconds() * 1000);
 
 
 

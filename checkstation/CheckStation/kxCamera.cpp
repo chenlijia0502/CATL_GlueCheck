@@ -85,3 +85,4 @@ void kxCGrabCamera::Alarm(int nAlarmStatus, int nTime)
 {
 	
 }
+

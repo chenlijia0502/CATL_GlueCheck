@@ -163,6 +163,20 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 
 		recimg.SetImageBuf(buf, nWidth, nHeight, nPitch, nChannel, true);
 
+		//static int nsavenum = 0;
+
+		//char savepath[128];
+
+		//memset(savepath, 0, 128);
+
+		//sprintf_s(savepath, "d:\\%d.bmp", nsavenum);
+
+		//cv::Mat imgmat = cv::Mat(recimg.nHeight, recimg.nWidth, CV_8UC(recimg.nChannel), recimg.buf);
+
+		//cv::imwrite(savepath, imgmat);
+
+		//nsavenum++;
+
 		Json::Value sendresult;
 
 		sendresult["imagepath"] = Config::g_GetParameter().m_szNetBuildModelSaveImagePath;
@@ -233,8 +247,6 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 
 			}
 			*/
-
-
 
 
 			m_CaptureQueue.GetRearElement().m_ImageID = m_nNowID;

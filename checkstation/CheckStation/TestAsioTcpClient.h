@@ -53,6 +53,8 @@ private:
 	void RecMsgToOpenCamera_BuildModel(const unsigned char* pExtData);
 	void RecMsgToCloseCamera_BuildModel(const unsigned char* pExtData);
 
+	void RecMsgToChangeCameraCaptureDirection(int nstatus);
+	void RecMsgJustOpenCamera();
 
 };
 
