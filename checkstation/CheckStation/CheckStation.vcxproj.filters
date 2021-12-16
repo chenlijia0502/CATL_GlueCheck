@@ -111,11 +111,11 @@
     <ClCompile Include="zsCameraLMI.cpp">
       <Filter>相机\LMI</Filter>
     </ClCompile>
-    <ClCompile Include="CalcuSurfacePlaneness.cpp">
-      <Filter>检测流程</Filter>
-    </ClCompile>
     <ClCompile Include="EmpiricalAlgorithm.cpp">
       <Filter>算法</Filter>
+    </ClCompile>
+    <ClCompile Include="CombineImg.cpp">
+      <Filter>检测流程</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -191,11 +191,11 @@
     <ClInclude Include="zsCameraLMI.h">
       <Filter>相机\LMI</Filter>
     </ClInclude>
-    <ClInclude Include="CalcuSurfacePlaneness.h">
-      <Filter>检测流程</Filter>
-    </ClInclude>
     <ClInclude Include="EmpiricaAlgorithm.h">
       <Filter>算法</Filter>
+    </ClInclude>
+    <ClInclude Include="CombineImg.h">
+      <Filter>检测流程</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

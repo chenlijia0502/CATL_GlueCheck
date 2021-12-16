@@ -50,7 +50,7 @@ class GuleParam(KxBaseParamWidget):
         self.build_status = BuildStatus.STATUS_INIT
         self.list_img = []
         self.h_bigimage = None
-        self.threadWaitDialog = WaitDialogWithText('正在建模，请稍候...')
+        self.threadWaitDialog = None
 
 
     def _initui(self):
@@ -81,10 +81,10 @@ class GuleParam(KxBaseParamWidget):
         self.params.append(dict_head)
         self.params.extend([
             {'name': '全局拍摄控制', 'type': 'group', 'children':[
-                {'name': '相机横向像素数', 'type': 'int', 'value': 6000, 'limits': [1, 8192]},
+                {'name': '相机横向像素数', 'type': 'int', 'value': 8192, 'limits': [1, 8192]},
                 {'name': '相机横向分辨率', 'type': 'float', 'value': 0.1, 'limits': [0, 1]},
                 {'name': '相机纵向像素数', 'type': 'int', 'value': 2000, 'limits': [200, 6600]},
-                {'name': '拍摄长度', 'type': 'int', 'value': 1000, 'limits': [0, 3000]},
+                {'name': '拍摄长度', 'type': 'int', 'value': 1000, 'limits': [0, StaticConfigParam.MAX_Y_LEN]},
                 {'name': '起拍位置', 'type': 'int', 'value': 0, 'limits':[0, 2000]},
                 {'name': '拍摄组数', 'type': 'int', 'value': 3, 'limits': [1, self._MAX_SCAN_NUM]},
                 {'name': '横向重叠区域', 'type': 'int', 'value': 1, 'limits': [1, 2000]},
@@ -96,6 +96,10 @@ class GuleParam(KxBaseParamWidget):
             {'name': u'检测区域数量', 'type': 'int', 'value': 0, 'step': 1, 'limits': (0, self._MAX_ROI_NUM)},
             {'name': u'显示图像', 'type':'list', 'values': {'组数一': 0, '组数二': 1, '组数三':2, '组数四':3,
                                                         '组数五':4, '组数六':5}},
+            {'name': '检测参数', 'type': 'group', 'children': [
+                {'name': '检高灵敏度', 'type': 'int', 'value': 3, 'limits': [0, 25]},
+                {'name': '检低灵敏度', 'type': 'int', 'value': 3, 'limits': [0, 25]},
+            ]},
 
         ])
 
@@ -107,7 +111,9 @@ class GuleParam(KxBaseParamWidget):
         for nindex in range(self._MAX_ROI_NUM):
              self.p.param(u'检测区域' + str(nindex), u'检测区域').add2view(self.view)
         for nindex in range(self._MAX_SCAN_NUM):
-             self.p.param('扫描区域' , '扫描区域' + str(nindex)).add2view(self.view)
+             self.p.param('扫描区域', '扫描区域' + str(nindex)).add2view(self.view)
+        for nindex in range(self._MAX_SCAN_NUM):
+             self.p.param('扫描区域', '匹配位置' + str(nindex)).add2view(self.view)
         self._initsignal()
 
     def _initsignal(self):
@@ -129,7 +135,7 @@ class GuleParam(KxBaseParamWidget):
 
     def _add_checkarea(self, *even):
         if int(even[1]) > self.n_checkarea:
-            for n_i in range(int(even[1])):
+            for n_i in range(self.n_checkarea, int(even[1])):
                 self.p.param('检测区域' + str(n_i)).show()
                 self.p.param('检测区域' + str(n_i), '检测区域').isShow(True)
         else:
@@ -147,11 +153,9 @@ class GuleParam(KxBaseParamWidget):
                       "roi_opt": {"word": '检测区域'+ str(i), "scaleable": True, 'pen':1}, "infovisible": False},
                     {'name': u'扫描组号', 'type': 'list', 'values': {'组数一': 0, '组数二': 1, '组数三':2, '组数四':3,
                                                         '组数五':4, '组数六':5}},
-                    {'name': u'扫描方向', 'type': 'list', 'values': {'纵向': 0, '横向': 1}, 'value': 0},
                     {'name': '提取异物灰度', 'type': 'int', 'value': 100, 'limits': [0, 255]},
                     {'name': '异物最小点数', 'type': 'int', 'value': 20, 'limits': [0, 20000]},
                 ]}
-
             )
         dict_params.extend(list_standardschildrenitems)
 
@@ -163,6 +167,18 @@ class GuleParam(KxBaseParamWidget):
                 {'name': u'扫描区域'+str(i), 'type': 'roiwithtext', 'value': {"isShow": False, "pos": u"0,0,100,100"},
                  "roi_opt": {"word": '扫描区域'+str(i), "scaleable": True, 'pen': 3}, "infovisible": False},
             )
+
+        for i in range(0, self._MAX_SCAN_NUM):
+            list_standardschildrenitems.append(
+                {'name': '扫描区域%d图像数量'%i, 'type' : "str", 'value':'12'},
+            )
+
+        for i in range(0, self._MAX_SCAN_NUM):
+            list_standardschildrenitems.append(
+                {'name': u'匹配位置' + str(i), 'type': 'roiwithtext', 'value': {"isShow": False, "pos": u"0,0,100,100"},
+                 "roi_opt": {"word": '匹配位置' + str(i), "scaleable": True, 'pen': 2}, "infovisible": False},
+            )
+
         dict_scan = {'name': '扫描区域', 'type': 'group', 'visible':False, 'children':list_standardschildrenitems}
 
         dict_params.append(dict_scan)
@@ -172,10 +188,11 @@ class GuleParam(KxBaseParamWidget):
         全局队列将参数送到界面，控制第一次全局拍照参数
         :return:
         """
-        self.threadWaitDialog.clear()
-        self.threadWaitDialog.setProcessBarRange(0, 100)
-        self.threadWaitDialog.show()
-        QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+        # self.threadWaitDialog = WaitDialogWithText('正在建模，请稍候...')
+        # self.threadWaitDialog.clear()
+        # self.threadWaitDialog.setProcessBarRange(0, 100)
+        # self.threadWaitDialog.show()
+        #QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
 
         nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
         # ndisX = int(int(self.p.param('全局拍摄控制', '相机横向像素数').value()) *
@@ -195,7 +212,9 @@ class GuleParam(KxBaseParamWidget):
 
         n_firstbuild_imgnum = (ndisY * StaticConfigParam.DIS2PIXEL) / imgH + 1
 
-        ndisY = min((n_firstbuild_imgnum + 1) * imgH /  StaticConfigParam.DIS2PIXEL, StaticConfigParam.MAX_Y_LEN )
+        ndisY = min((n_firstbuild_imgnum + 1) * imgH /  StaticConfigParam.DIS2PIXEL, StaticConfigParam.MAX_Y_LEN )#当取到最长的时候这个地方就起作用
+
+        n_firstbuild_imgnum = int(ndisY * StaticConfigParam.DIS2PIXEL / imgH)
 
         nbigimgH = int(n_firstbuild_imgnum * imgH / self._BUILD_MODEL_SCALE_FACTOR)
 
@@ -203,7 +222,7 @@ class GuleParam(KxBaseParamWidget):
 
         self.h_mergeobj.clear()
 
-        print(n_firstbuild_imgnum, nbigimgW, nbigimgH)
+        print("全局取图： ", ndisY, n_firstbuild_imgnum, nbigimgW, nbigimgH)
 
         self.h_mergeobj.initinfo(n_firstbuild_imgnum, nbigimgW, nbigimgH)
 
@@ -212,15 +231,17 @@ class GuleParam(KxBaseParamWidget):
         ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL, [nStartX, ndisX, ndisY, nXtimes]))
 
 
+
+
     def _captureimg_second(self):
         """
         第二次采集全局参数，根据roi框的位置进行拍摄
         :return:
         """
-        self.threadWaitDialog.clear()
-        self.threadWaitDialog.setProcessBarRange(0, 100)
-        self.threadWaitDialog.show()
-        QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+        # self.threadWaitDialog.clear()
+        # self.threadWaitDialog.setProcessBarRange(0, 100)
+        # self.threadWaitDialog.show()
+        #QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
 
         nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
@@ -251,8 +272,6 @@ class GuleParam(KxBaseParamWidget):
 
             list_posx.append(self.p.param('扫描区域', '扫描区域' + str(i)).get_list_pos())
 
-        print("list_posx: ", list_posx)
-
         for roipos in list_posx:
 
             list_x.append(int(max(0, int((roipos[0] + roipos[2]) / 2 - nmiddleoffset)) * self._BUILD_MODEL_SCALE_FACTOR / StaticConfigParam.DIS2PIXEL + nStartX))
@@ -265,13 +284,19 @@ class GuleParam(KxBaseParamWidget):
 
             n_build_imgnum = int(y / imgH) + 1
 
-            ndisY = min(int((n_build_imgnum + 1) * imgH / StaticConfigParam.DIS2PIXEL), StaticConfigParam.MAX_Y_LEN)
+            ndisY = min(int(n_build_imgnum * imgH / StaticConfigParam.DIS2PIXEL) + StaticConfigParam.RUN_MORE_DIS, StaticConfigParam.MAX_Y_LEN)
+
+            n_build_imgnum = int(ndisY * StaticConfigParam.DIS2PIXEL / imgH) #当取到最长的时候这个地方就起作用
 
             list_y[nindex] = ndisY
 
             list_buildimgnum.append(n_build_imgnum)
 
             list_bigimgH.append(int(n_build_imgnum * int(imgH / self._BUILD_MODEL_SCALE_FACTOR)))
+
+            self.p.param("扫描区域", "扫描区域%d图像数量"%nindex).setValue(n_build_imgnum)
+
+        print("list_buildimgnum: ", list_buildimgnum)
 
         self.h_mergelistobj.clear()
 
@@ -282,6 +307,51 @@ class GuleParam(KxBaseParamWidget):
         print ([list_x, list_y])
 
         ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL_SECOND, [list_x, list_y]))
+
+
+    def call2back2getcaptureinfo(self):
+        nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
+
+        nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
+
+        imgH = int(self.p.param('全局拍摄控制', '相机纵向像素数').value())
+
+        nmiddleoffset = int(int(self.p.param('全局拍摄控制', '相机横向像素数').value()) / 2 / self._BUILD_MODEL_SCALE_FACTOR)
+
+        # 二次建模，对一次建模的roi进行隐藏，只需记录结果即可
+        for n_i in range(int(nXtimes)):
+            self.p.param('扫描区域', '扫描区域' + str(n_i)).isShow(False)
+
+        list_posx = []
+
+        list_x = []
+
+        list_y = []
+
+        for i in range(nXtimes):
+            list_posx.append(self.p.param('扫描区域', '扫描区域' + str(i)).get_list_pos())
+
+        for roipos in list_posx:
+            list_x.append(int(int(
+                max(0, (roipos[0] + roipos[
+                    2]) / 2 - nmiddleoffset)) * self._BUILD_MODEL_SCALE_FACTOR / StaticConfigParam.DIS2PIXEL + nStartX))
+
+            list_y.append(int(roipos[3]) * self._BUILD_MODEL_SCALE_FACTOR)
+
+        # list_y记录y轴移动距离，但是需要考虑图像每次拍摄取整以及可能丢步的问题
+
+        for nindex, y in enumerate(list_y):
+            n_build_imgnum = int(y / imgH) + 1
+
+            # ndisY = min(int((n_build_imgnum + 1) * imgH / StaticConfigParam.DIS2PIXEL), StaticConfigParam.MAX_Y_LEN)
+            ndisY = min(int(n_build_imgnum * imgH / StaticConfigParam.DIS2PIXEL) + StaticConfigParam.RUN_MORE_DIS,
+                        StaticConfigParam.MAX_Y_LEN)
+
+            list_y[nindex] = ndisY
+
+        print("check: ", [list_x, list_y])
+
+        return [list_x, list_y]
 
 
     def recmsg(self, n_stationid, n_msgtype, tuple_data):
@@ -328,6 +398,8 @@ class GuleParam(KxBaseParamWidget):
 
                 self.p.param('显示图像').setValue(nindex)
 
+        self.n_checkarea = int(self.p.param('检测区域数量').value())
+
 
     def saveparameters(self):
         self._setbaseimgpath()
@@ -341,8 +413,29 @@ class GuleParam(KxBaseParamWidget):
 
     def _changeshowimg(self, *even):
         nindex = int(even[1])
+
         if nindex < len(self.list_img):
+
             self.h_imgitem.setImage(self.list_img[nindex])
+
+            for i in range(self._MAX_SCAN_NUM):
+
+                self.p.param('扫描区域', "匹配位置" + str(i)).isShow(False)
+
+            self.p.param('扫描区域', "匹配位置" + str(nindex)).isShow(True)
+
+            nchecknum = int(self.p.param('检测区域数量').value())
+
+            for i in range(nchecknum):
+
+                if int(self.p.param('检测区域' + str(i), '扫描组号').value()) != nindex:
+
+                    self.p.param('检测区域' + str(i), '检测区域').isShow(False)
+
+                else:
+
+                    self.p.param('检测区域' + str(i), '检测区域').isShow(True)
+
 
     def _setbaseimgpath(self):
         list_str = self.str_filedirectory.split('\\')
@@ -396,7 +489,7 @@ class GuleParam(KxBaseParamWidget):
     def callback2changecol(self):
         self.h_mergeobj.IncreaseCol()
 
-        self.threadWaitDialog.setProcessBarVal(20)
+        # self.threadWaitDialog.setProcessBarVal(20)
 
 
 
@@ -411,7 +504,15 @@ class GuleParam(KxBaseParamWidget):
 
             self.p.param('扫描区域', '扫描区域' + str(n_i)).isShow(True)
 
-        self.threadWaitDialog.close()
+        #QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.AllEvents)
+
+        # print("self.threadWaitDialog.setProcessBarVal(60)")
+        #
+        # self.threadWaitDialog.setProcessBarVal(60)
+        #
+        # self.threadWaitDialog.close()
+
+
 
 
 
@@ -422,7 +523,7 @@ class GuleParam(KxBaseParamWidget):
     def callback2changecol_second(self):
         self.h_mergelistobj.IncreaseCol()
 
-        self.threadWaitDialog.setProcessBarVal(20)
+        #self.threadWaitDialog.setProcessBarVal(20)
 
 
     def callback2showbigimg_second(self):
@@ -432,52 +533,16 @@ class GuleParam(KxBaseParamWidget):
 
         self.p.param("显示图像").setValue(0)
 
-        self.threadWaitDialog.close()
+        self.p.param('扫描区域', "匹配位置0").isShow(True)
+
+
+
+        #self.threadWaitDialog.close()
 
 
 
     def callback2judgeisfull_second(self):
         return self.h_mergelistobj.IsFull()
-
-    def call2back2getcaptureinfo(self):
-        nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
-
-        nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
-
-        imgH = int(self.p.param('全局拍摄控制', '相机纵向像素数').value())
-
-        nmiddleoffset = int(int(self.p.param('全局拍摄控制', '相机横向像素数').value()) / 2 / self._BUILD_MODEL_SCALE_FACTOR)
-
-        # 二次建模，对一次建模的roi进行隐藏，只需记录结果即可
-        for n_i in range(int(nXtimes)):
-            self.p.param('扫描区域', '扫描区域' + str(n_i)).isShow(False)
-
-        list_posx = []
-
-        list_x = []
-
-        list_y = []
-
-        for i in range(nXtimes):
-            list_posx.append(self.p.param('扫描区域', '扫描区域' + str(i)).get_list_pos())
-
-        for roipos in list_posx:
-
-            list_x.append(int(int(
-                max(0, (roipos[0] + roipos[2]) / 2 - nmiddleoffset)) * self._BUILD_MODEL_SCALE_FACTOR / StaticConfigParam.DIS2PIXEL + nStartX))
-
-            list_y.append(int(roipos[3]) * self._BUILD_MODEL_SCALE_FACTOR)
-
-        # list_y记录y轴移动距离，但是需要考虑图像每次拍摄取整以及可能丢步的问题
-
-        for nindex, y in enumerate(list_y):
-            n_build_imgnum = int(y / imgH) + 1
-
-            ndisY = min(int((n_build_imgnum + 1) * imgH / StaticConfigParam.DIS2PIXEL), StaticConfigParam.MAX_Y_LEN)
-
-            list_y[nindex] = ndisY
-
-        return [list_x, list_y]
 
 
     def _adjustbigimgsize(self):

@@ -12,6 +12,7 @@
 #include "BaseCheckMethod.h"
 #include "json.h"
 #include "GlueCheck.h"
+#include "CombineImg.h"
 
 using namespace tbb;
 
@@ -60,6 +61,8 @@ public:
 		CGlueCheck::SingleParam		params[_MAX_GROUPNUM];
 		int				m_nROINUM;
 		int				m_nimgscalefactor;//图像缩放系数
+		int				m_nscantimes;//扫描次数
+
 	};
 
 	struct PrepareToCheck
@@ -144,6 +147,11 @@ private:
 	CheckResultStatus			m_finalcheckstatus;//每次的处理结果，这个值会用在保存坏图上
 	Param						m_param;
 	PrepareToCheck				m_struct2check[_MAX_GROUPNUM];
+	CCombineImg					m_hcombineimg;
+
+	kxCImageBuf					m_ImgMaxSizeA;//把每张检测图归一化为一张最大的，放进去检测，这样不会频繁申请内存，而且结果也好发送
+	kxCImageBuf					m_ImgMaxSizeB;//把每张检测图归一化为一张最大的，放进去检测，这样不会频繁申请内存，而且结果也好发送
+
 
 private:
 	//转Bayer图像为彩色图像或模拟数据转换

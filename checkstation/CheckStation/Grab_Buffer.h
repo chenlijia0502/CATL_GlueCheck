@@ -44,7 +44,7 @@ public:
 	int Init(bool isOnline = true);
 	void Clear(){ m_CaptureQueue.Clear();m_nNowID = 0; }
 	void Pop(){m_CaptureQueue.Pop();}
-	kxCQue<CKxCaptureImage, 30> m_CaptureQueue;
+	kxCQue<CKxCaptureImage, 80> m_CaptureQueue;
 	void Push( const unsigned char* buf ,int nType = _Type_G8);   //½« buf·Ö³É R/G/
 
 	void Push(const unsigned char* buf, int nWidth, int nHeight, int nPitch, int nChannel);

@@ -237,11 +237,17 @@ int CkxEnvironment::ReadSystemParam()
 	//Config::g_GetParameter().m_nStandardWidth	= kxGetPrivateProfileInt("GlobalParameter", "WarpWidth", 1400, iniPath);
 	//Config::g_GetParameter().m_nStandardHeight	= kxGetPrivateProfileInt("GlobalParameter", "WarpHeight", 900, iniPath);
 	//Config::g_GetParameter().m_nStandardPitch	= Config::g_GetParameter().m_nStandardWidth * (Config::g_GetParameter().m_nImgType ? 3 : 1);
-	Config::g_GetParameter().m_nQueSize	= kxGetPrivateProfileInt("GlobalParameter", "QueSize", 30, iniPath);
+	//Config::g_GetParameter().m_nQueSize	= kxGetPrivateProfileInt("GlobalParameter", "QueSize", 30, iniPath);
+	Graber::g_GetGraberBuffer().GetParameter().m_nQueSize = kxGetPrivateProfileInt("GlobalParameter", "QueSize", 30, iniPath);
+
+
+	
 	Config::g_GetParameter().m_nLanguageMode = kxGetPrivateProfileInt("GlobalParameter", "LanguageMode", 1, iniPath);
 	Config::g_GetParameter().m_nSendInfoInterval = kxGetPrivateProfileInt("GlobalParameter", "SendInfoInterval", 1, iniPath);
 	Config::g_GetParameter().m_nSaveImgTotalCounts = kxGetPrivateProfileInt("GlobalParameter", "SaveImgTotalCounts", 1000, iniPath);
 	g_SimulateTimeStep = kxGetPrivateProfileInt("GlobalParameter", "SimulateTimeStep", 200, iniPath);
+
+
 
 	
 	return 1;

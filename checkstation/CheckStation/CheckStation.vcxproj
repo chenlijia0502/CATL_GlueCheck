@@ -190,8 +190,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CalcuSurfacePlaneness.cpp" />
     <ClCompile Include="CkxFileRead.cpp" />
+    <ClCompile Include="CombineImg.cpp" />
     <ClCompile Include="EmpiricalAlgorithm.cpp" />
     <ClCompile Include="GlueCheck.cpp" />
     <ClCompile Include="Grab_Buffer.cpp" />
@@ -223,8 +223,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseCheckMethod.h" />
-    <ClInclude Include="CalcuSurfacePlaneness.h" />
     <ClInclude Include="CkxFileRead.h" />
+    <ClInclude Include="CombineImg.h" />
     <ClInclude Include="EmpiricaAlgorithm.h" />
     <ClInclude Include="GlueCheck.h" />
     <ClInclude Include="Grab_Buffer.h" />

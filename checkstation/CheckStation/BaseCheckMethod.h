@@ -21,9 +21,11 @@ public:
 	//~BaseCheckMethod(){};
 
 	//第一个参数为图片，第二个参数为处理结果图，第三个参数为检测结果参数（比如缺陷点数等, json）
-	virtual int Check(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, Json::Value &checkresult) = 0;
+	virtual int Check(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, Json::Value &checkresult) { return 0; }
 
-	virtual int Check(const cv::Mat& SrcImg, cv::Mat& DstImg, Json::Value &checkresult) { return 0; };
+	virtual int Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg, Json::Value &checkresult) { return 0; }
+
+	virtual int Check(const cv::Mat& SrcImg, cv::Mat& DstImg, Json::Value &checkresult) { return 0; }
 
 	//第一个参数为配置路径，第二参数为读参数是失败返回的原因，第三个参数为模板图路径，因为有的方法不需要模板图；
 	virtual bool ReadParamXml(const char* filePath, char *ErrorInfo, const char * templatepath = NULL) = 0;

@@ -3,15 +3,17 @@ Created on 2017年07月10日
 
 @author: huber yao
 '''
+import time
+
 from PyQt5 import QtWidgets, QtCore
 
-class WaitDialogWithText(QtWidgets.QWidget):
+class WaitDialogWithText(QtWidgets.QDialog):
     def __init__(self, title='正在建模，请稍候...', parent=None):
         super(WaitDialogWithText, self).__init__(parent)
         self.setFixedSize(QtCore.QSize(600, 150))
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        #self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint)
-        self.setWindowModality(QtCore.Qt.ApplicationModal)
+        #self.setWindowModality(QtCore.Qt.ApplicationModal)
         self.setStyleSheet('background-color:rgb(40,143,218)')
         self.tipsLabel = QtWidgets.QLabel(title)
         self.tipsLabel.setAlignment(QtCore.Qt.AlignCenter)
@@ -38,7 +40,7 @@ class WaitDialogWithText(QtWidgets.QWidget):
     def setProcessInfos(self, rate, info):
         self.processBar.setValue(rate)
         self.processInfoLabel.setText(info)
-        QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+        #QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
 
     def clear(self):
         self.processBar.setValue(0)
@@ -46,5 +48,8 @@ class WaitDialogWithText(QtWidgets.QWidget):
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])
     w = WaitDialogWithText()
-    w.show() 
+    w.show()
+
+    time.sleep(5)
+    w.close()
     app.exec_() 

@@ -55,6 +55,7 @@ CkxGrabBuffer::~CkxGrabBuffer()
 {
 }
 
+
 int CkxGrabBuffer::Init(bool isOnline)
 {   
 	if (GetImgPitch() <0 || GetImgPitch() > 100000)
@@ -63,6 +64,7 @@ int CkxGrabBuffer::Init(bool isOnline)
 		return FALSE;
 	if (m_Parameter.m_nQueSize <0 || m_Parameter.m_nQueSize > 100000)
 		return FALSE;
+
 
 	for(int i = 0; i < m_CaptureQueue.GetCapability(); i++)
 	{

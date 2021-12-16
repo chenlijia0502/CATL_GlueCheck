@@ -205,8 +205,50 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 		return false;
 	}
 
+	int nhighoffset = 0;
+
+	int nlowoffset = 0;
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测参数", "检高灵敏度", szResult);
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "检高灵敏度");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, nhighoffset);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+	nhighoffset *= 10;
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测参数", "检低灵敏度", szResult);
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "检低灵敏度");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, nlowoffset);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+	nlowoffset *= 10;
+
+
+	int nmaxheight = 0;
+
 	for (int nindex = 0; nindex < m_param.m_nROINUM; nindex++)
 	{
+
+		m_param.params[nindex].m_noffsethigh = nhighoffset;
+
+		m_param.params[nindex].m_noffsetlow = nlowoffset;
+
 		char name[64];
 
 		memset(name, 0, 64);
@@ -229,6 +271,11 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 
 		m_param.params[nindex].m_rcCheckROI.mulC(m_param.m_nimgscalefactor);
 
+		if (nmaxheight < m_param.params[nindex].m_rcCheckROI.Height())
+		{
+			nmaxheight = m_param.params[nindex].m_rcCheckROI.Height();
+		}
+
 		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "扫描组号", szResult);
 
 		if (!nSearchStatus)
@@ -238,20 +285,6 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 		}
 
 		nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.params[nindex].m_nGrabTimes);
-		if (!nStatus)
-		{
-			return false;
-		}
-
-		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "扫描方向", szResult);
-
-		if (!nSearchStatus)
-		{
-			sprintf_s(ErrorInfo, 256, "扫描方向");
-			return false;
-		}
-
-		nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.params[nindex].m_nGrabDirection);
 		if (!nStatus)
 		{
 			return false;
@@ -286,6 +319,108 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 		}
 
 	}
+
+
+
+	int nImgW, nImgH;
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "全局拍摄控制", "相机横向像素数", szResult);
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "相机横向像素数");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, nImgW);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "全局拍摄控制", "相机纵向像素数", szResult);
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "相机纵向像素数");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, nImgH);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "全局拍摄控制", "拍摄组数", szResult);
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "拍摄组数");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.m_nscantimes);
+	if (!nStatus)
+	{
+		return false;
+	}
+	m_ImgMaxSizeA.Init(nImgW, nmaxheight, 3);
+
+	m_ImgMaxSizeB.Init(nImgW, nmaxheight, 3);
+
+
+	int *nimgnum = new int[m_param.m_nscantimes];
+
+	kxRect<int> * rect = new kxRect<int>[m_param.m_nscantimes];
+
+	for (int i = 0; i < m_param.m_nscantimes; i++)
+	{
+		char name[64];
+
+		memset(name, 0, 64);
+
+		sprintf_s(name, "扫描区域%d图像数量", i);
+
+		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "扫描区域", name, szResult);
+		
+		if (!nSearchStatus)
+		{
+			sprintf_s(ErrorInfo, 256, name);
+			return false;
+		}
+
+		nStatus = KxXmlFun2::FromStringToInt(szResult, nimgnum[i]);
+		if (!nStatus)
+		{
+			return false;
+		}
+
+		memset(name, 0, 64);
+
+		sprintf_s(name, "匹配位置%d", i);
+
+		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "扫描区域", name, "pos", szResult);
+
+		if (!nSearchStatus)
+		{
+			sprintf_s(ErrorInfo, 256, name);
+
+			return false;
+		}
+
+		nStatus = KxXmlFun2::FromStringToKxRect(szResult, rect[i]);
+		if (!nStatus)
+		{
+			return false;
+		}
+
+		rect[i].mulC(m_param.m_nimgscalefactor);
+	}
+
+
+	m_hcombineimg.Init(nImgW, nImgH, m_param.m_nscantimes, nimgnum, rect);
+
+	delete[] nimgnum;
+
+	delete[] rect;
 
 }
 
@@ -402,7 +537,7 @@ int CKxCheck::ClearIndex()
 	return 1;
 }
 
-void CKxCheck::	SaveImg(CheckResultStatus status)
+void CKxCheck::SaveImg(CheckResultStatus status)
 {
 	if (m_estatus == SaveImgStatus::_SAVEALL)
 	{
@@ -716,7 +851,7 @@ int CKxCheck::AnalyseCheckResult(int nCardID, Json::Value* checkresult)
 
 	unsigned int nOffset;
 	
-	bool m_bOpenFileStatus = g_SaveImgQue.OpenFile(Config::g_GetParameter().m_szNetSaveImagePath, m_DstImg.nWidth, m_DstImg.nHeight, m_DstImg.nPitch, 500);
+	bool m_bOpenFileStatus = g_SaveImgQue.OpenFile(Config::g_GetParameter().m_szNetSaveImagePath, m_DstImg.nWidth, m_DstImg.nHeight, m_DstImg.nPitch, 60);
 	
 	if (m_bOpenFileStatus)  //文件打开成功
 	{
@@ -812,7 +947,6 @@ void CKxCheck::DotCheckImg(const kxCImageBuf& SrcImg)
 
 }
 
-
 int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 {
 	
@@ -823,12 +957,19 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	//TransferImage(SrcCapImg);
 	m_TransferImage.SetImageBuf(SrcCapImg.m_Image.buf, SrcCapImg.m_Image.nWidth, SrcCapImg.m_Image.nHeight, SrcCapImg.m_Image.nPitch, SrcCapImg.m_Image.nChannel, true);
 
-	/*
+	static int nimgidx = 1;
+	
+	m_hcombineimg.appendImg(m_TransferImage, nimgidx - 1);
+	//m_hcombineimg.appendImg(m_TransferImage, SrcCapImg.m_ImageID - 1);
+
+
+	nimgidx++;
+
 	ClearResult(SrcCapImg.m_CardID);
 	
 	m_finalcheckstatus = CheckResultStatus::_Check_Ok;
 
-
+	m_hCheckResult[0].clear();
 	//2.检测
 	//for (int i = 0; i < Config::GetGlobalParam().m_nAreakNum; i++)
 	//{
@@ -836,36 +977,71 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	//	m_bCheckStatus[i] = m_hCheckTools[i]->Check(m_TransferImage, m_DstImg, m_hCheckResult[i]);
 	//}
 
-	if (1)
+	// 2.确认图像属于哪个roi，哪段ID，先不考虑相机采集方向问题
+
+	//JudgeWhichROI(SrcCapImg);
+
+	kxCImageBuf bigimgA, bigimgB;
+
+	bool bhascheck = false;
+
+	for (int j = 0; j < m_param.m_nscantimes; j++)
 	{
-		// 2.确认图像属于哪个roi，哪段ID，先不考虑相机采集方向问题
-
-		JudgeWhichROI(SrcCapImg);
-
-		for (int i = 0; i < m_param.m_nROINUM; i++)
+		if (m_hcombineimg.IsColFull(j))
 		{
-
-			if (m_struct2check[i].m_bCanCheck)
+			for (int i = 0; i < m_param.m_nROINUM; i++)
 			{
+				// 判断roi是否是这个扫描组里的，是的话裁剪进行检测   2021.12.14
+				if (m_param.params[i].m_nGrabTimes == j)
+				{
+					m_hcombineimg.GetImg(bigimgA, bigimgB, j);
 
-				m_hCheckTools[0]->SetParam(&m_param.params[i]);
+					kxCImageBuf checkimgA, checkimgB;
 
-				m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_struct2check[i].m_BigImg, m_DstImg, m_hCheckResult[0]);
+					checkimgA.Init(m_TransferImage.nWidth, m_param.params[i].m_rcCheckROI.Height(), 3);
 
-				m_struct2check[i].m_bCanCheck = false;
+					checkimgB.Init(m_TransferImage.nWidth, m_param.params[i].m_rcCheckROI.Height(), 3);
 
+					kxRect<int> copyrect;
+
+					copyrect.setup(0, m_param.params[i].m_rcCheckROI.top, m_TransferImage.nWidth - 1, m_param.params[i].m_rcCheckROI.bottom);
+ 
+					m_hBaseFun.KxCopyImage(bigimgA, checkimgA, copyrect);
+
+					m_hBaseFun.KxCopyImage(bigimgB, checkimgB, copyrect);
+
+					m_hCheckTools[0]->SetParam(&m_param.params[i]);
+
+					ippsSet_8u(0, m_ImgMaxSizeA.buf, m_ImgMaxSizeA.nPitch * m_ImgMaxSizeA.nHeight);
+
+					ippsSet_8u(0, m_ImgMaxSizeB.buf, m_ImgMaxSizeB.nPitch * m_ImgMaxSizeB.nHeight);
+
+					IppiSize copysize = { checkimgA.nWidth, m_param.params[i].m_rcCheckROI.Height()};
+
+					ippiCopy_8u_C3R(checkimgA.buf, checkimgA.nPitch, m_ImgMaxSizeA.buf, m_ImgMaxSizeA.nPitch, copysize);
+
+					ippiCopy_8u_C3R(checkimgB.buf, checkimgB.nPitch, m_ImgMaxSizeB.buf, m_ImgMaxSizeB.nPitch, copysize);
+
+					m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_ImgMaxSizeA, m_ImgMaxSizeB, m_DstImg, m_hCheckResult[0]);
+
+					bhascheck = true;
+				}
+
+				
+				//if (m_struct2check[i].m_bCanCheck)
+				//{
+				//	m_hCheckTools[0]->SetParam(&m_param.params[i]);
+				//	m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_struct2check[i].m_BigImg, m_DstImg, m_hCheckResult[0]);
+				//	m_struct2check[i].m_bCanCheck = false;
+				//}
 			}
+
+			m_hcombineimg.ResetCol(j);
 		}
 	}
-	else
-	{
-		//模拟跑使用单个
 
-		m_hCheckTools[0]->SetParam(&m_param.params[0]);
+	
 
-		m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_TransferImage, m_DstImg, m_hCheckResult[0]);
-
-	}
 
 	//// 并行版本，开发者自行选择
 	//parallel_for(blocked_range<int>(0, Config::GetGlobalParam().m_nAreakNum),
@@ -877,18 +1053,21 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	//	}
 	//}, auto_partitioner());
 
+	if (bhascheck && (m_hCheckResult[0]["defect num"].asInt() != 0))
+	{
+		//3. 分析结果，比如用表达式进行判废（这一步以前的同事设计的时候不把它放在主站的原因是因为耗时原因），这里是对所有区域进行汇合的判废
+		AnalyseCheckResult(SrcCapImg.m_CardID, m_hCheckResult);
+	}
 
-	//3. 分析结果，比如用表达式进行判废（这一步以前的同事设计的时候不把它放在主站的原因是因为耗时原因），这里是对所有区域进行汇合的判废
-	AnalyseCheckResult(SrcCapImg.m_CardID, m_hCheckResult);
 
 	//total_e = tick_count::now();
 	//printf("check a image  %d: ----- cost : %f ms\n", card.m_CardID, (total_e - total_s).seconds() * 1000);
-	*/
+	
 	
 	SaveImg(CheckResultStatus(m_finalcheckstatus));
 	
-	//tbb_end = tick_count::now();
-	//printf_s("----- cost : %f ms\n", (tbb_end - tbb_start).seconds() * 1000);
+	tbb_end = tick_count::now();
+	printf_s("----- id %d cost : %f ms\n", SrcCapImg.m_ImageID, (tbb_end - tbb_start).seconds() * 1000);
 
 
 

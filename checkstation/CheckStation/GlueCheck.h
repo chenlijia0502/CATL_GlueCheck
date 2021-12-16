@@ -12,7 +12,9 @@ public:
 	CGlueCheck();
 	~CGlueCheck();
 
-	int Check(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, Json::Value &checkresult);
+	//int Check(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, Json::Value &checkresult);
+
+	int Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg, Json::Value &checkresult);
 
 	bool ReadParamXml(const char* filePath, char *ErrorInfo, const char * templatepath = NULL);
 
@@ -25,10 +27,13 @@ public:
 	{
 		kxRect<int>		m_rcCheckROI;
 		int				m_nGrabTimes;//扫描列，设备移动扫描第几组,说明当前扫描图像属于第几组
-		int				m_nGrabDirection;
 
 		int				m_ndefectthresh;
-		int				m_ndefectdots;
+		int				m_ndefectdots;//缺陷点数
+
+		int				m_noffsethigh;//高灵敏度偏移，从主站读取结果直接乘以25，目的是统一到255的灰阶
+		int				m_noffsetlow;//低灵敏度偏移，从主站读取结果直接乘以25，目的是统一到255的灰阶
+
 	};
 
 
@@ -50,22 +55,41 @@ private:
 	kxCImageBuf				 m_ImgOpen;
 
 	kxCImageBuf				 m_ImgRGB[3];
+	kxCImageBuf				 m_ImgHSV[3];
 
 	CEmpiricaAlgorithm		 m_hAlg;
 
 	kxCImageBuf				 m_ImgmaxRegion;
 	kxCImageBuf				 m_ImgGlueMask;//蓝胶掩膜
+	kxCImageBuf				 m_ImgColorGlueMask;//蓝胶掩膜
+
 	kxCImageBuf				 m_ImgR_Mask;
 
 	kxCImageBuf				 m_ImgG_R;
 	kxCImageBuf				 m_ImgG_B;
 	kxCImageBuf				 m_ImgsubResult;
 
+	kxCImageBuf				 m_ImgTemplateLow;//彩色低模板
+	kxCImageBuf				 m_ImgTemplateHigh;//彩色高模板
+	kxCImageBuf				 m_ImgBaseTemplate;
+
+	kxCImageBuf				 m_ImgCheckLow;
+	kxCImageBuf				 m_ImgCheckHigh;
+
+	kxCImageBuf				 m_ImgCheckLowGray;
+	kxCImageBuf				 m_ImgCheckHighGray;
+
+	kxCImageBuf				 m_ImgCheck;
+
+	kxCImageBuf				 m_ImgSrcA;
+	kxCImageBuf				 m_ImgSrcB;
+
+
 
 private:
 	void checkcolordiff(const kxCImageBuf& SrcImg);// 检色差
 
-	void checkyiwu(const kxCImageBuf& SrcImg);// 检异物，包含断胶
+	void checkyiwu(const kxCImageBuf& SrcImg, Json::Value &checkresult);// 检异物，包含断胶
 
 	void checkqipao(const kxCImageBuf& SrcImg); // 检气泡
 
@@ -73,4 +97,9 @@ private:
 
 	void GetGlueMask();//用特定方法提取掩膜
 
+	void CreateBaseModel(const kxCImageBuf& CheckImg);//创建基础模板，彩色高模板，彩色低模板
+
+	void MergeImg(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg);
+
+	void GetMaxGray(const kxCImageBuf& ColorImg, kxCImageBuf& DstGrayImg);
 };

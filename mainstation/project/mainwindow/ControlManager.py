@@ -57,6 +57,16 @@ class ControlManager(object):
         :param list_info: [nStartX, ndisX, ndisY, nXtimes] [起拍X位置， 单次X移动距离， 单次Y移动距离， X次数]
         :return:
         """
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIAJIN)
+
+        time.sleep(5)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_SHENG)
+
+        time.sleep(8)
+
+        self._clear_hardware_recqueue()  # 清除接收缓存
+
         self._clear_hardware_recqueue()# 清除接收缓存
 
         self.h_parent.closeCamera()
@@ -69,17 +79,19 @@ class ControlManager(object):
 
         movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
 
-        movemsgx[3:] = translatedis2hex(list_info[0] / self._DIS2PULSE)
+        if list_info[0] != 0:
 
-        self._clear_hardware_recqueue()
+            movemsgx[3:] = translatedis2hex(list_info[0] / self._DIS2PULSE)
 
-        self._sendhardwaremsg(movemsgx)
+            self._clear_hardware_recqueue()
 
-        self._waitfor_hardware_queue_result()
+            self._sendhardwaremsg(movemsgx)
 
-        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
+            self._waitfor_hardware_queue_result()
 
-        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
 
         movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
 
@@ -147,6 +159,14 @@ class ControlManager(object):
 
         self.h_parent.callback2showbigimg()
 
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIANG)
+
+        time.sleep(8)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_SONGKAI)
+
+        time.sleep(5)
+
 
 
     def buildmodel_second(self, *list_info):
@@ -155,6 +175,13 @@ class ControlManager(object):
         :param list_info: [[list_x, list_y]]
         :return:
         """
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIAJIN)
+
+        time.sleep(5)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_SHENG)
+
+        time.sleep(8)
 
         self._clear_hardware_recqueue()# 清除接收缓存
 
@@ -226,6 +253,14 @@ class ControlManager(object):
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
 
         self.h_parent.callback2showbigimg_second()
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIANG)
+
+        time.sleep(8)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_SONGKAI)
+
+        time.sleep(5)
 
 
     def _clear_hardware_recqueue(self):
@@ -433,8 +468,6 @@ class ControlManager(object):
             self.h_parent.closeCamera()
 
             self.h_parent.changeCameraCapturedirection(True)
-
-
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
 
