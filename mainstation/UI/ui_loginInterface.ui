@@ -34,7 +34,7 @@
   <property name="styleSheet">
    <string notr="true">QDialog#LoginDialog
 {
-border-image: url(res/login.jpg); }</string>
+border-image: url(res/CATL.png); }</string>
   </property>
   <widget class="QPushButton" name="pushButton_main">
    <property name="geometry">
@@ -97,8 +97,8 @@ border-image: url(res/mainset_hover.png);
   <widget class="QPushButton" name="pushButton_login">
    <property name="geometry">
     <rect>
-     <x>160</x>
-     <y>280</y>
+     <x>120</x>
+     <y>310</y>
      <width>191</width>
      <height>51</height>
     </rect>
@@ -108,7 +108,7 @@ border-image: url(res/mainset_hover.png);
 { 
 background-color: rgba(255, 255, 255,5%);
 font: 14pt &quot;Arial&quot;;
-color:rgb(210, 210, 210); 
+color:rgb(0, 0, 0); 
 }  
 QPushButton:hover#pushButton_login
 { 
@@ -124,8 +124,8 @@ color: rgb(0, 0, 127);
   <widget class="QPushButton" name="pushButton_quit">
    <property name="geometry">
     <rect>
-     <x>370</x>
-     <y>280</y>
+     <x>310</x>
+     <y>310</y>
      <width>191</width>
      <height>51</height>
     </rect>
@@ -135,7 +135,7 @@ color: rgb(0, 0, 127);
 { 
 background-color: rgba(255, 255, 255,5%);
 font: 14pt &quot;Arial&quot;;
-color: rgb(210, 210, 210); 
+color: rgb(0, 0, 0); 
 }  
 QPushButton:hover#pushButton_quit
 { 

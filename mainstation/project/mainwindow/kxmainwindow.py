@@ -1,32 +1,29 @@
 import time
 import threading
 import logging
-import serial
 from library.mainwindow.BaseMainWindow import KXBaseMainWidget
-from PyQt5 import QtGui,QtCore,QtWidgets
-from PyQt5.QtWidgets import QWidget
 from library.common.BaseRunLog import KxBaseRunLog
-from library.monitoring.BaseMonitoringWidget import  KxBaseMonitoringWidget
 from library.parametersetting.BaseParameterSetting import KxBaseParameterSetting
-from library.common.Permission_Management import kxprivilege_management
+from library.common.usermanager.Permission_Management import kxprivilege_management
 from project.monitoring import * #这行import保证实时界面能够挂载
 from project.param import * #这行保证参数设置界面能挂载
 from project.other.WorkList import WorkListWidget
-from project.mainwindow.DotCheckResultWidget import DotCheckResultWidget
 from library.ipc import ipc_tool
 from project.mainwindow.ControlManager import ControlManager
 from project.mainwindow.SerialManager import SerialManager
-
+from App import TimeStatus
+from project.other.globalparam import *
 
 class kxmainwindow(KXBaseMainWidget):
     _BAUDRATE = 115200
     _HARDWARE_QUEUELEN = 7
+    _SIG_SHOWLOCK = QtCore.pyqtSignal()
     def __init__(self, dict_config):
         super(kxmainwindow, self).__init__(dict_config)
         self.widget_Realtime = KxBaseMonitoringWidget.create(name=dict_config["mointoringwidget_classname"], h_parent=self)
         self.widget_Paramsetting = KxBaseParameterSetting(hparent=self, dict_config=dict_config)#参数设置
         self.widget_runlog = KxBaseRunLog(self)#日志
-        self.widget_permission = kxprivilege_management()#权限管理
+        self.widget_permission = kxprivilege_management(list_slevel=["账号管理", "控制工具栏",  "配方选择", "参数修改"])#权限管理
         self.widget_worklist = WorkListWidget(self)
 
         self.mySeria = SerialManager(h_parent=self, port=dict_config['hardwarecom'], baudrate=self._BAUDRATE, nreadbuffersize=self._HARDWARE_QUEUELEN)# 波特率比较固定，没必要配置
@@ -40,6 +37,22 @@ class kxmainwindow(KXBaseMainWidget):
         self._completeui()
         self._completeconnect()
         self.ui.label_2.setText("下箱体托盘检测")
+        self._setstatus("0000")
+        self.h_threadlock = threading.Thread(target=self._judegIsTime2Lock)
+        self.h_threadlock.start()
+
+    def _judegIsTime2Lock(self):
+        while 1:
+            curtime = time.time()
+            diff = curtime - TimeStatus.g_curtime
+
+            if self.widget_permission.isHidden():
+                if diff > 180: #表示超过这么多秒没有操作就锁屏
+                    self._SIG_SHOWLOCK.emit()
+            else:
+                TimeStatus.g_curtime = time.time()
+
+            time.sleep(1)
 
 
 
@@ -81,6 +94,7 @@ class kxmainwindow(KXBaseMainWidget):
         self.ui.toolButton_userlevel.clicked.connect(self.showpermissiondialog)
         self.toolbutton_move.clicked.connect(self._emitmove)
         self.toolbutton_test.clicked.connect(self._shoujian)
+        self._SIG_SHOWLOCK.connect(self.showpermissiondialog)
 
     def _emitmove(self):
         self.h_checkcontrolthread.emits()
@@ -97,24 +111,31 @@ class kxmainwindow(KXBaseMainWidget):
         if self.ui.toolbtn_offlinerun.isChecked():  # 开始离线跑
             self.widget_Realtime.clear()
 
+
     def showpermissiondialog(self):
-        self.widget_permission.setpasswordpath("d:\\")
+        self.ui.toolButton_userlevel.setStyleSheet(LOCK_STYLESHEET)
+        self.widget_permission.show()
         self.widget_permission.exec_()
-        permissonlevel = self.widget_permission.getpermissionlevel()
-        print(permissonlevel)
-        self.updatepermission(permissonlevel)
+        account = self.widget_permission.getpermissionlevel()
+        if account is not None:
+            self.ui.toolButton_userlevel.setStyleSheet(UNLOCK_STYLESHEET)
+            self._setstatus(account[1])
+            self.widget_runlog.setid(account[0])
 
-    def updatepermission(self, PERMISSIONLEVEL):
-
-        self.ui.toolButton_userlevel.setStyleSheet( 'color:white;border:none;')
-        if PERMISSIONLEVEL == 0:
-            self.ui.toolButton_userlevel.setText("操作员")
-        elif PERMISSIONLEVEL == 1:
-            self.ui.toolButton_userlevel.setText("ME")
-        elif PERMISSIONLEVEL == 2:
-            self.ui.toolButton_userlevel.setText("IMD")
+    def _setstatus(self, slevel):
+        list_status = list(map(int, slevel))
+        list_bstatus = list(map(bool, list_status))
+        self.ui.widget_3.setEnabled(list_bstatus[1])
+        if list_bstatus[2]:
+            self.widget_Paramsetting.modelmanage_load_unlock()
         else:
-            self.ui.toolButton_userlevel.setText("管理员")
+            self.widget_Paramsetting.modelmanage_load_lock()
+        if list_bstatus[3]:
+            self.widget_Paramsetting.unlock()
+        else:
+            self.widget_Paramsetting.lock()
+
+
 
     def recmsg(self, n_stationid, n_msgtype, s_extdata=b''):
         '''
@@ -260,7 +281,6 @@ class kxmainwindow(KXBaseMainWidget):
         # self.h_control.buildmodel(s_extdata)
         t = threading.Thread(target=self.h_control._control_calibrate)
         t.start()
-
 
 
 

@@ -98,22 +98,22 @@ class KxBaseParameterSetting(QtWidgets.QWidget):
     
 
     def lock(self):
-        self.h_modelmanagewidget.lock()
+        #self.h_modelmanagewidget.lock()
         for paramitemwidget in self.list_paramitemwidget:
             if paramitemwidget is not None:
                 paramitemwidget.lock()
 
     def unlock(self):
-        self.h_modelmanagewidget.unlock()
+        #self.h_modelmanagewidget.unlock()
         for paramitemwidget in self.list_paramitemwidget:
             if paramitemwidget is not None:
                 paramitemwidget.unlock()
 
     def modelmanage_load_lock(self):
-        self.h_modelmanagewidget.lockload()
+        self.h_modelmanagewidget.lock()
 
     def modelmanage_load_unlock(self):
-        self.h_modelmanagewidget.unlockload()
+        self.h_modelmanagewidget.unlock()
 
     def str2paramitemfun(self, nstationid, nuid, strfun, *param):
         """

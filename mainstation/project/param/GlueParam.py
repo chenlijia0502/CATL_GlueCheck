@@ -20,6 +20,7 @@ from library.common.KxImageBuf import KxImageBuf
 from project.param.MergeImg import CMergeImg, CMergeImgToList
 from PIL import Image
 from project.param.WaitDialogWithText import WaitDialogWithText
+import  logging
 # from pyqtgraph.imageview.ImageView import ImageView
 
 #节拍  分析
@@ -51,6 +52,8 @@ class GuleParam(KxBaseParamWidget):
         self.list_img = []
         self.h_bigimage = None
         self.threadWaitDialog = None
+        self._connectlog()
+
 
 
     def _initui(self):
@@ -115,6 +118,26 @@ class GuleParam(KxBaseParamWidget):
         for nindex in range(self._MAX_SCAN_NUM):
              self.p.param('扫描区域', '匹配位置' + str(nindex)).add2view(self.view)
         self._initsignal()
+
+
+    def _connectlog(self):
+        self.p.param("全局拍摄控制").sigTreeStateChanged.connect(self._logparamchange)
+        self.p.param("检测参数").sigTreeStateChanged.connect(self._logparamchange)
+        self.p.param("检测区域数量").sigTreeStateChanged.connect(self._logparamchange)
+        for i in range(0, self._MAX_ROI_NUM):
+            self.p.param('检测区域' + str(i)).sigTreeStateChanged.connect(self._logparamchange)
+
+    def _disconnectlog(self):
+        self.p.param("全局拍摄控制").sigTreeStateChanged.disconnect(self._logparamchange)
+        self.p.param("检测参数").sigTreeStateChanged.disconnect(self._logparamchange)
+        self.p.param("检测区域数量").sigTreeStateChanged.disconnect(self._logparamchange)
+        for i in range(0, self._MAX_ROI_NUM):
+            self.p.param('检测区域' + str(i)).sigTreeStateChanged.disconnect(self._logparamchange)
+
+    def _logparamchange(self, *args):
+        s_log = args[0].name() + "--" + args[1][0][0].name() +\
+                " 由 " + str(args[1][0][0].defaultValue()) + "改为 " + str(args[1][0][2])
+        ipc_tool.kxlog("main", logging.INFO, s_log)
 
     def _initsignal(self):
         self.p.param('检测区域数量').sigValueChanged.connect(self._add_checkarea)
@@ -366,6 +389,8 @@ class GuleParam(KxBaseParamWidget):
 
 
     def loadparameters(self):
+        self._disconnectlog()
+
         super(GuleParam, self).loadparameters()
 
         self.list_img = []
@@ -399,6 +424,8 @@ class GuleParam(KxBaseParamWidget):
                 self.p.param('显示图像').setValue(nindex)
 
         self.n_checkarea = int(self.p.param('检测区域数量').value())
+
+        self._connectlog()
 
 
     def saveparameters(self):

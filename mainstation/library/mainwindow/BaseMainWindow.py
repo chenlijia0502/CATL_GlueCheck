@@ -3,24 +3,16 @@
 import sys
 import threading
 import time
-import psutil
 import struct
 from PyQt5 import QtGui,QtCore,QtWidgets
-import os
-import logging
-import pyqtgraph as pg
+
 sys.path.append('../')
 # from abc import ABCMeta, abstractmethod #虚函数方法
 from UI.ui_mainstation import Ui_MainStation
 import imc_msg
 from library.mainwindow.KxLineEditDialog import KxLineEditDialog
-from library.parametersetting.BaseParameterSetting import KxBaseParameterSetting
-from library.common.BaseRunLog import KxBaseRunLog
-from library.monitoring.BaseMonitoringWidget import  KxBaseMonitoringWidget
-from library.common.Permission_Management import kxprivilege_management
 from UI.ui_mainwindow_lunzhuan import Ui_MainStation_lunzhuan
 from globalparam import ChineseWord
-from library.ipc import ipc_tool
 from library.common.globalfun import *
 """
 date:           2019.09.17

@@ -7,7 +7,7 @@ import tkinter
 import tkinter.messagebox #弹窗库
 
 from library.common.readconfig import readconfig, createparam
-from ui_submeswidget import Ui_submeswigget
+from library.common.usermanager.ui_submeswidget import Ui_submeswigget
 
 class subuserwidget(QtWidgets.QDialog):
     def __init__(self,parent,userlist):

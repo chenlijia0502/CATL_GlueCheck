@@ -3,7 +3,7 @@ from project.monitoring import * #这行import保证实时界面能够挂载
 import time
 import tkinter.messagebox #弹窗库
 from PyQt5.QtGui import *
-from ui_adduser import Ui_adduser
+from library.common.usermanager.ui_adduser import Ui_adduser
 import codecs
 from PyQt5.QtCore import Qt
 from kxpyqtgraph.kxItem.DoubleListParameterItem import *
@@ -12,77 +12,119 @@ import logging
 import tkinter
 import tkinter.messagebox #弹窗库
 import operator
-from subuserwidget import subuserwidget
+from library.common.usermanager.subuserwidget import subuserwidget
 import datetime
 
 #管理用户界面
-class adduserdialog(QtWidgets.QDialog):
-    def __init__(self, mode=0, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class Adduserdialog(QtWidgets.QDialog):
+    """
+    最多有八组权限，由UI决定，可根据需求修改UI，根据初始输入的list_slevel进行命名修改，
+    对应权限结果保存为 1 / 0
+    """
+    _CSV_SAVE_HEAD = ['ID','permission','time']
+    def __init__(self, list_slevel:[]):
+        super(Adduserdialog, self).__init__()
         self.logger = logging.getLogger('UI.%s' % self.__class__.__name__)
-        self.window = 0
-        self.count = 0
+        self.setWindowTitle("添加账号")
         self.ui = Ui_adduser()
         self.ui.setupUi(self)
-        self.mode = mode
-        self.newfile = 0
+        self._initPermissionChoice(list_slevel)
         self.setWindowFlags(Qt.WindowCloseButtonHint)
-        self.window = 0
         self.str_passwordpath = 'd:\\'
         ###### 设置界面控件
         self.ui.userlineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.userlist = self.getUserlist()
+        self.ui.userlineEdit.setFocus()
         ###### 绑定按钮事件
-        self.ui.pushButton.clicked.connect(self.adduser)
-        self.ui.pushButton_2.clicked.connect(self.close)
+        self.ui.pushButton_confirm.clicked.connect(self.adduser)
+        self.ui.pushButton_cancel.clicked.connect(self.close)
         self.ui.pushButton_sub.clicked.connect(self.subuser)
+
+
+
+    def _initPermissionChoice(self, list_slevel:[]):
+        """
+        初始化权限选择
+        :return:
+        """
+        self.list_checkbox = [self.ui.checkBox_1, self.ui.checkBox_2,self.ui.checkBox_3,
+                              self.ui.checkBox_4,self.ui.checkBox_5,self.ui.checkBox_6,
+                              self.ui.checkBox_7,self.ui.checkBox_8]
+
+        self.nlevelnum = min(len(list_slevel), len(self.list_checkbox))
+
+        for nindex in range(self.nlevelnum):
+
+            self.list_checkbox[nindex].setText(list_slevel[nindex])
+
+        for nindex in range(self.nlevelnum, len(self.list_checkbox)):
+
+            self.list_checkbox[nindex].hide()
+
+    def keyPressEvent(self, a0: QtGui.QKeyEvent):
+        pass#目的是避免回车输入直接确认账号，还没选权限
 
     #获得用户列表
     def getUserlist(self):
        userlist = []
        try:
            csvreader = csv.reader(open(self.str_passwordpath + '/userlist.csv','r'))
-           if csvreader.line_num == 1:
-               pass
-           else:
-               for item in csvreader:
-                   append_idem=self.decrypt(item[0])
-                   userlist.append([append_idem.decode('utf-8'),item[1],item[2]])
+           for nindex, item in enumerate(csvreader):
+               if nindex == 0:
+                   continue
+               append_idem=self.decrypt(item[0])
+               userlist.append([append_idem.decode('utf-8'),item[1],item[2]])
        except Exception as e:
            self.logger.info('用户文件不存在,已初始化')
-           self.newfile = 1
-           self.userlist = [['root',2,'2021-11-29 20:13:49']]
+           s_all = ""
+           for i in range(self.nlevelnum):
+               s_all += "1"
+           self.userlist = [['zs20210401', s_all, '2021-04-01 08:30:00']]
            self.saveUserlist()
        return userlist
+
 
     def now(self):
         return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
 
-    def str_to_time(self,date,load=0):
+
+    def str_to_time(self,date, load=0):
         if load == 1:
             date = date.replace("/", "-")
             date = date+':00'
         return datetime.datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
 
-    #保存用户列表
+
     def saveUserlist(self):
+        """
+        保存用户列表
+        :return:
+        """
         with codecs.open(self.str_passwordpath + '/userlist.csv','w','utf-8') as csvfile:
             #指定csv文件指定头部
-            fieldnames = ['ID','permission','time']
+            fieldnames = self._CSV_SAVE_HEAD
             writer = csv.DictWriter(csvfile,fieldnames=fieldnames)
             writer.writeheader()
             for i in range(0,len(self.userlist)):
                 try:
                     append_idem = self.encrypt(self.userlist[i][0])
-                    writer.writerow({'ID':append_idem.decode('utf-8'),'permission':self.userlist[i][1],'time':self.userlist[i][2]})
+                    writer.writerow({self._CSV_SAVE_HEAD[0]:append_idem.decode('utf-8'),
+                                     self._CSV_SAVE_HEAD[1]:self.userlist[i][1],
+                                     self._CSV_SAVE_HEAD[2]:self.userlist[i][2]})
                 except Exception as e:
                     self.logger.error('', exc_info=True)
 
+    def _getcurlevel(self):
+        s_all = ""
+        for i in range(self.nlevelnum):
+            if self.list_checkbox[i].isChecked():
+                s_all += "1"
+            else:
+                s_all += "0"
+        return s_all
+
     def adduser(self):
-        if self.newfile == 1 or operator.eq(self.userlist, [['root','2','2021-11-29 20:13:49']]):
-            self.newfile = 0
-            self.userlist = []
-        idex = [self.ui.userlineEdit.text(),self.ui.comboBox.currentIndex(),self.now()]
+        idex = [self.ui.userlineEdit.text(), self._getcurlevel(), self.now()]
         for i in range(len(self.userlist)):
             if self.userlist[i][0] == idex[0]:
                 root = tkinter.Tk()
@@ -131,6 +173,6 @@ class adduserdialog(QtWidgets.QDialog):
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
-    w = adduserdialog()
+    w = Adduserdialog()
     w.show()
     app.exec_()

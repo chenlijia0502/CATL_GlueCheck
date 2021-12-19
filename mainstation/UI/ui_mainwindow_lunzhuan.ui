@@ -392,23 +392,6 @@ border-image: url(res/日志记录.png);
           </spacer>
          </item>
          <item>
-          <widget class="QLabel" name="label_4">
-           <property name="font">
-            <font>
-             <family>Agency FB</family>
-             <pointsize>14</pointsize>
-            </font>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">color: rgb(255, 255, 255);</string>
-           </property>
-           <property name="text">
-            <string>权
-限</string>
-           </property>
-          </widget>
-         </item>
-         <item>
           <widget class="QToolButton" name="toolButton_userlevel">
            <property name="minimumSize">
             <size>

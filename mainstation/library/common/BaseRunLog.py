@@ -56,6 +56,7 @@ class KxBaseRunLog(QtWidgets.QWidget):
         self.n_currentrow = 0
         self.s_savelogbuf = ""
         self.s_lastbadlog = ""
+        self.s_operatorid = "NONE"
 
 
         
@@ -135,12 +136,13 @@ class KxBaseRunLog(QtWidgets.QWidget):
         self.addonelinelog(nstationname, (level, scurtime, sdata))
         if self.s_lastbadlog != nstationname + " " + sdata:#对于重复出现的日志不保存
             self.s_lastbadlog = nstationname + " " + sdata
-            savelog = scurtime + " " + nstationname + " " + sdata
+            savelog = self.s_operatorid + "  " + scurtime + " " + nstationname + " " + sdata
             logging.log(level, savelog)
-        if hasattr(self.h_parentwidget, "CallbackTip"):
+        if hasattr(self.h_parentwidget, "CallbackTip") and level != logging.INFO:
             self.h_parentwidget.CallbackTip(self.s_lastbadlog, self.dict_listcolor[level])
 
-
+    def setid(self, id):
+        self.s_operatorid = id
 
 #QtCore.QThread
 class _RefreshInterface_kxlog(threading.Thread):

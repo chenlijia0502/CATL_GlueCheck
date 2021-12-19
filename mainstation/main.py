@@ -17,6 +17,7 @@ import time
 from multiprocessing import freeze_support
 from ctypes import *
 from project.other.SerialProcess import CreateSerialProcess
+from App import App
 
 """
     基本的配置
@@ -92,7 +93,7 @@ if __name__ == "__main__":
     #dll = cdll.LoadLibrary("res\\UI_key.dll") # 加密狗加密
 
 
-    app = QtWidgets.QApplication([])
+    app = App([])
 
     if  os.path.isfile(MAINSTATION_CONFIG):
         #弹出一个框，那个框里可以选择配置
@@ -117,7 +118,9 @@ if __name__ == "__main__":
             list_handle = setup_allsubstation(dict_config)
             w.sethandle(list_handle)
             w.showFullScreen()
-            app.exec_()
+            w.showpermissiondialog()
+            import sys
+            sys.exit(app.exec_())
     else:
         print("config path does not exist !" )
         #TODO 这里应该弹出一个报错框， 20200203 后面应该加上一个自动生成基础版本的)
