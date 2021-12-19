@@ -419,7 +419,7 @@ void CGlueCheck::GetGlueMask()
 
 	m_hAlg.ThreshImg(m_ImgHSV[1], m_ImgThresh, 95, CEmpiricaAlgorithm::_BINARY);
 	
-	m_hFun.KxOpenImage(m_ImgThresh, m_ImgOpen, 5, 5);
+	m_hFun.KxOpenImage(m_ImgThresh, m_ImgOpen, 11, 11);
 
 	m_hFun.KxCloseImage(m_ImgOpen, m_ImgClose, 11, 11);
 
@@ -432,19 +432,35 @@ void CGlueCheck::GetGlueMask()
 
 	//最下面那段颜色不行，所以裁剪掉 2021.12.16 后面要换掉
 
-	//cv::Mat srcimg = cv::Mat(m_ImgGlueMask.nHeight, m_ImgGlueMask.nWidth, CV_8UC1, m_ImgGlueMask.buf);
+	cv::Mat srcimg = cv::Mat(m_ImgGlueMask.nHeight, m_ImgGlueMask.nWidth, CV_8UC1, m_ImgGlueMask.buf);
 
-	//cv::findContours(srcimg);
+	cv::Rect rect = cv::boundingRect(srcimg);
 
-	//cv::minAreaRect();
+	int x = rect.x + rect.width / 10;
 
-	int maskheight = m_ImgGlueMask.nHeight / 5;
+	int y = rect.y + rect.height / 10;
 
-	int maskstart = m_ImgGlueMask.nHeight - maskheight;
+	int width = rect.width / 10 * 8;
 
-	IppiSize blobsize = { m_ImgGlueMask.nWidth,maskheight };
+	int height = rect.height / 10 * 8;
 
-	ippiSet_8u_C1R(0, m_ImgGlueMask.buf + maskstart * m_ImgGlueMask.nPitch, m_ImgGlueMask.nPitch, blobsize);
+	cv::Mat cutimg = srcimg(cv::Rect(x, y, width, height)).clone();
+
+	ippsSet_8u(0, srcimg.data, srcimg.rows * srcimg.step);
+
+	IppiSize copysize = { cutimg.cols, cutimg.rows };
+
+	ippiCopy_8u_C1R(cutimg.data, cutimg.step, srcimg.data + x + srcimg.step * y, srcimg.step, copysize);
+
+
+
+	////int maskheight = m_ImgGlueMask.nHeight / 5;
+
+	////int maskstart = m_ImgGlueMask.nHeight - maskheight;
+
+	////IppiSize blobsize = { m_ImgGlueMask.nWidth,maskheight };
+
+	////ippiSet_8u_C1R(0, m_ImgGlueMask.buf + maskstart * m_ImgGlueMask.nPitch, m_ImgGlueMask.nPitch, blobsize);
 
 	m_ImgColorGlueMask.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight, 3);
 

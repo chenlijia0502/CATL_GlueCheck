@@ -80,6 +80,7 @@ class kxmainwindow(KXBaseMainWidget):
     def _completeconnect(self):
         self.ui.toolButton_userlevel.clicked.connect(self.showpermissiondialog)
         self.toolbutton_move.clicked.connect(self._emitmove)
+        self.toolbutton_test.clicked.connect(self._shoujian)
 
     def _emitmove(self):
         self.h_checkcontrolthread.emits()
@@ -100,6 +101,7 @@ class kxmainwindow(KXBaseMainWidget):
         self.widget_permission.setpasswordpath("d:\\")
         self.widget_permission.exec_()
         permissonlevel = self.widget_permission.getpermissionlevel()
+        print(permissonlevel)
         self.updatepermission(permissonlevel)
 
     def updatepermission(self, PERMISSIONLEVEL):
@@ -226,6 +228,8 @@ class kxmainwindow(KXBaseMainWidget):
 
         if self.ui.toolbtn_onlinerun.isChecked():  # 开始检测
 
+            self.widget_Realtime.clear()
+
             list_posinfo = self.call2back2getcaptureinfo()
 
             self.h_checkcontrolthread.setinfo(list_posinfo)
@@ -248,6 +252,14 @@ class kxmainwindow(KXBaseMainWidget):
             self.sendmsg(0, imc_msg.MSG_CHANGE_CAMERA_INFO_REVERSE)
         else:
             self.sendmsg(0, imc_msg.MSG_RECOVER_CAMERA_INFO_REVERSE)
+
+    def _shoujian(self):
+        ipc_tool.kxlog("主站", logging.INFO, "开始首件检测")
+        self.serial_Reconnect()
+        self.h_control.setserial(self.mySeria)
+        # self.h_control.buildmodel(s_extdata)
+        t = threading.Thread(target=self.h_control._control_calibrate)
+        t.start()
 
 
 

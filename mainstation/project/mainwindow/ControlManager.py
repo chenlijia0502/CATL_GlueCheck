@@ -300,13 +300,13 @@ class ControlManager(object):
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
 
-        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_X_XIANWEI)
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
 
-        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_Y_XIANWEI)
 
 
 
@@ -385,6 +385,12 @@ class ControlManager(object):
         :param list_info: [[list_x, list_y]]
         :return:
         """
+        self._clear_hardware_recqueue()  # 清除接收缓存
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_REC_START) #接收到下位机按下开始触发指令
+
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIAJIN)
 
         time.sleep(5)
@@ -433,6 +439,8 @@ class ControlManager(object):
 
             self.h_parent.onlyopencamera()
 
+            time.sleep(1)
+
             movemsgy[3:] = translatedis2hex(y / self._DIS2PULSE)
 
             self._sendhardwaremsg(movemsgy)
@@ -480,46 +488,49 @@ class ControlManager(object):
         time.sleep(5)
 
 
-    # def _control_calibrate(self):
-    #
-    #     self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_DOT_CHECK_OPEN)
-    #
-    #     # 1. 复位
-    #     self._rebackXY()
-    #
-    #     # 2. 移动到标定块位置
-    #     movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
-    #
-    #     movemsgy[3:] = [0x7f, 0xff, 0x00, 0x00]
-    #
-    #     ipc_tool.sendmsghardware(movemsgy)
-    #
-    #     time.sleep(0.1)
-    #
-    #     ipc_tool.sendmsghardware(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
-    #
-    #     movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
-    #
-    #     movemsgx[3:] = [0x7f, 0xff, 0x00, 0x00]
-    #
-    #     ipc_tool.sendmsghardware(movemsgx)
-    #
-    #     time.sleep(0.1)
-    #
-    #     ipc_tool.sendmsghardware(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
-    #
-    #     # 3. 开启检测
-    #     self.ui.toolbtn_onlinerun.setChecked(True)
-    #
-    #     self._onlinerun()
-    #
-    #     # 4. 往前走一段采集，触发采集
-    #     movemsgy[3:] = self.translatedis2hex(200 / 0.01)
-    #
-    #     ipc_tool.sendmsghardware(movemsgy)
-    #
-    #     time.sleep(0.1)
-    #     self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_DOT_CHECK_CLOSE)
+    def _control_calibrate(self):
+
+        # 1. 复位
+        self._rebackXY()
+
+        # 2. 移动到标定块位置
+        movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
+
+        movemsgx[3:] = translatedis2hex(900 / self._DIS2PULSE)
+
+        self._sendhardwaremsg(movemsgx)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
+
+        movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
+
+        movemsgy[3:] = translatedis2hex(100 / self._DIS2PULSE)
+
+        self._sendhardwaremsg(movemsgy)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+        # 3.
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_ALL_LIGHT)
+
+        self._waitfor_hardware_queue_result()
+
+        movemsgy[3:] = translatedis2hex(600 / self._DIS2PULSE)
+
+        self._sendhardwaremsg(movemsgy)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
+
+
     #
     # def _controlmachine(self):
     #

@@ -488,7 +488,7 @@ void CTestAsioTcpClient::RecMsgToChangeCameraCaptureDirection(int nstatus)
 
 void CTestAsioTcpClient::RecMsgJustOpenCamera()
 {
-	Graber::g_GetGraberBuffer().Init(true);
+	//Graber::g_GetGraberBuffer().Init(true);
 	//开始采集
 	Graber::g_GetGrabPack().Stop();
 	//给相机触发

@@ -37,7 +37,19 @@ class kxprivilege_management(QtWidgets.QDialog):
         self.ui.pbt_quit.clicked.connect(self.close)
         self.ui.pbt_ensure.clicked.connect(self.slotconfirmpassword)
         self.ui.ptb_key.clicked.connect(self.slotchangePasswordBtnClicked)
+        self.ui.textEdit.textChanged.connect(self.test)
 
+    def test(self):
+        word = self.ui.textEdit.toPlainText()
+        if len(word) > 0 and word[-1] == "\n":
+            if word == "3047996473\n":
+                self.ncurrentpermission = 3
+            elif word == "3216520528\n":
+                self.ncurrentpermission = 2
+            else:
+                QtWidgets.QMessageBox.warning(self, "警告", "没有权限", QtWidgets.QMessageBox.Ok)
+            self.ui.textEdit.clear()
+            self.close()
 
     def __initcombox(self):
         self.ui.comboBox.setStyleSheet("QComboBox{border:1px solid #d7d7d7; border-radius: 3px; padding: 1px 18px 1px 3px;} "
