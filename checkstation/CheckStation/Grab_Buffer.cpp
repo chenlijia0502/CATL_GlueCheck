@@ -250,6 +250,57 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 			}
 			*/
 
+			static int nsaveindex = 0;
+
+			char savepath[64];
+
+			memset(savepath, 0, 64);
+
+			sprintf_s(savepath, "d:\\%d.bmp", nsaveindex);
+
+			m_hBaseFun.SaveBMPImage_h(savepath, m_CaptureQueue.GetRearElement().m_Image);
+
+			nsaveindex++;
+
+
+			if (g_bdotcheckstatus)
+			{
+				Json::Value sendresult;
+
+				sendresult["imagepath"] = Config::g_GetParameter().m_szNetExposureSaveImagePath;
+
+				kxCImageBuf recimg;
+
+				recimg.SetImageBuf(m_CaptureQueue.GetRearElement().m_Image);
+
+				bool m_bOpenFileStatus = g_SaveImgQueBuildModel.OpenFile(Config::g_GetParameter().m_szNetExposureSaveImagePath,
+					recimg.nWidth, recimg.nHeight, recimg.nPitch, 30);
+
+				if (m_bOpenFileStatus)  //文件打开成功
+				{
+					unsigned int nOffset;
+
+					g_SaveImgQueBuildModel.SaveImg(recimg, nOffset);
+					sendresult["startoffset"] = nOffset;
+					sendresult["imageoffsetlen"] = recimg.nHeight * recimg.nPitch + 5 * 4;//这个‘值’看g_SaveImgQue.SaveImg()，存储的数据偏移+5个int
+				}
+				else
+				{
+					char word[256];
+					sprintf_s(word, 256, "存图路径打开失败：%s", Config::g_GetParameter().m_szNetExposureSaveImagePath);
+					kxPrintf(KX_Err, word);
+				}
+
+				std::string sendstr = sendresult.toStyledString();
+				
+				if (Net::IsExistNetObj())
+				{
+					Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_DOT_CHECK_RESULT), int(sendstr.size()), sendstr.c_str());
+				}
+			
+			}
+
+
 
 			m_CaptureQueue.GetRearElement().m_ImageID = m_nNowID;
 			m_CaptureQueue.GetRearElement().m_CardID = m_nNowID;

@@ -155,6 +155,7 @@ void colorizeSegmentation(const Mat &score, Mat &segm)
 //	cv::imshow("123", segm);
 //	cv::waitKey(0);
 //}
+HWND hwnd = GetForegroundWindow();//使hwnd代表最前端的窗口 
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -163,6 +164,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	//设置异常处理函数
 	::SetUnhandledExceptionFilter(GPTUnhandledExceptionFilter);
+	ShowWindow(hwnd, SW_MINIMIZE);//设置窗口最小化
 
 	g_Environment.ReadSystemParam();
 	g_bdotcheckstatus = false;
@@ -172,6 +174,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	int nStatus = bInitIsOk ? 1 : 0;
 	if (bInitIsOk)
 	{
+		Graber::g_GetCamera()->ReverseScanDirection(0);// 代表相机正着走触发
+
 		char szInfo[1024];
 		sprintf_s(szInfo, 1024, "相机%d初始化成功", Config::g_GetParameter().m_nNetStationId);
 		kxPrintf(KX_INFO, szInfo);

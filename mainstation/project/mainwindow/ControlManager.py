@@ -278,6 +278,7 @@ class ControlManager(object):
         if info == None:
             data = self.mySeria.read().hex()
             print ('None rec: ', data)
+            data = str_to_hex(data)
         else:
             while(1):
                 data = self.mySeria.read().hex()
@@ -288,9 +289,8 @@ class ControlManager(object):
                     continue
                 else:
                     break
-        time.sleep(0.2)
-        return
-        # return self.str_to_hex(data)
+        time.sleep(0.5)
+        return data
 
 
 
@@ -385,11 +385,17 @@ class ControlManager(object):
         :param list_info: [[list_x, list_y]]
         :return:
         """
+        self.h_parent.closeCamera()
+
         self._clear_hardware_recqueue()  # 清除接收缓存
 
-        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
+        self._rebackXY()
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CHECK_IS_CAR_READY)
 
         self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_REC_START) #接收到下位机按下开始触发指令
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIAJIN)
 
@@ -399,11 +405,11 @@ class ControlManager(object):
 
         time.sleep(8)
 
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_DUIWEI_JIANG)
+
+        time.sleep(3)
+
         self._clear_hardware_recqueue()  # 清除接收缓存
-
-        self.h_parent.closeCamera()
-
-        self._rebackXY()
 
         if not self.b_checkstatus:  return
 
@@ -479,6 +485,10 @@ class ControlManager(object):
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
 
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_DUIWEI_SHENG)
+
+        time.sleep(3)
+
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIANG)
 
         time.sleep(8)
@@ -488,11 +498,12 @@ class ControlManager(object):
         time.sleep(5)
 
 
-    def _control_calibrate(self):
+    def control_calibrate(self):
 
         # 1. 复位
         self._rebackXY()
 
+        self._clear_hardware_recqueue()
         # 2. 移动到标定块位置
         movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
 
@@ -506,7 +517,7 @@ class ControlManager(object):
 
         movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
 
-        movemsgy[3:] = translatedis2hex(100 / self._DIS2PULSE)
+        movemsgy[3:] = translatedis2hex(200 / self._DIS2PULSE)
 
         self._sendhardwaremsg(movemsgy)
 
@@ -515,12 +526,13 @@ class ControlManager(object):
         self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
 
         # 3.
+        self.h_parent.callback2dotcheck()
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_ALL_LIGHT)
 
         self._waitfor_hardware_queue_result()
 
-        movemsgy[3:] = translatedis2hex(600 / self._DIS2PULSE)
+        movemsgy[3:] = translatedis2hex(450 / self._DIS2PULSE)
 
         self._sendhardwaremsg(movemsgy)
 
@@ -528,109 +540,50 @@ class ControlManager(object):
 
         self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
 
+        time.sleep(1)
+
+        self.h_parent.callback2stopdotcheck()
+
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
 
 
-    #
-    # def _controlmachine(self):
-    #
-    #     # 发送启动命令 #
-    #
-    #     # 循环等待控制完成
-    #
-    #     # while(1):
-    #     #     data = self.mySeria.read(7)
-    #     #     list_data = self.str_to_hex(data)
-    #     #     if list_data == imc_msg.HARDWAREBASEMSG.MSG_DUIWEI_QIGANG_DONE:# 对位气缸对位成功
-    #     #         break
-    #
-    #     # 1. 复位
-    #     # self._rebackXY()
-    #
-    #     print("复位")
-    #     time.sleep(0.1)
-    #
-    #     # 2. y轴前进
-    #     movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
-    #
-    #     movemsgy[3:] = self.translatedis2hex(int(2500 / 0.01))
-    #
-    #     self.mySeria.write(movemsgy)
-    #
-    #     self._waitfor_hardware_queue_result()
-    #
-    #     time.sleep(0.1)
-    #
-    #     self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
-    #     print("Y轴移动")
-    #
-    #     self._waitfor_hardware_queue_result()
-    #
-    #     self._waitfor_hardware_queue_result()
-    #     time.sleep(20)
-    #
-    #     # 这里将读取到位信息，看到位会收到什么信息 #
-    #
-    #     # 3. x轴移动
-    #     movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
-    #
-    #     list_movx = translatedis2hex(int(300 / 0.01))
-    #
-    #     movemsgx[3:] = list_movx
-    #
-    #     self.mySeria.write(movemsgx)
-    #
-    #     self._waitfor_hardware_queue_result()
-    #
-    #     time.sleep(0.1)
-    #
-    #     self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
-    #
-    #     print("x轴移动")
-    #
-    #     self._waitfor_hardware_queue_result()
-    #
-    #     self._waitfor_hardware_queue_result()
-    #
-    #     time.sleep(5)
-    #
-    #     # 4. y轴移动
-    #
-    #     self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
-    #     self._waitfor_hardware_queue_result()
-    #     time.sleep(20)
-    #
-    #     # 判断y轴移动到上限位 #
-    #
-    #     # 5. x轴移动
-    #
-    #     self.mySeria.write(movemsgx)
-    #
-    #     self._clear_hardware_recqueue()
-    #
-    #     time.sleep(0.1)
-    #
-    #     self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
-    #     print("x轴移动")
-    #     time.sleep(5)
-    #
-    #     self._waitfor_hardware_queue_result()
-    #
-    #     # 判断x移动到位 #
-    #
-    #     # 6. y轴移动
-    #     movemsgy[3:] = self.translatedis2hex(2500 / 0.01)
-    #
-    #     self.mySeria.write(movemsgy)
-    #
-    #     self._clear_hardware_recqueue()
-    #
-    #     time.sleep(0.1)
-    #
-    #     self.mySeria.write(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
-    #     print("y轴移动")
-    #
-    #     self._waitfor_hardware_queue_result()
+    def control_adjust_z(self):
+
+        _BASE_Z = -58.0 #z轴基准值
+
+        _RATE = 0.005# Z轴分辨率，mm/_rate 转换为发送脉冲
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Z)
+
+        time.sleep(3)
+
+        self._clear_hardware_recqueue()
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_GET_Z_POS)
+
+        self._waitfor_hardware_queue_result()
+
+        list_recdata = self._waitfor_hardware_queue_result()
+
+        nreadz =  (int(list_recdata[3]) * 256 + int(list_recdata[4])) * 0.112 - 198.2
+
+        print ("du dao shuzhi :", nreadz)
+
+        diff_pulse = int((nreadz - _BASE_Z) / _RATE)
+
+        basemovez = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_BASEMOVE
+
+        high = int(diff_pulse / 256)
+
+        low = int(diff_pulse % 256)
+
+        basemovez[3] = high
+
+        basemovez[4] = low
+
+        self._sendhardwaremsg(basemovez)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_MOVE)
 
 
 

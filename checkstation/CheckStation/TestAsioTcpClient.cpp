@@ -176,9 +176,11 @@ void CTestAsioTcpClient::OnRecvData(int nStationID, const unsigned char* pData, 
 
 				case MSG_DOT_CHECK_OPEN:
 					g_bdotcheckstatus = true;
+					RecMsgJustOpenCamera();
 					break;
 				case MSG_DOT_CHECK_CLOSE:
 					g_bdotcheckstatus = false;
+					RecMsgToCloseCamera();
 					break;
 				case MSG_JUST_OPENCAMERA_BUILDMODEL:
 					RecMsgToOpenCamera_BuildModel(pExtData);
@@ -198,6 +200,7 @@ void CTestAsioTcpClient::OnRecvData(int nStationID, const unsigned char* pData, 
 				case MSG_CHANGE_CAPTURE_COL:
 					g_Grabstatus.nGrabTimes++;
 					break;
+
 				
 				default:
 					break;

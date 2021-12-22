@@ -59,7 +59,9 @@ class SerialManager(object):
 
             data = self.myserial.read(self.n_readbuffersize)
 
-            if data != "":
+            hexdata = data.hex()
+
+            if len(hexdata) > 3:
 
                 if data.hex() == imc_msg.HARDWAREBASEMSG.MSG_GUANGSHAN:
 

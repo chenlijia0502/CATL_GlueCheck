@@ -13,6 +13,7 @@ from project.mainwindow.ControlManager import ControlManager
 from project.mainwindow.SerialManager import SerialManager
 from App import TimeStatus
 from project.other.globalparam import *
+from project.mainwindow.Calibrate import FindEdgeToCalibrate, ShowCalibrateWidget
 
 class kxmainwindow(KXBaseMainWidget):
     _BAUDRATE = 115200
@@ -40,6 +41,8 @@ class kxmainwindow(KXBaseMainWidget):
         self._setstatus("0000")
         self.h_threadlock = threading.Thread(target=self._judegIsTime2Lock)
         self.h_threadlock.start()
+        self.fp = None
+        self.dialog_calibrate = ShowCalibrateWidget()
 
     def _judegIsTime2Lock(self):
         while 1:
@@ -92,9 +95,18 @@ class kxmainwindow(KXBaseMainWidget):
 
     def _completeconnect(self):
         self.ui.toolButton_userlevel.clicked.connect(self.showpermissiondialog)
-        self.toolbutton_move.clicked.connect(self._emitmove)
-        self.toolbutton_test.clicked.connect(self._shoujian)
+        #self.toolbutton_move.clicked.connect(self._emitmove)
+        self.toolbutton_move.clicked.connect(self._shoujian)
+        self.toolbutton_test.clicked.connect(self._test_adjust_z)
         self._SIG_SHOWLOCK.connect(self.showpermissiondialog)
+
+    def _test_adjust_z(self):
+        ipc_tool.kxlog("主站", logging.INFO, "测试z轴调节")
+        self.serial_Reconnect()
+        self.h_control.setserial(self.mySeria)
+        # self.h_control.buildmodel(s_extdata)
+        t = threading.Thread(target=self.h_control.control_adjust_z)
+        t.start()
 
     def _emitmove(self):
         self.h_checkcontrolthread.emits()
@@ -114,13 +126,18 @@ class kxmainwindow(KXBaseMainWidget):
 
     def showpermissiondialog(self):
         self.ui.toolButton_userlevel.setStyleSheet(LOCK_STYLESHEET)
+        self.setEnabled(False)
+        self.widget_permission.clear()
         self.widget_permission.show()
         self.widget_permission.exec_()
+        self.setEnabled(True)
         account = self.widget_permission.getpermissionlevel()
         if account is not None:
             self.ui.toolButton_userlevel.setStyleSheet(UNLOCK_STYLESHEET)
             self._setstatus(account[1])
             self.widget_runlog.setid(account[0])
+        else:
+            self._setstatus("0000")#锁住
 
     def _setstatus(self, slevel):
         list_status = list(map(int, slevel))
@@ -155,6 +172,8 @@ class kxmainwindow(KXBaseMainWidget):
             self.h_control.setserial(self.mySeria)
             t = threading.Thread(target=self.h_control.buildmodel_second, args=s_extdata)
             t.start()
+        elif n_msgtype == imc_msg.MSG_DOT_CHECK_RESULT:
+            self.reccalibrateimg(s_extdata)
 
 
     def serial_Reconnect(self):
@@ -279,9 +298,66 @@ class kxmainwindow(KXBaseMainWidget):
         self.serial_Reconnect()
         self.h_control.setserial(self.mySeria)
         # self.h_control.buildmodel(s_extdata)
-        t = threading.Thread(target=self.h_control._control_calibrate)
+        t = threading.Thread(target=self.h_control.control_calibrate)
         t.start()
 
+    def callback2dotcheck(self):
+        self.sendmsg(0, imc_msg.MSG_DOT_CHECK_OPEN)
+
+    def callback2stopdotcheck(self):
+        self.sendmsg(0, imc_msg.MSG_DOT_CHECK_CLOSE)
+
+    def reccalibrateimg(self,tuple_data):
+        import json
+        dict_result = json.loads(tuple_data)
+        img = self._getimage(dict_result)
+        obj = FindEdgeToCalibrate()
+        solveimgresult, sums, w, h = obj.solveimg(img)
+        if abs(sums - 86000) > 400:
+            self.dialog_calibrate.setcalibrastatus("NG")
+            b_status = False
+        else:
+            self.dialog_calibrate.setcalibrastatus("OK")
+            b_status = True
+
+        x_fenbianlv = 19.85 / w
+        y_fenbianlv = 34.86 / h
+
+        s_word = "x 分辨率为：" + str(x_fenbianlv) + "\n\n"
+
+        s_word += "y 分辨率为：" + str(y_fenbianlv) + "\n\n"
+
+        if b_status:
+            s_word += "分辨率正常\n\n"
+        else:
+            s_word += "分辨率已发生改变，请确认相机位置是否正确，并重新标定相机！！！\n\n"
+
+        s_word += str(sums)
+
+        self.dialog_calibrate.setimg(solveimgresult)
+        self.dialog_calibrate.settext(s_word)
+        self.dialog_calibrate.show()
+        self.dialog_calibrate.exec_()
+
+
+    def _getimage(self, dict_result):
+        try:
+            readimagepath = dict_result['imagepath']
+            startoffset = dict_result['startoffset']
+            offsetlen = dict_result['imageoffsetlen']
+        except AttributeError:
+            return None
+        if self.fp is None:
+            try:
+                self.fp = open(readimagepath, "rb")
+            except IOError:
+                return None
+        self.fp.seek(startoffset)
+        data = self.fp.read(offsetlen)
+        Img = KxImageBuf()
+        Img.unpack(data)
+        arrImg = Img.Kximage2npArr()
+        return arrImg
 
 
 class CheckControlThread(threading.Thread):
@@ -313,6 +389,7 @@ class CheckControlThread(threading.Thread):
     def setControlmanger(self, serials:ControlManager):
 
         self.controlmanger = serials
+
 
     def emits(self):
         self.b_emit = True

@@ -984,7 +984,7 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 
 	kxCImageBuf bigimgA, bigimgB;
 
-	bool bhascheck = false;
+	//bool bhascheck = false;
 
 	for (int j = 0; j < m_param.m_nscantimes; j++)
 	{
@@ -1025,7 +1025,10 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 
 					m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_ImgMaxSizeA, m_ImgMaxSizeB, m_DstImg, m_hCheckResult[0]);
 
-					bhascheck = true;
+					//bhascheck = true;
+
+					AnalyseCheckResult(i, m_hCheckResult);
+
 				}
 
 				
@@ -1054,11 +1057,10 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	//	}
 	//}, auto_partitioner());
 
-	if (bhascheck && (m_hCheckResult[0]["defect num"].asInt() != 0))
-	{
-		//3. 分析结果，比如用表达式进行判废（这一步以前的同事设计的时候不把它放在主站的原因是因为耗时原因），这里是对所有区域进行汇合的判废
-		AnalyseCheckResult(SrcCapImg.m_CardID, m_hCheckResult);
-	}
+	//if (bhascheck && (m_hCheckResult[0]["defect num"].asInt() != 0))
+	//{
+	//	//3. 分析结果，比如用表达式进行判废（这一步以前的同事设计的时候不把它放在主站的原因是因为耗时原因），这里是对所有区域进行汇合的判废
+	//}
 
 
 	//total_e = tick_count::now();

@@ -676,10 +676,10 @@ def main():
     w3 = w.addLayout(row=1, col=0)
     v3 = w3.addViewBox(row=1, col=0, lockAspect=True,invertY=True)
 
-    r3a = KxDoubleRoiItem(dict_pos={'in': [13, 13, 100, 100], 'out': [10, 10, 120, 120]},word="你好")
+    #r3a = KxDoubleRoiItem(dict_pos={'in': [13, 13, 100, 100], 'out': [10, 10, 120, 120]},word="你好")
     # r3a = KxDoubleRoiItem(word="qqqqq")
     # r3a = ROIwithText([0,0],[40,40],word="qqqqq")
-    # r3a = KxRoiWithLineItem(dict_pos={u'in': [1085, 202, 1377, 306], u'out': [10, 10, 120, 120]},word=u"你好", pen=(0, 9),bool_vertical=False)
+    r3a = KxRoiWithLineItem(dict_pos={u'in': [1085, 202, 1377, 306], u'out': [10, 10, 120, 120]},word=u"你好", pen=(0, 9),bool_vertical=False)
 
     v3.addItem(r3a)
 

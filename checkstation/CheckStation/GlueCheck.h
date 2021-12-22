@@ -5,6 +5,12 @@
 #include "KxBaseFunction.h"
 #include "KxBlobAnalyse.h"
 #include "EmpiricaAlgorithm.h"
+#include "tbb/tbb.h"
+#include "tbb/parallel_for.h"
+#include "tbb/blocked_range2d.h"
+#include "tbb/partitioner.h"
+using namespace tbb;
+
 
 class CGlueCheck : public BaseCheckMethod
 {
@@ -36,7 +42,12 @@ public:
 
 	};
 
-
+	enum
+	{
+		_MAX_BLOBIMG = 30,// 最大连通域分析数量
+		_SINGLE_BLOBIMG_H = 2000,//每个进入分析的图像大小
+		_IMG_OVERLAP = 20, // 图像重叠大小
+	};
 
 
 private:
@@ -84,7 +95,11 @@ private:
 	kxCImageBuf				 m_ImgSrcA;
 	kxCImageBuf				 m_ImgSrcB;
 
+	kxCImageBuf				 m_pBLOBIMG[_MAX_BLOBIMG];
+	CKxBlobAnalyse			 m_phblob[_MAX_BLOBIMG];
+	int						 m_nblobimgnum;
 
+	kxCImageBuf				 m_ImgZero2split;
 
 private:
 	void checkcolordiff(const kxCImageBuf& SrcImg);// 检色差
@@ -102,4 +117,10 @@ private:
 	void MergeImg(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg);
 
 	void GetMaxGray(const kxCImageBuf& ColorImg, kxCImageBuf& DstGrayImg);
+
+
+	void CutImg2MulImg(const kxCImageBuf& CheckImg);
+
+	void ParallelBlob(Json::Value &checkresult);
+
 };

@@ -196,6 +196,7 @@
     <ClCompile Include="GlueCheck.cpp" />
     <ClCompile Include="Grab_Buffer.cpp" />
     <ClCompile Include="GrabPack.cpp" />
+    <ClCompile Include="KxBlobAnalyse.cpp" />
     <ClCompile Include="kxCamera.cpp" />
     <ClCompile Include="kxCameraHikvision.cpp" />
     <ClCompile Include="KxCheck.cpp" />

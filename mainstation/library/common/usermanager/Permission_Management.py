@@ -37,7 +37,9 @@ class kxprivilege_management(QtWidgets.QDialog):
         self.adduserdialog = Adduserdialog(list_slevel)
         self.inputdialog = InputDialog()
         self.__ininconnection()
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)#全屏
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint |QtCore.Qt.WindowStaysOnTopHint)#全屏
+        #self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+
         self.ui.lineEdit_2.setReadOnly(True)
         self.cur_account = None#当前账户
 
@@ -74,13 +76,16 @@ class kxprivilege_management(QtWidgets.QDialog):
         '''
         进入用户管理界面
         '''
+
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)  # 全屏
+
         self.inputdialog.show()
 
         self.inputdialog.exec()
 
         id = self.inputdialog.getinfo()
 
-        #id = self.ui.lineEdit_2.text()
+        self.inputdialog.clear()
 
         list_list_account = self.adduserdialog.getUserlist()
 
@@ -104,11 +109,14 @@ class kxprivilege_management(QtWidgets.QDialog):
 
             respond = QtWidgets.QMessageBox.warning(self, u"警告", u"非管理员权限",QtWidgets.QMessageBox.Cancel)
 
-            return
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint)  # 全屏
 
 
     def getpermissionlevel(self):
         return self.cur_account
+
+    def clear(self):
+        self.cur_account = None
 
 
 
@@ -138,6 +146,9 @@ class InputDialog(QtWidgets.QDialog):
 
     def getinfo(self):
         return self.s_input
+
+    def clear(self):
+        self.s_input = ""
 
     def showEvent(self, a0: QtGui.QShowEvent):
         pass

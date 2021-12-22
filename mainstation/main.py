@@ -118,7 +118,7 @@ if __name__ == "__main__":
             list_handle = setup_allsubstation(dict_config)
             w.sethandle(list_handle)
             w.showFullScreen()
-            w.showpermissiondialog()
+            #w.showpermissiondialog()
             import sys
             sys.exit(app.exec_())
     else:

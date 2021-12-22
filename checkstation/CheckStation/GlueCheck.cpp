@@ -147,6 +147,7 @@ void CGlueCheck::checkyiwu(const kxCImageBuf& SrcImg, Json::Value &checkresult)
 
 	m_hFun.KxAddImage(m_ImgCheckLowGray, m_ImgCheckHighGray);
 
+	/*
 	m_hBlobFun.ToBlobByCV(m_ImgCheckHighGray, CKxBlobAnalyse::_SORT_BYDOTS, 16);
 
 	checkresult["defect num"] = 0;
@@ -173,9 +174,56 @@ void CGlueCheck::checkyiwu(const kxCImageBuf& SrcImg, Json::Value &checkresult)
 			}
 		}
 	}
+	*/
+	CutImg2MulImg(m_ImgCheckHighGray);
+
+	ParallelBlob(checkresult);
+}
+
+
+void CGlueCheck::ParallelBlob(Json::Value &checkresult)
+{
+	parallel_for(blocked_range<int>(0, m_nblobimgnum),
+	[&](const blocked_range<int>& range)
+	{
+		for (int index = range.begin(); index != range.end(); index++)
+		{
+			m_phblob[index].ToBlobByCV(m_pBLOBIMG[index], CKxBlobAnalyse::_SORT_BYDOTS, 100);
+		}
+	}, auto_partitioner());
+
+	checkresult["defect num"] = 0;
+
+	for (int nimgindex = 0; nimgindex < m_nblobimgnum; nimgindex++)
+	{
+		if (m_phblob[nimgindex].GetBlobCount() > 0)
+		{
+			for (int i = 0; i < m_phblob[nimgindex].GetBlobCount(); i++)
+			{
+				CKxBlobAnalyse::SingleBlobInfo blobinfo;
+
+				blobinfo = m_phblob[nimgindex].GetSortSingleBlob(i);
+
+				if (blobinfo.m_nDots > m_param.m_ndefectdots)
+				{
+					Json::Value single;
+					single["Dots"] = blobinfo.m_nDots;
+					single["Energy"] = 0;
+					single["pos"].append(blobinfo.m_rc.left);
+					single["pos"].append(blobinfo.m_rc.top);
+					single["pos"].append(blobinfo.m_rc.Width());
+					single["pos"].append(blobinfo.m_rc.Height());
+					checkresult["defect feature"].append(single);
+					checkresult["defect num"] = checkresult["defect num"].asInt() + 1;
+				}
+			}
+		}
+	}
+
 
 
 }
+
 
 void CGlueCheck::CreateBaseModel(const kxCImageBuf& CheckImg)
 {
@@ -616,8 +664,50 @@ void CGlueCheck::MergeImg(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB
 }
 
 
+void CGlueCheck::CutImg2MulImg(const kxCImageBuf& CheckImg)
+{
+	/*
+		将一张大图分成N张有重叠区域的图，方便进行blob分析
+	*/
+
+	// -1 后 +1是向上取整
+	m_nblobimgnum = int((CheckImg.nHeight - _IMG_OVERLAP - 1) / (_SINGLE_BLOBIMG_H - _IMG_OVERLAP)) + 1;// 向上取整
+
+	if (m_nblobimgnum > _MAX_BLOBIMG)
+	{
+		printf_s("roi框的大小超过设置的参数！！！！");
+		// KXPRINTF(); 先不做处理
+		m_nblobimgnum = _MAX_BLOBIMG;
+	}
+
+	int nh2copy = (_SINGLE_BLOBIMG_H - _IMG_OVERLAP) * m_nblobimgnum + _IMG_OVERLAP;
+
+
+	m_ImgZero2split.Init(CheckImg.nWidth, nh2copy, 1);
+
+	ippsSet_8u(0, m_ImgZero2split.buf, m_ImgZero2split.nPitch * m_ImgZero2split.nHeight);
+
+	IppiSize copysize = {CheckImg.nWidth, CheckImg.nHeight};
+
+	ippiCopy_8u_C1R(CheckImg.buf, CheckImg.nPitch, m_ImgZero2split.buf, m_ImgZero2split.nPitch, copysize);
+
+	for (int i = 0; i < m_nblobimgnum; i++)
+	{
+		unsigned char *copybuf = m_ImgZero2split.buf + i * (_SINGLE_BLOBIMG_H - _IMG_OVERLAP) * m_ImgZero2split.nPitch;
+
+		m_pBLOBIMG[i].Init(CheckImg.nWidth, _SINGLE_BLOBIMG_H);
+
+		IppiSize smallsize = { CheckImg.nWidth, _SINGLE_BLOBIMG_H };
+
+		ippiCopy_8u_C1R(copybuf, m_ImgZero2split.nPitch, m_pBLOBIMG[i].buf, m_pBLOBIMG[i].nPitch, smallsize);
+	}
+}
+
+
 int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg, Json::Value &checkresult)
 {
+
+	// 现在的问题是提取绿色不好提取，对于边缘部分不好搞。要想个办法用双阈值提取
 
 	checkresult["defect num"] = 0;
 

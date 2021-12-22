@@ -117,6 +117,9 @@
     <ClCompile Include="CombineImg.cpp">
       <Filter>检测流程</Filter>
     </ClCompile>
+    <ClCompile Include="KxBlobAnalyse.cpp">
+      <Filter>算法</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CkxFileRead.h">
