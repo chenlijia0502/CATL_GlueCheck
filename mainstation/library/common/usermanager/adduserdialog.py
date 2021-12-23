@@ -28,6 +28,7 @@ class Adduserdialog(QtWidgets.QDialog):
         self.setWindowTitle("添加账号")
         self.ui = Ui_adduser()
         self.ui.setupUi(self)
+        self.list_level = list_slevel
         self._initPermissionChoice(list_slevel)
         self.setWindowFlags(Qt.WindowCloseButtonHint)
         self.str_passwordpath = 'd:\\'
@@ -68,7 +69,8 @@ class Adduserdialog(QtWidgets.QDialog):
     def getUserlist(self):
        userlist = []
        try:
-           csvreader = csv.reader(open(self.str_passwordpath + '/userlist.csv','r'))
+           csvpath = self.str_passwordpath + '/userlist.csv'
+           csvreader = csv.reader(open(csvpath,'r'))
            for nindex, item in enumerate(csvreader):
                if nindex == 0:
                    continue
@@ -81,6 +83,8 @@ class Adduserdialog(QtWidgets.QDialog):
                s_all += "1"
            self.userlist = [['zs20210401', s_all, '2021-04-01 08:30:00']]
            self.saveUserlist()
+
+
        return userlist
 
 
@@ -100,7 +104,8 @@ class Adduserdialog(QtWidgets.QDialog):
         保存用户列表
         :return:
         """
-        with codecs.open(self.str_passwordpath + '/userlist.csv','w','utf-8') as csvfile:
+        csvpath = self.str_passwordpath + '/userlist.csv'
+        with codecs.open(csvpath,'w','utf-8') as csvfile:
             #指定csv文件指定头部
             fieldnames = self._CSV_SAVE_HEAD
             writer = csv.DictWriter(csvfile,fieldnames=fieldnames)
@@ -112,7 +117,10 @@ class Adduserdialog(QtWidgets.QDialog):
                                      self._CSV_SAVE_HEAD[1]:self.userlist[i][1],
                                      self._CSV_SAVE_HEAD[2]:self.userlist[i][2]})
                 except Exception as e:
-                    self.logger.error('', exc_info=True)
+                    self.logger.error(e, exc_info=True)
+        import win32api, win32con
+        win32api.SetFileAttributes(csvpath, win32con.FILE_ATTRIBUTE_HIDDEN)
+
 
     def _getcurlevel(self):
         s_all = ""
@@ -165,7 +173,7 @@ class Adduserdialog(QtWidgets.QDialog):
     def subuser(self):
         namelist = []
         self.userlist = self.getUserlist()
-        self.subwidght = subuserwidget(self,self.userlist)
+        self.subwidght = subuserwidget(self,self.userlist,self.list_level)
         # 必须加这句
         self.subwidght.setWindowModality(Qt.ApplicationModal)
         self.subwidght.exec_()

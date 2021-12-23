@@ -49,12 +49,15 @@ class Ui_MainStation_lunzhuan(object):
         self.widget_company.setStyleSheet("")
         self.widget_company.setObjectName("widget_company")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.widget_company)
+        self.horizontalLayout.setContentsMargins(9, 0, 0, 0)
+        self.horizontalLayout.setSpacing(0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.label_3 = QtWidgets.QLabel(self.widget_company)
-        self.label_3.setMinimumSize(QtCore.QSize(190, 0))
+        self.label_3.setMinimumSize(QtCore.QSize(160, 0))
+        self.label_3.setMaximumSize(QtCore.QSize(180, 16777215))
         self.label_3.setStyleSheet("background-color:transparent;border:0px;\n"
 "\n"
-"border-image: url(res/福万达.png);")
+"border-image: url(res/catllogo.jpg);")
         self.label_3.setText("")
         self.label_3.setObjectName("label_3")
         self.horizontalLayout.addWidget(self.label_3)

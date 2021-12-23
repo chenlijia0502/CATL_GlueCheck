@@ -98,7 +98,7 @@ class kxmainwindow(KXBaseMainWidget):
         #self.toolbutton_move.clicked.connect(self._emitmove)
         self.toolbutton_move.clicked.connect(self._shoujian)
         self.toolbutton_test.clicked.connect(self._test_adjust_z)
-        self._SIG_SHOWLOCK.connect(self.showpermissiondialog)
+        self._SIG_SHOWLOCK.connect(self._lockpermissiondialog)
 
     def _test_adjust_z(self):
         ipc_tool.kxlog("主站", logging.INFO, "测试z轴调节")
@@ -122,6 +122,13 @@ class kxmainwindow(KXBaseMainWidget):
         super(kxmainwindow, self)._offlinerun()
         if self.ui.toolbtn_offlinerun.isChecked():  # 开始离线跑
             self.widget_Realtime.clear()
+
+
+    def _lockpermissiondialog(self):
+        """定时切出"""
+        self.ui.toolButton_userlevel.setStyleSheet(LOCK_STYLESHEET)
+        self._setstatus("0000")  # 锁住
+        self.widget_runlog.setid("NONE")
 
 
     def showpermissiondialog(self):

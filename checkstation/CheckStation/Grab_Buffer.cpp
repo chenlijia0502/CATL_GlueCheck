@@ -250,17 +250,17 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 			}
 			*/
 
-			static int nsaveindex = 0;
+			//static int nsaveindex = 0;
 
-			char savepath[64];
+			//char savepath[64];
 
-			memset(savepath, 0, 64);
+			//memset(savepath, 0, 64);
 
-			sprintf_s(savepath, "d:\\%d.bmp", nsaveindex);
+			//sprintf_s(savepath, "d:\\%d.bmp", nsaveindex);
 
-			m_hBaseFun.SaveBMPImage_h(savepath, m_CaptureQueue.GetRearElement().m_Image);
+			//m_hBaseFun.SaveBMPImage_h(savepath, m_CaptureQueue.GetRearElement().m_Image);
 
-			nsaveindex++;
+			//nsaveindex++;
 
 
 			if (g_bdotcheckstatus)

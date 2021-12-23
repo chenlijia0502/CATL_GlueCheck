@@ -3,6 +3,7 @@ import numpy as np
 from PyQt5 import Qt, QtWidgets, QtGui
 from pyqtgraph import GraphicsView
 import pyqtgraph as pg
+import copy
 
 
 class FindEdgeToCalibrate(object):
@@ -10,122 +11,94 @@ class FindEdgeToCalibrate(object):
         super(FindEdgeToCalibrate, self).__init__()
 
 
-    def solveimg(self, srcimg):
-        roi = [5800,  1200, 6100, 1680]#x, y, xend, yend
-
+    def _calboundrect(self, srcimg, roi):
         targetimg = srcimg[roi[1]:roi[3], roi[0]:roi[2], 0]
 
         ret, threshimg = cv2.threshold(targetimg, 40, 255, cv2.THRESH_BINARY)
 
-        sums = (threshimg > 0).sum()
+        nsum = (threshimg > 0).sum()
 
-        # image, contours, hierarchy = cv2.findContours(threshimg, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        #
-        # cv2.drawContours(targetimg, contours, -1, (0, 255, 0), thickness=3)
+        im2, contours, hierarchy = cv2.findContours(threshimg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
-        h, w = threshimg.shape
+        if len(contours) != 0:
+            # the contours are drawn here
+            cv2.drawContours(threshimg, contours, -1, 255, 3)
 
-        startx = 0
+            ## find the biggest area of the contour
+            c = max(contours, key=cv2.contourArea)
 
-        endx = int(w / 2)
+            x, y, w, h = cv2.boundingRect(c)
 
-        starty = int(h / 4 * 1)
+            naverage_left = roi[0] + x
 
-        endy = int(h / 4 * 3)
+            naverage_right = roi[0] + x + w - 1
 
-        list_x = []
+            naverage_top = roi[1] + y
 
-        for y in range(starty, endy):
-            for x in range(startx, endx):
-                if threshimg[y][x] > 0:
-                    list_x.append(x)
-                    break
+            naverage_bottom = roi[1] + y + h - 1
 
-        naverage_left = int(np.sum(np.array(list_x) / len(list_x)))
+            paintimg = cv2.rectangle(srcimg, (naverage_left, naverage_top),
+                                     (naverage_right, naverage_bottom), (0, 0, 255), 3)
 
-        startx = int(w / 2)
+            return paintimg, w, h
 
-        endx = w - 1
+        else:
 
-        list_x = []
+            return srcimg, 1, 1
 
-        for y in range(starty, endy):
-            for x in range(endx, startx, -1):
-                if threshimg[y][x] > 0:
-                    list_x.append(x)
-                    break
 
-        naverage_right = int(np.sum(np.array(list_x) / len(list_x)))
+    def solvemul(self, srcimg):
+        list_roi = [[5800,  1200, 6100, 1680],
+                    [6200, 1260, 6400, 1620],
+                    [6540, 1300, 6700, 1600],
+                    [6830, 1330, 6920, 1580]]
 
-        startx = int(w / 4 * 1)
+        solveimg = copy.copy(srcimg)
 
-        endx = int(w / 4 * 3)
+        list_w = []
 
-        starty = 0
+        list_h = []
 
-        endy = int(h / 2)
 
-        list_y = []
+        for roi in list_roi:
 
-        for x in range(startx, endx):
-            for y in range(starty, endy):
-                if threshimg[y][x] > 0:
-                    list_y.append(y)
-                    break
+            solveimg, w, h = self._calboundrect(solveimg, roi)
 
-        naverage_top = int(np.sum(np.array(list_y) / len(list_y)))
+            list_w.append(w)
 
-        startx = int(w / 4 * 1)
+            list_h.append(h)
 
-        endx = int(w / 4 * 3)
+        return solveimg, list_w, list_h
 
-        starty = int(h / 2)
 
-        endy = h - 1
+    def solvecolor(self, srcimg):
+        roi = [5800,  1200, 6100, 1680]#xstart, ystart, xend, yend
 
-        list_y = []
+        targetimg = srcimg[roi[1]:roi[3], roi[0]:roi[2]]
 
-        for x in range(startx, endx):
-            for y in range(endy, starty, -1):
-                if threshimg[y][x] > 0:
-                    list_y.append(y)
-                    break
+        maskgray = targetimg[:, :, 0]# 选择做二值化mask的图像
 
-        naverage_bottom = int(np.sum(np.array(list_y) / len(list_y)))
+        list_gray = []
 
-        # print (naverage_left, naverage_right, naverage_right - naverage_left + 1)
-        #
-        # print (naverage_top, naverage_bottom, naverage_bottom - naverage_top + 1)
-        # threshimg[:, naverage_left:naverage_left+1] = [100]
-        # threshimg[:, naverage_right:naverage_right+1] = [100]
-        #
-        # threshimg[naverage_top:naverage_top+1, :] =  [100]
-        # threshimg[naverage_bottom:naverage_bottom+1, :] = [100]
-        #
-        #
-        # cv2.namedWindow("threshimg", 0)
-        #
-        # cv2.imshow("threshimg", threshimg)
-        #
-        # cv2.waitKey(0)
+        for i in range(3):
 
-        naverage_left += roi[0]
+            result = cv2.mean(maskgray[:, :, i])
 
-        naverage_right += roi[0]
+            list_gray.append(int(result[0]))
 
-        naverage_top += roi[1]
+        cv2.rectangle(srcimg, (roi[0], roi[1]), (roi[2], roi[3]), (0, 255, 0), 3)
 
-        naverage_bottom += roi[1]
+        return list_gray
 
-        cv2.line(srcimg, (naverage_left, naverage_top), (naverage_right, naverage_top), (0, 0, 255), 3)
 
-        cv2.line(srcimg, (naverage_left, naverage_top), (naverage_left, naverage_bottom), (0, 0, 255), 3)
+    def solveimg(self, srcimg):
 
-        cv2.line(srcimg, (naverage_left, naverage_bottom), (naverage_right, naverage_bottom), (0, 0, 255), 3)
+        solveimg, list_w, list_h = self.solvemul(srcimg)
 
-        cv2.line(srcimg, (naverage_right, naverage_bottom), (naverage_right, naverage_top), (0, 0, 255), 3)
+        list_gray = self.solvecolor(solveimg)
 
-        return srcimg, sums, naverage_right - naverage_left + 1, naverage_bottom - naverage_top + 1
+        return solveimg, list_w, list_h, list_gray
+
 
 
 class ShowCalibrateWidget(QtWidgets.QDialog):

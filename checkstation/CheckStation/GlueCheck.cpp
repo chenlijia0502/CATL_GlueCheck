@@ -709,6 +709,22 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 
 	// 现在的问题是提取绿色不好提取，对于边缘部分不好搞。要想个办法用双阈值提取
 
+	//static int nsaveindex = 0;
+
+	//char path[64];
+
+	//memset(path, 0, 64);
+	//sprintf_s(path, "d:\\%dbig.bmp", nsaveindex);
+
+	//m_hFun.SaveBMPImage_h(path, SrcImgA);
+	//nsaveindex++;
+	//memset(path, 0, 64);
+	//sprintf_s(path, "d:\\%dbig.bmp", nsaveindex);
+	//nsaveindex++;
+
+	//m_hFun.SaveBMPImage_h(path, SrcImgB);
+
+
 	checkresult["defect num"] = 0;
 
 	m_hAlg.SplitRGB(SrcImgA, m_ImgRGB);

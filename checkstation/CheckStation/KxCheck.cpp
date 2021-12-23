@@ -1027,7 +1027,7 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 
 					//bhascheck = true;
 
-					AnalyseCheckResult(i, m_hCheckResult);
+					//AnalyseCheckResult(i, m_hCheckResult);
 
 				}
 

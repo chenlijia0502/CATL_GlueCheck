@@ -14,7 +14,7 @@
 	<n_hardwarequeuelen>6</n_hardwarequeuelen>
 	<softwareaddress>192.168.0.20</softwareaddress>
 	<machineaddress>192.168.0.10</machineaddress>
-	<mointoringwidget_classname>GlueMonitorWidgetNew</mointoringwidget_classname>
+	<mointoringwidget_classname>GlueMonitorWidget</mointoringwidget_classname>
 	<maxCameraPerStation>1</maxCameraPerStation>
 	<substation>
 		<substation1>
