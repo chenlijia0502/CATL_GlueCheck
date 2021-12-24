@@ -5,6 +5,7 @@
 #include "GrabPack.h"
 #include "KxReadXml2.h"
 #include "GlueCheck.h"
+#include <ctime>
 
 //int InitPythonEnvironment()
 //{
@@ -563,10 +564,33 @@ void CKxCheck::SaveImg(CheckResultStatus status)
 			m_nimgsavenum++;
 		}
 	}
-	else
-	{
-		return;
-	}
+	//else
+	//{
+	//	return;
+	//}
+
+	static int i = 0;
+	//
+	char badpath[64];
+	sprintf_s(badpath, "D:\\ȱ��ͼ\\");
+	if (_access(badpath, 0))
+		_mkdir(badpath);
+
+
+	time_t now = time(0);
+	tm *ltm = localtime(&now);
+
+	char goodpath[64];
+	sprintf_s(goodpath, "F:\\ԭͼ\\");
+	if (_access(goodpath, 0))
+		_mkdir(goodpath);
+	sprintf_s(goodpath, "F:\\ԭͼ\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
+	if (_access(goodpath, 0))
+		_mkdir(goodpath);
+
+	sprintf_s(goodpath, sizeof(goodpath), "%s\\%d.bmp", goodpath, i);
+	m_hBaseFun.SaveBMPImage_h(goodpath, m_TransferImage);
+	i++;
 
 
 }
@@ -1027,7 +1051,7 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 
 					//bhascheck = true;
 
-					//AnalyseCheckResult(i, m_hCheckResult);
+					AnalyseCheckResult(i, m_hCheckResult);
 
 				}
 

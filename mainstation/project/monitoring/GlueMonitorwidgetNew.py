@@ -59,6 +59,27 @@ class GlueMonitorWidgetNew(KxBaseMonitoringWidget):
         self.crossitem.add2item(self.bigview)
         self.crossitem.setpos(0, 0)
 
+        self.widget_edgepos = WidgetEdgePos()
+        self.verticallayout4 = QtWidgets.QVBoxLayout(self.ui.widget_4)
+        self.verticallayout4.addWidget(self.widget_edgepos)
+        self.label = QtWidgets.QLabel()
+        self.verticallayout4.addWidget(self.label)
+        self.verticallayout4.setStretch(0, 2)
+        self.verticallayout4.setStretch(1, 1)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(25)
+        font.setBold(False)
+        font.setWeight(50)
+        self.label.setFont(font)
+        self.label.setText("涂胶总面积： ")
+
+
+
+
+
+
+
     def _initconnect(self):
         self.tabwidget_defectid.cellClicked.connect(self._showdefect)
 
