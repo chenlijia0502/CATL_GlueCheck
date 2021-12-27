@@ -26,7 +26,7 @@ from App import App
 LOGGER_PATH = "D:\\log\\"
 if not os.path.isdir(LOGGER_PATH):
     os.mkdir(LOGGER_PATH)
-s_time = time.strftime("%Y-%m-%d-%H")
+s_time = time.strftime("%Y-%m-%d")
 logging.basicConfig(filename='d:\\log\\%s.log'%s_time,level=logging.INFO, format='%(levelname)s %(asctime)s %(message)s',
                     datefmt='%Y/%m/%d %H:%M:%S',filemode='a')
 

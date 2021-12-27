@@ -14,17 +14,19 @@ from project.mainwindow.SerialManager import SerialManager
 from App import TimeStatus
 from project.other.globalparam import *
 from project.mainwindow.Calibrate import FindEdgeToCalibrate, ShowCalibrateWidget
+from project.mainwindow.CPCTSParam import WidgetCPCTSParam
 
 class kxmainwindow(KXBaseMainWidget):
     _BAUDRATE = 115200
     _HARDWARE_QUEUELEN = 7
     _SIG_SHOWLOCK = QtCore.pyqtSignal()
+    _SIG_ERRORINFO = QtCore.pyqtSignal(str)
     def __init__(self, dict_config):
         super(kxmainwindow, self).__init__(dict_config)
         self.widget_Realtime = KxBaseMonitoringWidget.create(name=dict_config["mointoringwidget_classname"], h_parent=self)
         self.widget_Paramsetting = KxBaseParameterSetting(hparent=self, dict_config=dict_config)#参数设置
         self.widget_runlog = KxBaseRunLog(self)#日志
-        self.widget_permission = kxprivilege_management(list_slevel=["账号管理", "控制工具栏",  "配方选择", "参数修改"])#权限管理
+        self.widget_permission = kxprivilege_management(list_slevel=["账号管理", "控制工具栏",  "配方选择", "参数修改", "CP/CTS参数修改"])#权限管理
         self.widget_worklist = WorkListWidget(self)
 
         self.mySeria = SerialManager(h_parent=self, port=dict_config['hardwarecom'], baudrate=self._BAUDRATE, nreadbuffersize=self._HARDWARE_QUEUELEN)# 波特率比较固定，没必要配置
@@ -33,12 +35,19 @@ class kxmainwindow(KXBaseMainWidget):
         self.h_checkcontrolthread = CheckControlThread()
         self.h_checkcontrolthread.start()
 
-        self._initstackwidget([self.ui.pbt_realtime, self.ui.pbt_paramset, self.ui.pbt_logview, self.ui.pushButton_worklist],
-                              [self.widget_Realtime, self.widget_Paramsetting, self.widget_runlog, self.widget_worklist])
+        self.pushbutton_cpcts = QtWidgets.QPushButton(self)
+        self.widget_cpcts = WidgetCPCTSParam()
+        self.pushbutton_cpcts.setMinimumSize(QtCore.QSize(80, 90))
+        self.pushbutton_cpcts.setMaximumSize(QtCore.QSize(80, 90))
+        self.pushbutton_cpcts.setText("CP/CTS")
+        self.ui.horizontalLayout_2.addWidget(self.pushbutton_cpcts)
+
+        self._initstackwidget([self.ui.pbt_realtime, self.ui.pbt_paramset, self.ui.pbt_logview, self.ui.pushButton_worklist, self.pushbutton_cpcts],
+                              [self.widget_Realtime, self.widget_Paramsetting, self.widget_runlog, self.widget_worklist, self.widget_cpcts])
         self._completeui()
         self._completeconnect()
         self.ui.label_2.setText("下箱体托盘检测")
-        self._setstatus("0000")
+        self._setstatus("00000")
         self.h_threadlock = threading.Thread(target=self._judegIsTime2Lock)
         self.h_threadlock.start()
         self.fp = None
@@ -97,8 +106,9 @@ class kxmainwindow(KXBaseMainWidget):
         self.ui.toolButton_userlevel.clicked.connect(self.showpermissiondialog)
         #self.toolbutton_move.clicked.connect(self._emitmove)
         self.toolbutton_move.clicked.connect(self._shoujian)
-        self.toolbutton_test.clicked.connect(self._test_adjust_z)
+        self.toolbutton_test.clicked.connect(self._emitmove)
         self._SIG_SHOWLOCK.connect(self._lockpermissiondialog)
+        self._SIG_ERRORINFO.connect(self._showerrorinfo)
 
     def _test_adjust_z(self):
         ipc_tool.kxlog("主站", logging.INFO, "测试z轴调节")
@@ -127,7 +137,7 @@ class kxmainwindow(KXBaseMainWidget):
     def _lockpermissiondialog(self):
         """定时切出"""
         self.ui.toolButton_userlevel.setStyleSheet(LOCK_STYLESHEET)
-        self._setstatus("0000")  # 锁住
+        self._setstatus("00000")  # 锁住
         self.widget_runlog.setid("NONE")
 
 
@@ -144,7 +154,7 @@ class kxmainwindow(KXBaseMainWidget):
             self._setstatus(account[1])
             self.widget_runlog.setid(account[0])
         else:
-            self._setstatus("0000")#锁住
+            self._setstatus("00000")#锁住
 
     def _setstatus(self, slevel):
         list_status = list(map(int, slevel))
@@ -158,6 +168,10 @@ class kxmainwindow(KXBaseMainWidget):
             self.widget_Paramsetting.unlock()
         else:
             self.widget_Paramsetting.lock()
+        if list_bstatus[4]:
+            self.widget_cpcts.setEnabled(True)
+        else:
+            self.widget_cpcts.setEnabled(False)
 
 
 
@@ -319,29 +333,11 @@ class kxmainwindow(KXBaseMainWidget):
         dict_result = json.loads(tuple_data)
         img = self._getimage(dict_result)
         obj = FindEdgeToCalibrate()
-        solveimgresult, sums, w, h = obj.solveimg(img)
-        if abs(sums - 86000) > 400:
-            self.dialog_calibrate.setcalibrastatus("NG")
-            b_status = False
-        else:
-            self.dialog_calibrate.setcalibrastatus("OK")
-            b_status = True
+        solveimg, list_w, list_h, list_gray  = obj.solveimg(img)
+        cv2.imwrite("d:\\test.bmp", img)
 
-        x_fenbianlv = 19.85 / w
-        y_fenbianlv = 34.86 / h
-
-        s_word = "x 分辨率为：" + str(x_fenbianlv) + "\n\n"
-
-        s_word += "y 分辨率为：" + str(y_fenbianlv) + "\n\n"
-
-        if b_status:
-            s_word += "分辨率正常\n\n"
-        else:
-            s_word += "分辨率已发生改变，请确认相机位置是否正确，并重新标定相机！！！\n\n"
-
-        s_word += str(sums)
-
-        self.dialog_calibrate.setimg(solveimgresult)
+        s_word = "识别到的格子宽： " + str(list_w) + "\n\n识别到的格子高： " + str(list_h) + "\n\n识别到的标准色板灰度： " + str(list_gray)
+        self.dialog_calibrate.setimg(solveimg)
         self.dialog_calibrate.settext(s_word)
         self.dialog_calibrate.show()
         self.dialog_calibrate.exec_()
@@ -365,6 +361,14 @@ class kxmainwindow(KXBaseMainWidget):
         Img.unpack(data)
         arrImg = Img.Kximage2npArr()
         return arrImg
+
+
+    def callback2showerror(self, info):
+        self._SIG_ERRORINFO.emit(info)
+
+    def _showerrorinfo(self, info):
+        respond = QtWidgets.QMessageBox.warning(self, u"错误", info, QtWidgets.QMessageBox.Cancel)
+
 
 
 class CheckControlThread(threading.Thread):

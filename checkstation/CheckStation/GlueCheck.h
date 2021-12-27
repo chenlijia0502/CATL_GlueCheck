@@ -29,6 +29,8 @@ public:
 		m_param = *((SingleParam*)param);
 	}
 
+	void SetCheckBlobID(int nId) { m_nID = nId;  }
+
 	struct SingleParam
 	{
 		kxRect<int>		m_rcCheckROI;
@@ -100,6 +102,7 @@ private:
 	int						 m_nblobimgnum;
 
 	kxCImageBuf				 m_ImgZero2split;
+	int						 m_nID;//当前是第几个blob，用于存储缺陷图片信息
 
 private:
 	void checkcolordiff(const kxCImageBuf& SrcImg);// 检色差

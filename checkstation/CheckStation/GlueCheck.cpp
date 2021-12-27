@@ -194,6 +194,8 @@ void CGlueCheck::ParallelBlob(Json::Value &checkresult)
 
 	checkresult["defect num"] = 0;
 
+	int nimgstep = _SINGLE_BLOBIMG_H - _IMG_OVERLAP;
+
 	for (int nimgindex = 0; nimgindex < m_nblobimgnum; nimgindex++)
 	{
 		if (m_phblob[nimgindex].GetBlobCount() > 0)
@@ -209,8 +211,11 @@ void CGlueCheck::ParallelBlob(Json::Value &checkresult)
 					Json::Value single;
 					single["Dots"] = blobinfo.m_nDots;
 					single["Energy"] = 0;
+					char defectid[32];
+					sprintf_s(defectid, "%d_%d", m_nID, i);
+					single["defectid"] = defectid;
 					single["pos"].append(blobinfo.m_rc.left);
-					single["pos"].append(blobinfo.m_rc.top);
+					single["pos"].append(blobinfo.m_rc.top + nimgindex * nimgstep);
 					single["pos"].append(blobinfo.m_rc.Width());
 					single["pos"].append(blobinfo.m_rc.Height());
 					checkresult["defect feature"].append(single);
@@ -747,7 +752,7 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 
 	checkyiwu(m_ImgCheck, checkresult);
 
-	DstImg.SetImageBuf(SrcImgA, true);
+	DstImg.SetImageBuf(m_ImgCheck, true);
 
 	return 1;
 }

@@ -152,7 +152,7 @@ private:
 	kxCImageBuf					m_ImgMaxSizeA;//把每张检测图归一化为一张最大的，放进去检测，这样不会频繁申请内存，而且结果也好发送
 	kxCImageBuf					m_ImgMaxSizeB;//把每张检测图归一化为一张最大的，放进去检测，这样不会频繁申请内存，而且结果也好发送
 
-
+	kxCImageBuf					m_Savebigimg[6];
 private:
 	//转Bayer图像为彩色图像或模拟数据转换
 	int TransferImage(const CKxCaptureImage& card);
@@ -173,6 +173,8 @@ private:
 	void JudgeWhichROI(const CKxCaptureImage& SrcCapImg);
 
 	void DotCheckImg(const kxCImageBuf& SrcImg);
+
+	void SaveImgToPath(const kxCImageBuf& SrcImg, Json::Value& sendresult);// 根据检测结果将数据保存到
 	
 public:
 	//检查一张卡片的全流程,包括预处理，处理

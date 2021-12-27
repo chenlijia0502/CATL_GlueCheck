@@ -102,15 +102,6 @@ class GuleParam(KxBaseParamWidget):
             {'name': '检测参数', 'type': 'group', 'children': [
                 {'name': '检高灵敏度', 'type': 'int', 'value': 3, 'limits': [0, 25]},
                 {'name': '检低灵敏度', 'type': 'int', 'value': 3, 'limits': [0, 25]},
-                {'name': '涂胶总面积上限', 'type': 'int', 'value': 100000, 'limits':[1, 100000000]},
-                {'name': '涂胶总面积下限', 'type': 'int', 'value': 10000, 'limits': [1, 100000000]},
-                {'name': '检测气泡尺寸', 'type': 'int', 'value': 5, 'limits':[1, 100000000]},
-                {'name': '叛废气泡个数', 'type': 'int', 'value': 2, 'limits': [1, 100000000]},
-                {'name': '检测异物尺寸', 'type': 'int', 'value': 2, 'limits': [1, 100000000]},
-                {'name': '叛废异物个数', 'type': 'int', 'value': 2, 'limits': [1, 100000000]},
-                {'name': '涂胶位置度上限', 'type': 'int', 'value': 3, 'limits': [1, 100000000]},
-                {'name': '涂胶位置度下限', 'type': 'int', 'value': 1, 'limits': [1, 100000000]},
-
             ]},
 
         ])

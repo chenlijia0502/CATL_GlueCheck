@@ -79,6 +79,8 @@ class kxprivilege_management(QtWidgets.QDialog):
 
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)  # 全屏
 
+        print("start: ", self.adduserdialog.userlist)
+
         self.inputdialog.show()
 
         self.inputdialog.exec()
@@ -88,6 +90,9 @@ class kxprivilege_management(QtWidgets.QDialog):
         self.inputdialog.clear()
 
         list_list_account = self.adduserdialog.getUserlist()
+
+        print("end: ", self.adduserdialog.userlist)
+
 
         bstatus = False
 

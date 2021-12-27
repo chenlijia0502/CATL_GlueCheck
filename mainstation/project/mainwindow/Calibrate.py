@@ -48,10 +48,10 @@ class FindEdgeToCalibrate(object):
 
 
     def solvemul(self, srcimg):
-        list_roi = [[5800,  1200, 6100, 1680],
-                    [6200, 1260, 6400, 1620],
-                    [6540, 1300, 6700, 1600],
-                    [6830, 1330, 6920, 1580]]
+        list_roi = [[5852,  1250, 6100, 1680],
+                    [6250, 1260, 6500, 1620],
+                    [6600, 1300, 6750, 1600],
+                    [6860, 1330, 6980, 1580]]
 
         solveimg = copy.copy(srcimg)
 
@@ -72,17 +72,15 @@ class FindEdgeToCalibrate(object):
 
 
     def solvecolor(self, srcimg):
-        roi = [5800,  1200, 6100, 1680]#xstart, ystart, xend, yend
+        roi = [6060,  867, 6800, 1120]#xstart, ystart, xend, yend
 
         targetimg = srcimg[roi[1]:roi[3], roi[0]:roi[2]]
-
-        maskgray = targetimg[:, :, 0]# 选择做二值化mask的图像
 
         list_gray = []
 
         for i in range(3):
 
-            result = cv2.mean(maskgray[:, :, i])
+            result = cv2.mean(targetimg[:, :, i])
 
             list_gray.append(int(result[0]))
 
@@ -127,6 +125,12 @@ class ShowCalibrateWidget(QtWidgets.QDialog):
         self.verlayout = QtWidgets.QVBoxLayout(self.widget2)
         self.verlayout.addWidget(self.label_NGOK)
         self.verlayout.addWidget(self.label_WORD)
+        self.pushbutton = QtWidgets.QPushButton()
+        self.pushbutton.setText("上传MES首件数据")
+        self.verlayout.addWidget(self.pushbutton)
+        self.verlayout.setStretch(0, 5)
+        self.verlayout.setStretch(1, 4)
+        self.verlayout.setStretch(2, 1)
         self.horlayout.addWidget(self.h_gVShowRealImg)
         self.horlayout.addWidget(self.widget2)
         self.horlayout.setStretch(0, 7)

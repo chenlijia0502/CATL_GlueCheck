@@ -12,7 +12,7 @@ import numpy as np
 
 class ZSImgListDetectWidget(QtWidgets.QWidget):
     #__latestDefectCount = 40#单个页面显示最多
-    _imgCntPerCol = 5 #每列显示（行）
+    _imgCntPerCol = 3 #每列显示（行）
     __imgCntPerRow = 6 #每行显示（列）
     SigSelectDefect = QtCore.pyqtSignal(object, int, int)# 点击缺陷触发
 
@@ -239,6 +239,7 @@ class ZSImgListDetectWidget(QtWidgets.QWidget):
             self.logger.error('', exc_info=True)
 
     def slotCellClick(self, row, col):
+        #self.SigSelectDefect.emit(0 ,1 ,2)
         ncurid = row * self.__imgCntPerRow + col
         if ncurid < len(self.list_data):
             self.SigSelectDefect.emit(self.list_data[ncurid].img, self.list_data[ncurid].BIG_ID,

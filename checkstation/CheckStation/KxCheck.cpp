@@ -568,31 +568,21 @@ void CKxCheck::SaveImg(CheckResultStatus status)
 	//{
 	//	return;
 	//}
-
 	static int i = 0;
-	//
-	char badpath[64];
-	sprintf_s(badpath, "D:\\缺陷图\\");
-	if (_access(badpath, 0))
-		_mkdir(badpath);
-
-
 	time_t now = time(0);
 	tm *ltm = localtime(&now);
-
 	char goodpath[64];
-	sprintf_s(goodpath, "F:\\原图\\");
+	sprintf_s(goodpath, "D:\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
 	if (_access(goodpath, 0))
 		_mkdir(goodpath);
-	sprintf_s(goodpath, "F:\\原图\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
+	sprintf_s(goodpath, "D:\\%d-%d-%d\\原图\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
 	if (_access(goodpath, 0))
 		_mkdir(goodpath);
+	
 
 	sprintf_s(goodpath, sizeof(goodpath), "%s\\%d.bmp", goodpath, i);
 	m_hBaseFun.SaveBMPImage_h(goodpath, m_TransferImage);
 	i++;
-
-
 }
 
 void CKxCheck::SetSaveStatus(CKxCheck::SaveImgStatus status, char* savepath)
@@ -971,6 +961,72 @@ void CKxCheck::DotCheckImg(const kxCImageBuf& SrcImg)
 
 }
 
+void CKxCheck::SaveImgToPath(const kxCImageBuf& SrcImg, Json::Value& sendresult)
+{
+	int ndefectnum = sendresult["defect num"].asInt();
+	time_t now = time(0);
+	tm *ltm = localtime(&now);
+
+	//
+	char badpath[64];
+	sprintf_s(badpath, "D:\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
+	if (_access(badpath, 0))
+		_mkdir(badpath);
+	sprintf_s(badpath, "D:\\%d-%d-%d\\缺陷图\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
+	if (_access(badpath, 0))
+		_mkdir(badpath);
+	for (int i = 0; i < ndefectnum; i++)
+	{
+		Json::Value single = sendresult["defect feature"][i];
+		
+		std::string a = single["defectid"].asString();
+
+		char path[32];
+
+		sprintf_s(path, "%s.bmp", a.c_str());
+
+		sprintf_s(badpath, "D:\\%d-%d-%d\\缺陷图\\%s", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, path);
+
+		int pos[4];//left,top,width,height
+
+		for (int nindex = 0; nindex < 4; nindex++)
+		{
+			pos[nindex] = single["pos"][nindex].asInt();
+		}
+
+		int cutpos[4];
+
+		cutpos[0] = max(0, pos[0] - 50);
+
+		cutpos[1] = max(0, pos[1] - 50);
+
+		cutpos[2] = min(SrcImg.nWidth - 1, pos[0] + pos[2] + 50 - 1);
+		
+		cutpos[3] = min(SrcImg.nHeight - 1, pos[1] + pos[3] + 50 - 1);
+
+
+
+		kxRect<int> cutRect;
+
+		cutRect.setup(cutpos[0], cutpos[1], cutpos[2], cutpos[3]);
+ 
+		kxCImageBuf cutimg;
+
+		cutimg.Init(cutRect.Width(), cutRect.Height(), SrcImg.nChannel);
+
+		m_hBaseFun.KxCopyImage(SrcImg, cutimg, cutRect);
+
+		m_hBaseFun.SaveBMPImage_h(badpath, cutimg);
+	}
+
+
+
+
+
+
+
+}
+
 int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 {
 	
@@ -993,7 +1049,7 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	
 	m_finalcheckstatus = CheckResultStatus::_Check_Ok;
 
-	m_hCheckResult[0].clear();
+	//m_hCheckResult[0].clear();
 	//2.检测
 	//for (int i = 0; i < Config::GetGlobalParam().m_nAreakNum; i++)
 	//{
@@ -1008,7 +1064,7 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 
 	kxCImageBuf bigimgA, bigimgB;
 
-	//bool bhascheck = false;
+	static int nchecktimes = 0;
 
 	for (int j = 0; j < m_param.m_nscantimes; j++)
 	{
@@ -1019,6 +1075,8 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 				// 判断roi是否是这个扫描组里的，是的话裁剪进行检测   2021.12.14
 				if (m_param.params[i].m_nGrabTimes == j)
 				{
+					m_hCheckResult[0].clear();
+
 					m_hcombineimg.GetImg(bigimgA, bigimgB, j);
 
 					kxCImageBuf checkimgA, checkimgB;
@@ -1037,6 +1095,8 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 
 					m_hCheckTools[0]->SetParam(&m_param.params[i]);
 
+					m_hCheckTools[0]->SetCheckBlobID(i);
+
 					ippsSet_8u(0, m_ImgMaxSizeA.buf, m_ImgMaxSizeA.nPitch * m_ImgMaxSizeA.nHeight);
 
 					ippsSet_8u(0, m_ImgMaxSizeB.buf, m_ImgMaxSizeB.nPitch * m_ImgMaxSizeB.nHeight);
@@ -1050,8 +1110,15 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 					m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_ImgMaxSizeA, m_ImgMaxSizeB, m_DstImg, m_hCheckResult[0]);
 
 					//bhascheck = true;
+					SaveImgToPath(m_DstImg, m_hCheckResult[0]);
 
 					AnalyseCheckResult(i, m_hCheckResult);
+
+					m_Savebigimg[nchecktimes].SetImageBuf(m_DstImg, true);
+
+					nchecktimes++;
+
+					
 
 				}
 
@@ -1068,7 +1135,53 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 		}
 	}
 
+	if (nchecktimes == 6)
+	{
+		//保存缩略图
+		int nresizeh = m_Savebigimg[0].nHeight / 10;
+		int nresizew = m_Savebigimg[0].nWidth / 10;
+
+		int nbigh = nresizeh * 2;
+		int nbigw = nresizew * 3;
+
+		kxCImageBuf bigimg;
+		bigimg.Init(nbigw, nbigh, m_Savebigimg[0].nChannel);
+
+		IppiSize imgsize = {nresizew, nresizeh};
+
+		kxCImageBuf resizeimg;
+		resizeimg.Init(nresizew, nresizeh, m_Savebigimg[0].nChannel);
+
+		m_hBaseFun.KxResizeImage(m_Savebigimg[0], resizeimg);
+		ippiCopy_8u_C3R(resizeimg.buf, resizeimg.nPitch, bigimg.buf, bigimg.nPitch, imgsize);
+
+		m_hBaseFun.KxResizeImage(m_Savebigimg[1], resizeimg);
+		ippiCopy_8u_C3R(resizeimg.buf, resizeimg.nPitch, bigimg.buf + nresizeh * bigimg.nPitch, bigimg.nPitch, imgsize);
+
+		m_hBaseFun.KxResizeImage(m_Savebigimg[2], resizeimg);
+		ippiCopy_8u_C3R(resizeimg.buf, resizeimg.nPitch, bigimg.buf + nresizew * bigimg.nChannel, bigimg.nPitch, imgsize);
+
+		m_hBaseFun.KxResizeImage(m_Savebigimg[3], resizeimg);
+		ippiCopy_8u_C3R(resizeimg.buf, resizeimg.nPitch, bigimg.buf + nresizeh * bigimg.nPitch + nresizew * bigimg.nChannel, bigimg.nPitch, imgsize);
 	
+		m_hBaseFun.KxResizeImage(m_Savebigimg[4], resizeimg);
+		ippiCopy_8u_C3R(resizeimg.buf, resizeimg.nPitch, bigimg.buf + nresizew * bigimg.nChannel * 2, bigimg.nPitch, imgsize);
+
+		m_hBaseFun.KxResizeImage(m_Savebigimg[5], resizeimg);
+		ippiCopy_8u_C3R(resizeimg.buf, resizeimg.nPitch, bigimg.buf + nresizeh * bigimg.nPitch + nresizew * bigimg.nChannel * 2, bigimg.nPitch, imgsize);
+
+		time_t now = time(0);
+		tm *ltm = localtime(&now);
+
+		static int nsaveindex = 0;
+		//
+		char suoluetu[64];
+		sprintf_s(suoluetu, "D:\\%d-%d-%d\\缩略图\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
+		if (_access(suoluetu, 0))
+			_mkdir(suoluetu);
+		sprintf_s(suoluetu, "D:\\%d-%d-%d\\缩略图\\%d.bmp", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, nsaveindex);
+		m_hBaseFun.SaveBMPImage_h(suoluetu, bigimg);
+	}
 
 
 	//// 并行版本，开发者自行选择
@@ -1100,6 +1213,7 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 
 	return 1;
 }
+
 
 
 

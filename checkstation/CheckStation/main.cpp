@@ -16,6 +16,7 @@
 //#include <opencv2/dnn.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+#include "json.h"
 
 
 using namespace boost::python;
@@ -157,10 +158,28 @@ void colorizeSegmentation(const Mat &score, Mat &segm)
 //}
 HWND hwnd = GetForegroundWindow();//使hwnd代表最前端的窗口 
 
+void testjson()
+{
+	Json::Value single;
+
+	char defectid[32];
+	sprintf_s(defectid, "%d_%d", 1, 2);
+	single["defectid"] = defectid;
+
+	std::string a = single["defectid"].asString();
+
+	char path[32];
+
+	sprintf_s(path, "%s.bmp", a.c_str());
+
+	std::cout << a.c_str();
+}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
 	//test_python();
 	//test_opencv();
+	//testjson();
 
 	//设置异常处理函数
 	::SetUnhandledExceptionFilter(GPTUnhandledExceptionFilter);

@@ -70,9 +70,11 @@ class Adduserdialog(QtWidgets.QDialog):
        userlist = []
        try:
            csvpath = self.str_passwordpath + '/userlist.csv'
+           # import win32api, win32con
+           # win32api.SetFileAttributes(csvpath, win32con.FILE_ATTRIBUTE_HIDDEN)
            csvreader = csv.reader(open(csvpath,'r'))
            for nindex, item in enumerate(csvreader):
-               if nindex == 0:
+               if nindex == 0:#去掉头
                    continue
                append_idem=self.decrypt(item[0])
                userlist.append([append_idem.decode('utf-8'),item[1],item[2]])
@@ -83,6 +85,7 @@ class Adduserdialog(QtWidgets.QDialog):
                s_all += "1"
            self.userlist = [['zs20210401', s_all, '2021-04-01 08:30:00']]
            self.saveUserlist()
+           return self.userlist
 
 
        return userlist
@@ -118,8 +121,9 @@ class Adduserdialog(QtWidgets.QDialog):
                                      self._CSV_SAVE_HEAD[2]:self.userlist[i][2]})
                 except Exception as e:
                     self.logger.error(e, exc_info=True)
-        import win32api, win32con
-        win32api.SetFileAttributes(csvpath, win32con.FILE_ATTRIBUTE_HIDDEN)
+            print("save: ", self.userlist)
+        # import win32api, win32con
+        # win32api.SetFileAttributes(csvpath, win32con.FILE_ATTRIBUTE_HIDDEN)
 
 
     def _getcurlevel(self):
@@ -133,13 +137,17 @@ class Adduserdialog(QtWidgets.QDialog):
 
     def adduser(self):
         idex = [self.ui.userlineEdit.text(), self._getcurlevel(), self.now()]
+        print ('add before: ', self.userlist)
         for i in range(len(self.userlist)):
             if self.userlist[i][0] == idex[0]:
                 root = tkinter.Tk()
                 root.withdraw()
                 tkinter.messagebox.showinfo('提示', '该用户已存在！')
                 return
+
         self.userlist.append(idex)
+        print ('add after: ', self.userlist)
+
         self.saveUserlist()
         root = tkinter.Tk()
         root.withdraw()

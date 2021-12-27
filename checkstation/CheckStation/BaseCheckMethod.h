@@ -38,5 +38,7 @@ public:
 
 	virtual void SetParam(void *param) {};
 
+	virtual void SetCheckBlobID(int nId) {};
+
 
 };

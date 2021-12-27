@@ -2,6 +2,7 @@ import serial
 import threading
 import time
 import imc_msg
+import time
 
 class SerialManager(object):
     def __init__(self, h_parent, port, baudrate, nreadbuffersize):
@@ -17,21 +18,47 @@ class SerialManager(object):
         self.thread2.start()
 
 
-    def read(self):
+    def read(self, ntimeout=None):
+        """
 
-        while True:
+        :param ntimeout: 超时单位秒,超时返回None
+        :return:
+        """
+        if ntimeout == None:
+            while True:
 
-            if self.list_read != []:
+                if self.list_read != []:
 
-                data = self.list_read[0]
+                    data = self.list_read[0]
 
-                del self.list_read[0]
+                    del self.list_read[0]
 
-                return data
+                    return data
 
-            else:
+                else:
 
-                time.sleep(0.2)
+                    time.sleep(0.2)
+        else:
+            nstarttime = time.time()
+
+            readdata = None
+
+            while time.time() - nstarttime <= ntimeout:
+
+                if self.list_read != []:
+
+                    readdata = self.list_read[0]
+
+                    del self.list_read[0]
+
+                    break
+
+                else:
+
+                    time.sleep(0.2)
+
+            return readdata
+
 
 
     def write(self, data):
