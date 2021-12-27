@@ -406,6 +406,17 @@ class ControlManager(object):
         :param list_info: [[list_x, list_y]]
         :return:
         """
+        self._MakeEveryposFuwei()
+
+        self._clear_hardware_recqueue()
+
+        while 1:
+            list_data = self._waitfor_hardware_queue_result()
+
+            if list_data == imc_msg.HARDWAREBASEMSG.MSG_REC_START or list_data == imc_msg.HARDWAREBASEMSG.MSG_REC_START1:
+
+                break
+
         self.h_parent.closeCamera()
 
         self._clear_hardware_recqueue()  # 清除接收缓存
@@ -527,6 +538,14 @@ class ControlManager(object):
 
 
     def control_calibrate(self):
+
+        self._clear_hardware_recqueue()
+
+        while 1:
+            list_data = self._waitfor_hardware_queue_result()
+
+            if list_data == imc_msg.HARDWAREBASEMSG.MSG_REC_START or list_data == imc_msg.HARDWAREBASEMSG.MSG_REC_START1:
+                break
 
         # 1. 复位
         self._rebackXY()
@@ -661,4 +680,16 @@ class ControlManager(object):
 
 
 
-
+    def _MakeEveryposFuwei(self):
+        """
+        让夹紧，顶升，对位气缸复位，原因是为了初始化最初状态
+        :return:
+        """
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_DUIWEI_SHENG)
+        time.sleep(1)
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIANG)
+        time.sleep(1)
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_SONGKAI)
+        time.sleep(5)
+        self._clear_hardware_recqueue()

@@ -147,6 +147,20 @@ void CGlueCheck::checkyiwu(const kxCImageBuf& SrcImg, Json::Value &checkresult)
 
 	m_hFun.KxAddImage(m_ImgCheckLowGray, m_ImgCheckHighGray);
 
+	//char savepath1[64];
+	//sprintf_s(savepath1, "d:\\save%d.bmp", m_nID);
+	//m_hFun.SaveBMPImage_h(savepath1, SrcImg);
+
+	//sprintf_s(savepath1, "d:\\save1%d.bmp", m_nID);
+	//m_hFun.SaveBMPImage_h(savepath1, m_ImgCheckLowGray);
+
+	//sprintf_s(savepath1, "d:\\save2%d.bmp", m_nID);
+	//m_hFun.SaveBMPImage_h(savepath1, m_ImgCheckHighGray);
+
+
+
+	
+
 	/*
 	m_hBlobFun.ToBlobByCV(m_ImgCheckHighGray, CKxBlobAnalyse::_SORT_BYDOTS, 16);
 
@@ -194,7 +208,9 @@ void CGlueCheck::ParallelBlob(Json::Value &checkresult)
 
 	checkresult["defect num"] = 0;
 
-	int nimgstep = _SINGLE_BLOBIMG_H - _IMG_OVERLAP;
+	int nsingleimgstep = _SINGLE_BLOBIMG_H - _IMG_OVERLAP;// 将分图坐标转换成全局坐标
+
+	int nblobindex = 0;
 
 	for (int nimgindex = 0; nimgindex < m_nblobimgnum; nimgindex++)
 	{
@@ -212,10 +228,12 @@ void CGlueCheck::ParallelBlob(Json::Value &checkresult)
 					single["Dots"] = blobinfo.m_nDots;
 					single["Energy"] = 0;
 					char defectid[32];
-					sprintf_s(defectid, "%d_%d", m_nID, i);
+					sprintf_s(defectid, "%d_%d", m_nID, nblobindex);
+					std::cout << defectid << std::endl;
+					nblobindex++;
 					single["defectid"] = defectid;
 					single["pos"].append(blobinfo.m_rc.left);
-					single["pos"].append(blobinfo.m_rc.top + nimgindex * nimgstep);
+					single["pos"].append(blobinfo.m_rc.top + nsingleimgstep * nimgindex);
 					single["pos"].append(blobinfo.m_rc.Width());
 					single["pos"].append(blobinfo.m_rc.Height());
 					checkresult["defect feature"].append(single);
@@ -225,7 +243,7 @@ void CGlueCheck::ParallelBlob(Json::Value &checkresult)
 		}
 	}
 
-
+	std::cout << " 第 " << m_nID << " 检测到缺陷数量： " << checkresult["defect num"].asInt() << std::endl;
 
 }
 

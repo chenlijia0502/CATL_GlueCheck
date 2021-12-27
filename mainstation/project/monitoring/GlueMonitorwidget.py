@@ -6,8 +6,10 @@ import pyqtgraph as pg
 from library.common.KxImageBuf import KxImageBuf
 from project.monitoring.WidgePos import WidgetEdgePos
 import json
-import cv2
+import csv, codecs
+import unicodecsv as ucsv
 import numpy as np
+
 
 
 class GlueMonitorWidget(KxBaseMonitoringWidget):
@@ -22,13 +24,16 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.fp = None
         self.frameitem = None
         self.clear()
+        self.savecsv()
         self.list_img = []
-        self.list_defectpos = []
         self.nblockid = 0
+        self.list_pos = []
         self.list_roi = []
+        self.ndefectid = 0
+        self.list_smallimg = []
+        self.list_sdefectword = []
 
     def _initui(self):
-        print('here')
         self.horizonlayout = QtWidgets.QHBoxLayout(self)
         self.widget_map = QtWidgets.QWidget(self)
         self.verticallayout = QtWidgets.QVBoxLayout(self.widget_map)
@@ -37,8 +42,8 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.graphicsView.setCentralItem(self.view)
         self.imgitem = pg.ImageItem()
         self.view.addItem(self.imgitem)
-        #self.view.setMouseEnabled(False, False)
-        #self.view.setAspectLocked(True)
+        # self.view.setMouseEnabled(False, False)
+        # self.view.setAspectLocked(True)
         self.verticallayout.addWidget(self.graphicsView, 1)
         self.graphicsView_small = pg.GraphicsView(self.widget_map)
         self.view_small = pg.ViewBox()
@@ -53,7 +58,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.verticallayout1 = QtWidgets.QVBoxLayout(self.widget_right)
         self.verticallayout1.addWidget(self.widget_edgepos, 2)
         self.verticallayout1.addWidget(self.list_defectwidgt, 3)
-        
+
         self.list_defectwidgt.setMaxGridNum(1000)
         self.list_defectwidgt.SigSelectDefect.connect(self._slotCellClick)
         self.horizonlayout.addWidget(self.widget_map, 2)
@@ -61,25 +66,20 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.horizonlayout.setContentsMargins(0, 0, 0, 0)
 
 
-    def _slotCellClick(self, img, BIG_ID, ID):
-        pass
-        #ceshi
-        # print("_slot")
-        # import numpy as np
-        # h = 500
-        # w = 2000
-        # zeroimg = np.ones((h, w), np.uint8) * 100
-        # zeroimg[int(h/2) - 2 : int(h/2) + 2, :] = 255
-        # zeroimg[:, int(w/2) - 2 : int(w/2) + 2] = 255
-        # zeroimg[:, :3] = 255
-        # zeroimg[:, w-3:] = 255
-        # zeroimg[:3, :] = 255
-        # zeroimg[h-3:, :] = 255
-        # print (zeroimg.shape)
-        # self.imgitem.setImage(zeroimg)
-        # self.imgitem.setImage(img)
-        # self._click2showdefectpos(img, BIG_ID, ID)
 
+    def _slotCellClick(self, img, ndefectID, pos):
+        if ndefectID >= len(self.list_roi):
+            return
+        else:
+            self._paintroi(ndefectID)
+        self.imgitem_small.setImage(img, autoLevels=False)
+
+    def _paintroi(self, ndefectID):
+        lastroi = self.list_roi[self.n_curid]
+        lastroi.setPen(1)
+        roi = self.list_roi[ndefectID]
+        roi.setPen(pg.mkPen(color=(255, 0, 0), width=3))
+        self.n_curid = ndefectID
 
     def _getimage(self, dict_result):
         try:
@@ -103,82 +103,64 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
 
 
-    def appenddefectpos(self, BIG_ID, pos:[]):
-        """
-        叠加缺陷位置，当切换托盘的时候重新清零
-        :param BIG_ID:
-        :param pos:
-        :return:
-        """
-        if BIG_ID in self.dict_showpos:
-            self.dict_showpos[BIG_ID].append(pos)
-        else:
-            self.dict_showpos[BIG_ID] = []
-            self.dict_showpos[BIG_ID].append(pos)
-        if self.n_curid != BIG_ID:# 切换到下一个id
-            self.n_curid = BIG_ID
-
-
     def _click2showdefectpos(self, img, BIG_ID, id):
         self.imgitem.setImage(img, autoLevels=False)
         if BIG_ID in self.dict_showpos:
             list_pos = self.dict_showpos[BIG_ID]
-            # for idx , pos in enumerate(list_pos):
-            #     if idx != id:
-            #         self.plot.plot(x=[pos[0]], y=[pos[1]],  symbolBrush=(0, 0, 200), symbolPen='w',
-            #                        symbol='o', symbolSize=14)
-            #     else:
-            #         self.plot.plot(x=[pos[0]], y=[pos[1]],  symbolBrush=(200, 0, 0), symbolPen='w',
-            #                        symbol='t', symbolSize=14)
+            pass
 
 
     def addonedefect(self, img, BIG_ID, ID, pos):
-        self.list_defectwidgt.addOneDefectItemwithID(img, BIG_ID, ID)
-        self.appenddefectpos(BIG_ID, pos)
+        self.list_defectwidgt.addOneDefectItemwithID(img, BIG_ID, ID, pos)
 
 
     def recmsg(self, n_stationid, n_msgtype, tuple_data):
         dict_result = json.loads(tuple_data)
+        #print (dict_result)
         img = self._getimage(dict_result)
+        self._appendimg(img)
+        #print (img.shape)
         defects = dict_result['defect feature']
         ndefectnum = dict_result['defect num']
         for i in range(ndefectnum):
             singledefect = defects[i]
+            sdefectid = singledefect["defectid"]
             pos = singledefect['pos']
             smallimg = self._expandimg(img, pos)
-            self._appenddefect(self.nblockid, pos, img.shape[1], img.shape[0])
-            self.addonedefect(smallimg, 0, i, pos[0:2])
-        self._appendimg(img)
+            self._appendalldefectpos(pos, self.nblockid, img.shape[1], img.shape[0])
+            self.addonedefect(smallimg, self.ndefectid, sdefectid, pos[0:2])
+            self.ndefectid += 1
+            self.list_sdefectword.append(sdefectid)
+            self.list_smallimg.append(smallimg)
         self.nblockid += 1
 
 
-
-    def _appenddefect(self, nid, pos, singleimgw, singleimgh):
+    def _appendalldefectpos(self, pos, nblockid, singleimgw, singleimgh):
         """
-        把缺陷坐标放入list_pos,而且需要注意的是x
-        :param nid:
-        :param pos:
-        :param singleimgw:
-        :param singleimgh:
-        :return:
-        """
-        x = int(nid / 2)
-        y = int(nid % 2)
-        print('x, y, ', x, y)
+          把缺陷坐标放入list_pos,而且需要注意的是x
+          :param nid:
+          :param pos:
+          :param singleimgw:
+          :param singleimgh:
+          :return:
+          """
+        x = int(nblockid / 2)
+        y = int(nblockid % 2)
         nextend = 50
         list_pos = [0, 0, 0, 0]
         list_pos[0] = int(max(0, x * singleimgw + pos[0] - nextend) / self._SCALE_FACTOR)
         list_pos[1] = int(max(0, y * singleimgh + pos[1] - nextend) / self._SCALE_FACTOR)
-        list_pos[2] = int((pos[2] + nextend*2) / self._SCALE_FACTOR)#没做保护但无所谓了
-        list_pos[3] = int((pos[3] + nextend*2) / self._SCALE_FACTOR)
-        self.list_defectpos.append(list_pos)
-
+        list_pos[2] = int((pos[2] + nextend * 2) / self._SCALE_FACTOR)  # 没做保护但无所谓了
+        list_pos[3] = int((pos[3] + nextend * 2) / self._SCALE_FACTOR)
+        self.list_pos.append(list_pos)
 
 
     def _appendimg(self, img):
+        import cv2
         neww = int(img.shape[1] / self._SCALE_FACTOR)
         newh = int(img.shape[0] / self._SCALE_FACTOR)
         resizeimg = cv2.resize(img, (neww, newh))
+
         self.list_img.append(resizeimg)
 
         if len(self.list_img) == 6:
@@ -191,20 +173,28 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
             zeroimg[h:2 * h, w:2 * w] = self.list_img[3]
             zeroimg[:h, 2 * w:3 * w] = self.list_img[4]
             zeroimg[h:2 * h, 2 * w:3 * w] = self.list_img[5]
-            rotateimg = cv2.rotate(zeroimg, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            self.imgitem.setImage(rotateimg, autoLevels=False)
+
+            #showimg = cv2.rotate(zeroimg, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            self.imgitem.setImage(zeroimg, autoLevels=False)
             self.list_img = []
-            for nindex, pos in enumerate(self.list_defectpos):
-                newpos = [pos[1], zeroimg.shape[1] - pos[0] - 1, pos[3], pos[2]]
-                roi = ROIwithID(pos=newpos[:2], nid=nindex, size=newpos[2:], pen=1)
-                roi.sigClicked.connect(self.test)
+
+            for nindex, pos in enumerate(self.list_pos):
+                #newpos = [pos[1], zeroimg.shape[1] - pos[0] - 1, pos[3], pos[2]]# 图像发生了旋转，那么坐标也需要旋转
+                newpos = pos
+                roi = ROIwithID(pos=newpos[:2], nid=nindex, word=self.list_sdefectword[nindex],size=newpos[2:], pen=1)
+                roi.sigClicked.connect(self._roiclicked)
                 roi.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
                 self.list_roi.append(roi)
                 self.view.addItem(roi)
 
-    def test(self, *args):
-        print ('click', args)
-        print ('clicked, ', args[0].nid)
+
+    def _roiclicked(self, *args):
+        nid = args[0].nid
+        self.imgitem_small.setImage(self.list_smallimg[nid], autoLevels=False)
+        self._paintroi(nid)
+
+
+
 
     def _expandimg(self, bigimg, pos, nexpand=50):
         size = bigimg.shape[0:2]
@@ -219,33 +209,90 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
     def clear(self):
         self.dict_showpos = {}
         self.n_curid = 0
+        self.ndefectid = 0
         self.list_defectwidgt.clear()
         self.imgitem.clear()
+        self.list_img = []
+        self.list_sdefectword = []
+
+
+
+    def savecsv(self):
+        import time
+        s_data = time.strftime("%Y-%m-%d")
+        csvpath = "F:\\模组数据.csv"
+        fieldnames = ["barcode", "检测时间", "测量结果", "异物数量", "气泡数量", "涂胶面积"]
+        # with codecs.open(csvpath, 'w', 'utf-8') as csvfile:
+        #     # 指定csv文件指定头部
+        #
+        #
+        #     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        #     writer.writeheader()
+        #     try:
+        #         writer.writerow({fieldnames[0]: "None",
+        #                          fieldnames[1]: time.strftime("%Y:%m:%d-%H:%M:%S"),
+        #                          fieldnames[2]: "OK"})
+        #     except Exception as e:
+        #         pass
+        with open(csvpath, "rb") as f:
+            r = ucsv.reader(f, encoding="gbk")
+            print(r.line_num)
+
+        with open(csvpath, "wb") as f:
+            w = ucsv.writer(f, encoding="gbk")
+            w.writerow(fieldnames)
 
 #print ('hone')
 
+registerkxmointorwidget("GlueMonitorWidget", GlueMonitorWidget)
+
+
 class ROIwithID(pg.ROI):
-    def __init__(self, pos, nid, **kwargs):
+    FONT_SIZE = 8
+
+    def __init__(self, pos, nid, word, **kwargs):
         pg.ROI.__init__(self, pos, **kwargs)
         self.nid = nid
+        self.word = word
+
+    # def paint(self, p, opt, widget):
+    #     super(ROIwithID, self).paint(p, opt, widget)
+    #     s_font1 = QtGui.QFont()
+    #     s_font1.setWeight(90)
+    #     n_size = min(self.state['size'][0], self.state['size'][1]) / 10.0
+    #     if n_size < self.FONT_SIZE:
+    #         n_size = self.FONT_SIZE
+    #     n_size = 20
+    #     s_font1.setPointSize(n_size)
+    #     p.setFont(s_font1)
+    #     self.fontRect = QtCore.QRectF(0, -n_size * 1.5, max(self.state['size'][0], len(self.word) * n_size * 1.5),
+    #                                   n_size * 1.5)
+    #     p.drawText(self.fontRect, QtCore.Qt.AlignLeft, self.word)
+    #
 
 
-registerkxmointorwidget("GlueMonitorWidget", GlueMonitorWidget)
+class testviewwidget(QtWidgets.QWidget):
+    def __init__(self):
+        super(testviewwidget, self).__init__()
+        self.horlayout = QtWidgets.QHBoxLayout(self)
+
+        self.graphicsView = pg.GraphicsView(self)
+        self.view = pg.ViewBox()
+        self.graphicsView.setCentralItem(self.view)
+        self.imgitem = pg.ImageItem()
+        self.view.addItem(self.imgitem)
+        self.horlayout.addWidget(self.graphicsView)
+
+        zeroimg = np.ones((1000, 1000), np.uint8) * 200
+        self.imgitem.setImage(zeroimg, autoLevels=False)
+
+        roi = ROIwithID(pos=[100, 100], nid=1, word="3_2", size=[100, 100], pen=1)
+        self.view.addItem(roi)
+
 
 if __name__ == "__main__":
     A = QtWidgets.QApplication([])
-    widget = GlueMonitorWidget(None)
-    widget.plotframe([100, 200])
-
-    import numpy as np
-    img1 = np.ones([100, 100], np.uint8) * 255
-    img2 = np.ones([100, 100], np.uint8) * 255
-    widget.addonedefect(img1, 0, 0, [50, 50])
-    widget.addonedefect(img2, 0, 1, [70, 70])
-    img3 = np.ones([100, 100], np.uint8) * 100
-    img4 = np.ones([100, 100], np.uint8) * 50
-    widget.addonedefect(img3, 1, 0, [50, 60])
-    widget.addonedefect(img4, 1, 1, [60, 70])
+    widget = testviewwidget()
 
     widget.show()
     A.exec_()

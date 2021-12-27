@@ -14,7 +14,7 @@ class ZSImgListDetectWidget(QtWidgets.QWidget):
     #__latestDefectCount = 40#单个页面显示最多
     _imgCntPerCol = 3 #每列显示（行）
     __imgCntPerRow = 6 #每行显示（列）
-    SigSelectDefect = QtCore.pyqtSignal(object, int, int)# 点击缺陷触发
+    SigSelectDefect = QtCore.pyqtSignal(object, int, list)# 点击缺陷触发
 
     def __init__(self, parent=None):
         super(ZSImgListDetectWidget, self).__init__(parent)
@@ -223,11 +223,11 @@ class ZSImgListDetectWidget(QtWidgets.QWidget):
         except Exception as e:
             self.logger.error('', exc_info=True)
 
-    def addOneDefectItemwithID(self, defectImage, BIG_ID, ID):
+    def addOneDefectItemwithID(self, defectImage, ndefectid, sblockdefectid, pos):
         try:
-            text1 = str(BIG_ID)
-            text2 = str(ID)
-            self.list_data.append(DataStruct(defectImage, BIG_ID, ID))
+            text1 = str(ndefectid)
+            text2 = str(sblockdefectid)
+            self.list_data.append(DataStruct(defectImage, ndefectid, pos))
             imgView = self.historyShowArea.cellWidget(*self.curDefectTablePos)
             if isinstance(imgView, ComboImageLabelWidget):
                 self.updateImgView(imgView, defectImage)
@@ -239,21 +239,19 @@ class ZSImgListDetectWidget(QtWidgets.QWidget):
             self.logger.error('', exc_info=True)
 
     def slotCellClick(self, row, col):
-        #self.SigSelectDefect.emit(0 ,1 ,2)
         ncurid = row * self.__imgCntPerRow + col
         if ncurid < len(self.list_data):
-            self.SigSelectDefect.emit(self.list_data[ncurid].img, self.list_data[ncurid].BIG_ID,
-                                      self.list_data[ncurid].ID)
+            self.SigSelectDefect.emit(self.list_data[ncurid].img, self.list_data[ncurid].defectID, self.list_data[ncurid].pos)
 
 
 
 
 
 class DataStruct(object):
-    def __init__(self, img, BIG_ID, ID):
+    def __init__(self, img, defectID, pos=None):
         self.img = img
-        self.BIG_ID = BIG_ID
-        self.ID = ID
+        self.defectID = defectID
+        self.pos = pos
 
 
 class TableWidget(QtWidgets.QTableWidget):

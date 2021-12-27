@@ -183,7 +183,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	//设置异常处理函数
 	::SetUnhandledExceptionFilter(GPTUnhandledExceptionFilter);
-	ShowWindow(hwnd, SW_MINIMIZE);//设置窗口最小化
+	//ShowWindow(hwnd, SW_MINIMIZE);//设置窗口最小化
 
 	g_Environment.ReadSystemParam();
 	g_bdotcheckstatus = false;
@@ -194,6 +194,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	if (bInitIsOk)
 	{
 		Graber::g_GetCamera()->ReverseScanDirection(0);// 代表相机正着走触发
+		Graber::g_GetCamera()->OpenInternalTrigger(1);//外触发
+
 
 		char szInfo[1024];
 		sprintf_s(szInfo, 1024, "相机%d初始化成功", Config::g_GetParameter().m_nNetStationId);

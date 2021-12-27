@@ -76,6 +76,7 @@ class kxmainwindow(KXBaseMainWidget):
         self.toolbutton_move.setStyleSheet('color:white;border:none;')
         self.toolbutton_move.setIconSize(QtCore.QSize(100, 90))
         self.toolbutton_move.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
+        #self.toolbutton_move.setText("首件检测")
         self.ui.verticalLayout_2.addWidget(self.toolbutton_move)
 
         self.toolbutton_test = QtWidgets.QToolButton(self)

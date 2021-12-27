@@ -42,6 +42,8 @@ class kxprivilege_management(QtWidgets.QDialog):
 
         self.ui.lineEdit_2.setReadOnly(True)
         self.cur_account = None#当前账户
+        self.ui.lineEdit.setReadOnly(True)
+        self.text = ""
 
     def __ininconnection(self):
         # self.ui.pbt_quit.clicked.connect(self.close)
@@ -52,11 +54,22 @@ class kxprivilege_management(QtWidgets.QDialog):
 
 
     def keyPressEvent(self, a0: QtGui.QKeyEvent):
+       # if len(self.text) == 11:
+       #     self.ui.lineEdit.setText(self.text)
+       #     self._judgeacount()
+       #     self.text = ""
         if a0.key() == QtCore.Qt.Key_Return:
+            self.ui.lineEdit.setText(self.text)
+            #print (self.text)
             self._judgeacount()
+            self.text = ""
+        else:
+            self.text = self.text + a0.text()
+
 
     def _judgeacount(self):
         word = self.ui.lineEdit.text()
+        print (word)
         if len(word) > 0:
             list_list_account = self.adduserdialog.getUserlist()
             b_status = False
@@ -70,6 +83,7 @@ class kxprivilege_management(QtWidgets.QDialog):
                 self.close()
             else:
                 respond = QtWidgets.QMessageBox.warning(self, u"警告", u"不在用户列表中", QtWidgets.QMessageBox.Cancel)
+                self.ui.lineEdit.clear()
                 return
 
     def slotManageuserBtnClicked(self):

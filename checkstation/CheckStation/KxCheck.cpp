@@ -572,10 +572,10 @@ void CKxCheck::SaveImg(CheckResultStatus status)
 	time_t now = time(0);
 	tm *ltm = localtime(&now);
 	char goodpath[64];
-	sprintf_s(goodpath, "D:\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
+	sprintf_s(goodpath, "F:\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
 	if (_access(goodpath, 0))
 		_mkdir(goodpath);
-	sprintf_s(goodpath, "D:\\%d-%d-%d\\Ô­Í¼\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
+	sprintf_s(goodpath, "F:\\%d-%d-%d\\Ô­Í¼\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
 	if (_access(goodpath, 0))
 		_mkdir(goodpath);
 	
@@ -969,10 +969,10 @@ void CKxCheck::SaveImgToPath(const kxCImageBuf& SrcImg, Json::Value& sendresult)
 
 	//
 	char badpath[64];
-	sprintf_s(badpath, "D:\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
+	sprintf_s(badpath, "F:\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
 	if (_access(badpath, 0))
 		_mkdir(badpath);
-	sprintf_s(badpath, "D:\\%d-%d-%d\\È±ÏÝÍ¼\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
+	sprintf_s(badpath, "F:\\%d-%d-%d\\È±ÏÝÍ¼\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
 	if (_access(badpath, 0))
 		_mkdir(badpath);
 	for (int i = 0; i < ndefectnum; i++)
@@ -985,7 +985,7 @@ void CKxCheck::SaveImgToPath(const kxCImageBuf& SrcImg, Json::Value& sendresult)
 
 		sprintf_s(path, "%s.bmp", a.c_str());
 
-		sprintf_s(badpath, "D:\\%d-%d-%d\\È±ÏÝÍ¼\\%s", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, path);
+		sprintf_s(badpath, "F:\\%d-%d-%d\\È±ÏÝÍ¼\\%s", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, path);
 
 		int pos[4];//left,top,width,height
 
@@ -993,7 +993,6 @@ void CKxCheck::SaveImgToPath(const kxCImageBuf& SrcImg, Json::Value& sendresult)
 		{
 			pos[nindex] = single["pos"][nindex].asInt();
 		}
-
 		int cutpos[4];
 
 		cutpos[0] = max(0, pos[0] - 50);
@@ -1049,7 +1048,6 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	
 	m_finalcheckstatus = CheckResultStatus::_Check_Ok;
 
-	//m_hCheckResult[0].clear();
 	//2.¼ì²â
 	//for (int i = 0; i < Config::GetGlobalParam().m_nAreakNum; i++)
 	//{
@@ -1176,10 +1174,10 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 		static int nsaveindex = 0;
 		//
 		char suoluetu[64];
-		sprintf_s(suoluetu, "D:\\%d-%d-%d\\ËõÂÔÍ¼\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
+		sprintf_s(suoluetu, "F:\\%d-%d-%d\\ËõÂÔÍ¼\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
 		if (_access(suoluetu, 0))
 			_mkdir(suoluetu);
-		sprintf_s(suoluetu, "D:\\%d-%d-%d\\ËõÂÔÍ¼\\%d.bmp", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, nsaveindex);
+		sprintf_s(suoluetu, "F:\\%d-%d-%d\\ËõÂÔÍ¼\\%d.bmp", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, nsaveindex);
 		m_hBaseFun.SaveBMPImage_h(suoluetu, bigimg);
 	}
 

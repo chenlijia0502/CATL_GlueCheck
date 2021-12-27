@@ -14,9 +14,9 @@ class FindEdgeToCalibrate(object):
     def _calboundrect(self, srcimg, roi):
         targetimg = srcimg[roi[1]:roi[3], roi[0]:roi[2], 0]
 
-        ret, threshimg = cv2.threshold(targetimg, 40, 255, cv2.THRESH_BINARY)
+        ret, threshimg = cv2.threshold(targetimg, 100, 255, cv2.THRESH_BINARY)
 
-        nsum = (threshimg > 0).sum()
+        #nsum = (threshimg > 0).sum()
 
         im2, contours, hierarchy = cv2.findContours(threshimg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
@@ -48,10 +48,10 @@ class FindEdgeToCalibrate(object):
 
 
     def solvemul(self, srcimg):
-        list_roi = [[5852,  1250, 6100, 1680],
-                    [6250, 1260, 6500, 1620],
-                    [6600, 1300, 6750, 1600],
-                    [6860, 1330, 6980, 1580]]
+        list_roi = [[5852,  1250, 6150, 1680],
+                    [6250, 1260, 6500, 1680],
+                    [6500, 1300, 6750, 1650],
+                    [6860, 1330, 7000, 1650]]
 
         solveimg = copy.copy(srcimg)
 
@@ -72,7 +72,7 @@ class FindEdgeToCalibrate(object):
 
 
     def solvecolor(self, srcimg):
-        roi = [6060,  867, 6800, 1120]#xstart, ystart, xend, yend
+        roi = [6150,  900, 6700, 1200]#xstart, ystart, xend, yend
 
         targetimg = srcimg[roi[1]:roi[3], roi[0]:roi[2]]
 
@@ -127,6 +127,11 @@ class ShowCalibrateWidget(QtWidgets.QDialog):
         self.verlayout.addWidget(self.label_WORD)
         self.pushbutton = QtWidgets.QPushButton()
         self.pushbutton.setText("上传MES首件数据")
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(14)
+        self.pushbutton.setFont(font)
+        self.pushbutton.setMinimumSize(100, 100)
         self.verlayout.addWidget(self.pushbutton)
         self.verlayout.setStretch(0, 5)
         self.verlayout.setStretch(1, 4)
@@ -157,19 +162,20 @@ if __name__ == "__main__":
     w = ShowCalibrateWidget()
 
 
-    img1 = cv2.imread("d:\\1.bmp", 1)
-    img2 = cv2.imread("d:\\2.bmp", 1)
-    img3 = cv2.imread("d:\\3.bmp", 1)
-
+    img1 = cv2.imread("d:\\test.bmp", 1)
+    print(img1.shape)
+    # img2 = cv2.imread("d:\\2.bmp", 1)
+    # img3 = cv2.imread("d:\\3.bmp", 1)
+    #
     A = FindEdgeToCalibrate()
-
-    img, sums =  A.solveimg(img1)
-
-
-
-    w.setimg(img1)
-
-    w.settext(str(sums))
+    #
+    solveimg, list_w, list_h, list_gray =  A.solveimg(img1)
+    #
+    #
+    #
+    w.setimg(solveimg)
+    #
+    # w.settext(str(sums))
 
     w.show()
 

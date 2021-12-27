@@ -97,6 +97,9 @@ enum MessageType
 	MSG_CHANGE_CAPTURE_COL = 604,
 
 
+	MSG_CLOSECAMERA = 1090, //关闭海康相机
+
+
 };
 
 

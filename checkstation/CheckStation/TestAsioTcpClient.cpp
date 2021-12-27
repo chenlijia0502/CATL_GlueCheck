@@ -200,6 +200,9 @@ void CTestAsioTcpClient::OnRecvData(int nStationID, const unsigned char* pData, 
 				case MSG_CHANGE_CAPTURE_COL:
 					g_Grabstatus.nGrabTimes++;
 					break;
+				case MSG_CLOSECAMERA:
+					Graber::g_GetCamera()->Close();// 主站关闭，子站优先释放相机
+					break;
 
 				
 				default:
@@ -403,7 +406,7 @@ void CTestAsioTcpClient::RecMsgToOpenCamera(const unsigned char* pExtData)
 	//开始采集
 	Graber::g_GetGrabPack().Stop();
 	//给相机触发
-	Graber::g_GetCamera()->OpenInternalTrigger(0);
+	//Graber::g_GetCamera()->OpenInternalTrigger(0);
 	Graber::g_GetGrabPack().Start();
 	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("开始内触发采集"));
 
