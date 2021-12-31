@@ -140,7 +140,7 @@ void CCombineImg::MatchTemplateAndTransform(int ncol)
 
 	//int nH = m_rectmodel[ncol].bottom - ntop + 1;
 
-	int nH = m_rectmodel[ncol].Height() * 2;
+	int nH = m_rectmodel[ncol].Height() * 3;
 
 	kxCImageBuf matchimg;
 

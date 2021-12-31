@@ -285,7 +285,7 @@ class ControlManager(object):
         else:
             if len(np.array(info).shape) == 1:
                 while(1):
-                    data = self.mySeria.read().hex()
+                    data = self.mySeria.read(ntimeout).hex()
                     print('read ori data: ', data)
                     data = str_to_hex(data)
                     print ('read data: ', data)
@@ -296,7 +296,7 @@ class ControlManager(object):
             else:
                 list_status = [False for i in range(len(info))]
                 while np.sum(list_status) != len(list_status):
-                    data = self.mySeria.read().hex()
+                    data = self.mySeria.read(ntimeout).hex()
                     print('read ori data: ', data)
                     data = str_to_hex(data)
                     print('read data: ', data)
@@ -406,9 +406,7 @@ class ControlManager(object):
         :param list_info: [[list_x, list_y]]
         :return:
         """
-        self._MakeEveryposFuwei()
-
-        self._clear_hardware_recqueue()
+        print ('--------------- 开始检测控制 -------------------')
 
         while 1:
             list_data = self._waitfor_hardware_queue_result()
@@ -419,25 +417,40 @@ class ControlManager(object):
 
         self.h_parent.closeCamera()
 
+        self._rebackXY()
+
+        self._MakeEveryposFuwei()
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIAJIN)
+
+        self._waitfor_hardware_queue_result(
+            [imc_msg.HARDWAREBASEMSG.MSG_LEFT_JIAJIN_DAOWEI, imc_msg.HARDWAREBASEMSG.MSG_RIGHT_JIAJIN_DAOWEI])
+
+        self._control2markpos()
+
+        self._clear_hardware_recqueue()
+
+
         self._clear_hardware_recqueue()  # 清除接收缓存
 
-        self._rebackXY()
 
         # 判断托盘是否到位
 
         nstatus = self._judgeZisRight()
 
         if nstatus == 0:
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_SONGKAI)
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CONTROL_ALARM)
 
             self.h_parent.callback2showerror("！！！！托盘未到位，无法检测！！！！")
 
             return
 
+        self._rebackXY()
+
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
 
-        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIAJIN)
-
-        self._waitfor_hardware_queue_result([imc_msg.HARDWAREBASEMSG.MSG_LEFT_JIAJIN_DAOWEI, imc_msg.HARDWAREBASEMSG.MSG_RIGHT_JIAJIN_DAOWEI])
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_SHENG)
 
@@ -445,7 +458,16 @@ class ControlManager(object):
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_DUIWEI_JIANG)
 
-        self._waitfor_hardware_queue_result([imc_msg.HARDWAREBASEMSG.MSG_LEFT_DUIWEI_DAOWEI, imc_msg.HARDWAREBASEMSG.MSG_RIGHT_RIGHT_DAOWEI])
+        nreadstatus = self._recmsgwithruntimeerror([imc_msg.HARDWAREBASEMSG.MSG_LEFT_DUIWEI_DAOWEI, imc_msg.HARDWAREBASEMSG.MSG_RIGHT_RIGHT_DAOWEI], 3)
+
+        if not nreadstatus:
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CONTROL_ALARM)
+
+            self.h_parent.callback2showerror("！！！定位气缸未到位！！！")
+
+            return
+        #self._waitfor_hardware_queue_result([imc_msg.HARDWAREBASEMSG.MSG_LEFT_DUIWEI_DAOWEI, imc_msg.HARDWAREBASEMSG.MSG_RIGHT_RIGHT_DAOWEI])
 
         self._clear_hardware_recqueue()  # 清除接收缓存
 
@@ -550,28 +572,28 @@ class ControlManager(object):
         # 1. 复位
         self._rebackXY()
 
-        # 2. z轴抬升100mm
-        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Z)
-
-        time.sleep(2)
-
-        diff_pulse = int(80 / StaticConfigParam.RATE)
-
-        basemovez = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_BASEMOVE
-
-        high = int(diff_pulse / 256)
-
-        low = int(diff_pulse % 256)
-
-        basemovez[3] = high
-
-        basemovez[4] = low
-
-        self._sendhardwaremsg(basemovez)
-
-        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_MOVE)
-
-        time.sleep(2)
+        # 2. z轴抬升100mm #溧阳先注释
+        # self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Z)
+        #
+        # time.sleep(2)
+        #
+        # diff_pulse = int(80 / StaticConfigParam.RATE)
+        #
+        # basemovez = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_BASEMOVE
+        #
+        # high = int(diff_pulse / 256)
+        #
+        # low = int(diff_pulse % 256)
+        #
+        # basemovez[3] = high
+        #
+        # basemovez[4] = low
+        #
+        # self._sendhardwaremsg(basemovez)
+        #
+        # self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_MOVE)
+        #
+        # time.sleep(2)
 
         self._clear_hardware_recqueue()
         # 3. 移动到标定块位置
@@ -583,7 +605,9 @@ class ControlManager(object):
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
 
-        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
+        time.sleep(5)
+
+        #self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
 
         movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
 
@@ -643,8 +667,6 @@ class ControlManager(object):
 
     def control_adjust_z(self):
 
-
-
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Z)
 
         time.sleep(3)
@@ -693,3 +715,66 @@ class ControlManager(object):
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_SONGKAI)
         time.sleep(5)
         self._clear_hardware_recqueue()
+
+
+    def _control2markpos(self):
+        movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
+
+        movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
+
+        movemsgx[3:] = translatedis2hex(300 / self._DIS2PULSE)
+
+        self._sendhardwaremsg(movemsgx)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
+
+        movemsgy[3:] = translatedis2hex(50 / self._DIS2PULSE)
+
+        self._sendhardwaremsg(movemsgy)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+
+    def _recmsgwithruntimeerror(self, info, ntimeout):
+        """
+        测试接收数据时间，如果超过
+        超时时间，以1s为单位
+        """
+        print('hope rec: ', info)
+        curtime = time.time()
+
+        b_rectargetstatus = False
+
+        if len(np.array(info).shape) == 1:
+            while time.time() - curtime < ntimeout:
+                data = self.mySeria.read(1).hex()
+                print('read ori data: ', data)
+                data = str_to_hex(data)
+                print('read data: ', data)
+                if data != info:
+                    continue
+                else:
+                    b_rectargetstatus = True
+                    break
+        else:
+            list_status = [False for i in range(len(info))]
+            print('time out test', time.time() , curtime)
+
+            while (np.sum(list_status) != len(list_status))  and (int(time.time() - curtime) <= ntimeout):
+                print ('time out test')
+                data = self.mySeria.read(1).hex()
+                print('read ori data: ', data)
+                data = str_to_hex(data)
+                print('read data: ', data)
+
+                for nindex in range(len(info)):
+                    if info[nindex] == data:
+                        list_status[nindex] = True
+                        break
+            b_rectargetstatus = (np.sum(list_status) == len(list_status))
+
+        return b_rectargetstatus

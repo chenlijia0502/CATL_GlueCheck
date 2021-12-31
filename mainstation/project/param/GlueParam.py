@@ -53,6 +53,7 @@ class GuleParam(KxBaseParamWidget):
         self.h_bigimage = None
         self.threadWaitDialog = None
         self._connectlog()
+        self.ui.h_pBtLoad.clicked.connect(self.loadimg)
 
 
 
@@ -610,6 +611,12 @@ class GuleParam(KxBaseParamWidget):
                     = self.h_bigimage[:, list_offset_src[i]:list_offset_src[i] + list_w[i]]
             self.h_imgitem.setImage(newimg, autoLevels=False)
 
+    def loadimg(self):
+        file_name = QtWidgets.QFileDialog.getOpenFileName(self, "open file dialog", "D://card",
+                                                          "bmp files(*.bmp)")
+        print(file_name)
+        image = cv2.imread(file_name[0], 1)
+        self.h_imgitem.setImage(image, autoLevels=False)
 
 
 registerkxwidget(name='GuleParam', cls=GuleParam, override=True)

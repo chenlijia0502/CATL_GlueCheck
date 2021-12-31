@@ -1031,18 +1031,18 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	
 	tick_count tbb_start, tbb_end;
 	tbb_start = tick_count::now();
-
+	
 	//1.转换图像，初始化每次检测
 	//TransferImage(SrcCapImg);
 	m_TransferImage.SetImageBuf(SrcCapImg.m_Image.buf, SrcCapImg.m_Image.nWidth, SrcCapImg.m_Image.nHeight, SrcCapImg.m_Image.nPitch, SrcCapImg.m_Image.nChannel, true);
-
-	//static int nimgidx = 1;
 	
-	//m_hcombineimg.appendImg(m_TransferImage, nimgidx - 1);
-	m_hcombineimg.appendImg(m_TransferImage, SrcCapImg.m_ImageID - 1);
+	static int nimgidx = 1;
+	
+	m_hcombineimg.appendImg(m_TransferImage, nimgidx - 1);
+	//m_hcombineimg.appendImg(m_TransferImage, SrcCapImg.m_ImageID - 1);
 
 
-	//nimgidx++;
+	nimgidx++;
 
 	ClearResult(SrcCapImg.m_CardID);
 	

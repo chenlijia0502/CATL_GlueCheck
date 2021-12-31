@@ -24,7 +24,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.fp = None
         self.frameitem = None
         self.clear()
-        self.savecsv()
+        #self.savecsv()
         self.list_img = []
         self.nblockid = 0
         self.list_pos = []

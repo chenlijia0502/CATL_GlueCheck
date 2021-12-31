@@ -41,7 +41,7 @@ class SerialManager(object):
         else:
             nstarttime = time.time()
 
-            readdata = None
+            readdata = b'F' * self.n_readbuffersize * 2
 
             while time.time() - nstarttime <= ntimeout:
 
@@ -88,11 +88,26 @@ class SerialManager(object):
 
             hexdata = data.hex()
 
+            print (hexdata)
+
+
             if len(hexdata) > 3:
 
                 if data.hex() == imc_msg.HARDWAREBASEMSG.MSG_GUANGSHAN:
 
-                    self.h_parent.callback2warnguangshan()
+                    self.h_parent.callback2showerror("！！！光栅被遮挡，请注意！！！")
+
+                elif data.hex()[:12] == imc_msg.HARDWAREBASEMSG.MSG_JITINGMENKONG:
+
+                    nmsgtype = int(data.hex()[13])
+
+                    if nmsgtype < 5:
+
+                        self.h_parent.callback2showerror("！！！急停按下！！！")
+
+                    else:
+
+                        self.h_parent.callback2showerror("！！！门控打开！！！")
 
                 else:
 

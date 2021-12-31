@@ -436,7 +436,7 @@ class KXBaseMainWidget(QtWidgets.QWidget):
             self._stopcheck()
             for pos in range(len(self.list_handle)):
                 self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_CLOSECAMERA)
-                time.sleep(1)
+                time.sleep(2)
                 if self.list_handle[pos] is not None:
                     if self.list_handle[pos] != 0:
                         try:

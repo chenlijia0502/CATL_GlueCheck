@@ -20,7 +20,7 @@
 		<substation1>
 			<stationstatu>1</stationstatu>
 			<picturepath>d:\PlateEdgeCheck</picturepath>
-			<exepath>D:\nd-gulecheck\checkstation\CheckStation\CheckStation.exe</exepath>
+			<exepath>D:\ND-GULECHECK\project\nd-gulecheck\checkstation\CheckStation\CheckStation.exe</exepath>
 			<ui_parameter_terms>
 				<KxGlobal></KxGlobal>
 				<GuleParam></GuleParam>

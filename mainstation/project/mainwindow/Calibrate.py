@@ -48,10 +48,22 @@ class FindEdgeToCalibrate(object):
 
 
     def solvemul(self, srcimg):
-        list_roi = [[5852,  1250, 6150, 1680],
-                    [6250, 1260, 6500, 1680],
-                    [6500, 1300, 6750, 1650],
-                    [6860, 1330, 7000, 1650]]
+        # 宁德
+        # list_roi = [[5852,  1250, 6150, 1680],
+        #             [6250, 1260, 6500, 1680],
+        #             [6500, 1300, 6750, 1650],
+        #             [6860, 1330, 7000, 1650]]
+
+        list_roi = [[5850,  880, 6200, 1300],
+                    [6340, 900, 6600, 1250],
+                    [6700, 900, 6940, 1230],
+                    [7060, 950, 7200, 1230]]
+
+        noffset = 20
+
+        for nindex in range(len(list_roi)):
+            list_roi[nindex][1] += noffset
+            list_roi[nindex][3] += noffset
 
         solveimg = copy.copy(srcimg)
 
@@ -72,7 +84,10 @@ class FindEdgeToCalibrate(object):
 
 
     def solvecolor(self, srcimg):
-        roi = [6150,  900, 6700, 1200]#xstart, ystart, xend, yend
+        # roi = [6150,  900, 6700, 1200]#xstart, ystart, xend, yend
+
+        roi = [6150,  552, 7000, 843]#xstart, ystart, xend, yend
+
 
         targetimg = srcimg[roi[1]:roi[3], roi[0]:roi[2]]
 

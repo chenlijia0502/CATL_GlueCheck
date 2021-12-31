@@ -218,6 +218,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	while(getchar() != 'q');
-	
+	Graber::g_GetCamera()->Close();
 	return 0;
 }
