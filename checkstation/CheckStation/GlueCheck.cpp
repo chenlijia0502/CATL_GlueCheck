@@ -766,6 +766,12 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 
 	GetGlueMask();
 
+	cv::Mat targetimg = cv::Mat(m_ImgGlueMask.nHeight, m_ImgGlueMask.nWidth, CV_8UC1, m_ImgGlueMask.nPitch);
+
+	int narea = cv::countNonZero(targetimg);
+
+	checkresult["area"] = narea;
+
 	MergeImg(SrcImgA, SrcImgB, m_ImgCheck);
 
 	checkyiwu(m_ImgCheck, checkresult);

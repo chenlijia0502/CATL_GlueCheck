@@ -7,7 +7,7 @@ from library.common.KxImageBuf import KxImageBuf
 from project.monitoring.WidgePos import WidgetEdgePos
 import json
 import csv, codecs
-import unicodecsv as ucsv
+#import unicodecsv as ucsv
 import numpy as np
 
 
@@ -32,6 +32,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.ndefectid = 0
         self.list_smallimg = []
         self.list_sdefectword = []
+        self.list_narea = []
 
     def _initui(self):
         self.horizonlayout = QtWidgets.QHBoxLayout(self)
@@ -118,10 +119,13 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         dict_result = json.loads(tuple_data)
         #print (dict_result)
         img = self._getimage(dict_result)
+        self.list_narea.append(dict_result['area'])
+
         self._appendimg(img)
         #print (img.shape)
         defects = dict_result['defect feature']
         ndefectnum = dict_result['defect num']
+        print('area', dict_result['area'])
         for i in range(ndefectnum):
             singledefect = defects[i]
             sdefectid = singledefect["defectid"]
@@ -164,6 +168,8 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.list_img.append(resizeimg)
 
         if len(self.list_img) == 6:
+            self.widget_edgepos.setdata(self.list_narea, 4)
+
             w = self.list_img[0].shape[1]
             h = self.list_img[0].shape[0]
             zeroimg = np.zeros((h * 2, w * 3, 3), np.uint8)

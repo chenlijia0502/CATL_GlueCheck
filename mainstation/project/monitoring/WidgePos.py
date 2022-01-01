@@ -11,7 +11,7 @@ class WidgetEdgePos(QtWidgets.QWidget):
         layout=QtWidgets.QHBoxLayout()
 
         #实现的效果是一样的，N行M列，所以要灵活运用函数，这里只是示范一下如何单独设置行列
-        TableWidget=QtWidgets.QTableWidget(4,6)
+        self.TableWidget=QtWidgets.QTableWidget(5,6)
 
         # TableWidget = QTableWidget()
         # TableWidget.setRowCount(4)
@@ -20,25 +20,25 @@ class WidgetEdgePos(QtWidgets.QWidget):
 
 
         #设置水平方向的表头标签与垂直方向上的表头标签，注意必须在初始化行列之后进行，否则，没有效果
-        TableWidget.setHorizontalHeaderLabels(['检测区域1', '检测区域2','检测区域3','检测区域4', '检测区域5', '检测区域6'])
+        self.TableWidget.setHorizontalHeaderLabels(['检测区域1', '检测区域2','检测区域3','检测区域4', '检测区域5', '检测区域6'])
         #Todo 优化1 设置垂直方向的表头标签
-        TableWidget.setVerticalHeaderLabels(['左', '右', '上', '下'])
+        self.TableWidget.setVerticalHeaderLabels(['左', '右', '上', '下', '涂胶面积'])
 
         for i in range(4):
-            TableWidget.setRowHeight(i, 25)
+            self.TableWidget.setRowHeight(i, 25)
 
         #TODO 优化 2 设置水平方向表格为自适应的伸缩模式
-        TableWidget.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+            self.TableWidget.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
 
         #TODO 优化3 将表格变为禁止编辑
         #TableWidget.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
         #TODO 优化 4 设置表格整行选中
-        TableWidget.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.TableWidget.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
 
         #TODO 优化 5 将行与列的高度设置为所显示的内容的宽度高度匹配
         #QTableWidget.resizeColumnsToContents(TableWidget)
-        QtWidgets.QTableWidget.resizeRowsToContents(TableWidget)
+        QtWidgets.QTableWidget.resizeRowsToContents(self.TableWidget)
 
         #TODO 优化 6 表格头的显示与隐藏
         #TableWidget.verticalHeader().setVisible(False)
@@ -67,6 +67,12 @@ class WidgetEdgePos(QtWidgets.QWidget):
         # newItem=QtWidgets.QTableWidgetItem('160')
         # TableWidget.setItem(0,2,newItem)
 
-        layout.addWidget(TableWidget)
+        layout.addWidget(self.TableWidget)
 
         self.setLayout(layout)
+
+
+    def setdata(self, list_data, rowindex):
+        for col, data in enumerate(list_data):
+            newItem = QtWidgets.QTableWidgetItem(data)
+            self.TableWidget.setItem(rowindex, col, newItem)
