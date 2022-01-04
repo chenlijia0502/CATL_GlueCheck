@@ -241,8 +241,6 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 	nlowoffset *= 10;
 
 
-	int nmaxheight = 0;
-
 	for (int nindex = 0; nindex < m_param.m_nROINUM; nindex++)
 	{
 
@@ -272,11 +270,6 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 
 		m_param.params[nindex].m_rcCheckROI.mulC(m_param.m_nimgscalefactor);
 
-		if (nmaxheight < m_param.params[nindex].m_rcCheckROI.Height())
-		{
-			nmaxheight = m_param.params[nindex].m_rcCheckROI.Height();
-		}
-
 		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "扫描组号", szResult);
 
 		if (!nSearchStatus)
@@ -286,6 +279,20 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 		}
 
 		nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.params[nindex].m_nGrabTimes);
+		if (!nStatus)
+		{
+			return false;
+		}
+
+		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "当前组ID", szResult);
+
+		if (!nSearchStatus)
+		{
+			sprintf_s(ErrorInfo, 256, "当前组ID");
+			return false;
+		}
+
+		nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.params[nindex].m_nCurGrabID);
 		if (!nStatus)
 		{
 			return false;
@@ -363,9 +370,67 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 	{
 		return false;
 	}
+
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "拼图信息", "最大检测框高", szResult);
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "最大检测框高");
+		return false;
+	}
+	int nmaxheight = 0;
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, nmaxheight);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+
 	m_ImgMaxSizeA.Init(nImgW, nmaxheight, 3);
 
 	m_ImgMaxSizeB.Init(nImgW, nmaxheight, 3);
+
+	int ncolnum, nrownum;
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "拼图信息", "行数", szResult);
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "行数");
+		return false;
+	}
+	nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.m_nmaxrownum);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+	ncolnum = m_param.m_nscantimes;//扫描次数即为列数
+	
+	nrownum = m_param.m_nmaxrownum;
+	//nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "拼图信息", "列数", szResult);
+	//if (!nSearchStatus)
+	//{
+	//	sprintf_s(ErrorInfo, 256, "列数");
+	//	return false;
+	//}
+	//nStatus = KxXmlFun2::FromStringToInt(szResult, ncolnum);
+	//if (!nStatus)
+	//{
+	//	return false;
+	//}
+
+	//初始缩略大图
+	int nsingleimgh = nmaxheight / _SPLICING_IMG_SCALEFACTOR;
+
+	int nsingleimgw = nImgW / _SPLICING_IMG_SCALEFACTOR;
+
+	int nbigimgw = nsingleimgw * ncolnum;
+
+	int nbigimgh = nsingleimgh * nrownum;
+
+	m_ImgSplicing.Init(nbigimgw, nbigimgh, 3);
+
+	ippsSet_8u(0, m_ImgSplicing.buf, m_ImgSplicing.nPitch * m_ImgSplicing.nHeight);
 
 
 	int *nimgnum = new int[m_param.m_nscantimes];
@@ -889,73 +954,6 @@ int CKxCheck::AnalyseCheckResult(int nCardID, Json::Value* checkresult)
 	return 1;
 }
 
-void CKxCheck::JudgeWhichROI(const CKxCaptureImage& SrcCapImg)
-{
-	for (int i = 0; i < m_param.m_nROINUM; i++)
-	{
-
-		if (g_Grabstatus.nGrabTimes == m_param.params[i].m_nGrabTimes)
-		{
-			int ncurstartrow = (SrcCapImg.m_ImageID - 1) * SrcCapImg.m_Image.nHeight;
-			
-			int ncurendrow = ncurstartrow + SrcCapImg.m_Image.nHeight - 1;// -1 这个操作是把它变成图像索引，与roi同步
-
-			if (ncurendrow < m_param.params[i].m_rcCheckROI.top || ncurstartrow > m_param.params[i].m_rcCheckROI.bottom)
-			{
-				//不符合，直接过
-				continue;
-			}
-			else
-			{
-				//符合，压入待检队列，
-				int nroitop = m_param.params[i].m_rcCheckROI.top;
-
-				int nroibottom = m_param.params[i].m_rcCheckROI.bottom;
-
-				IppiSize roisize;
-
-				int ncopystart;
-
-				if (ncurstartrow < nroitop && ncurendrow > nroitop)//上侧
-				{
-					roisize = { SrcCapImg.m_Image.nWidth, ncurendrow - nroitop + 1 };
-
-					ncopystart = nroitop - ncurstartrow;
-				}
-				else if (ncurstartrow >= nroitop && ncurendrow <= nroibottom)//中间
-				{
-					roisize = { SrcCapImg.m_Image.nWidth,  SrcCapImg.m_Image.nHeight};
-
-					ncopystart = 0;
-				}
-				else//下侧
-				{
-
-					roisize = { SrcCapImg.m_Image.nWidth,  nroibottom - ncurstartrow + 1 };
-
-					ncopystart = 0;
-				}
-
-				m_struct2check[i].m_BigImg.Init(SrcCapImg.m_Image.nWidth, m_param.params[i].m_rcCheckROI.Height(), SrcCapImg.m_Image.nChannel);
-
-				unsigned char *basebuf = m_struct2check[i].m_BigImg.buf;
-
-				ippiCopy_8u_C3R(SrcCapImg.m_Image.buf + ncopystart * SrcCapImg.m_Image.nPitch, SrcCapImg.m_Image.nPitch, 
-					basebuf + m_struct2check[i].m_ncopyrow * m_struct2check[i].m_BigImg.nPitch, m_struct2check[i].m_BigImg.nPitch, roisize);
-
-				m_struct2check[i].m_ncopyrow += roisize.height;
-
-				if (m_struct2check[i].m_ncopyrow == m_struct2check[i].m_BigImg.nHeight)
-				{
-					m_struct2check[i].m_bCanCheck = true;
-				}
-			}
-
-		}
-
-	}
-}
-
 void CKxCheck::DotCheckImg(const kxCImageBuf& SrcImg)
 {
 
@@ -1026,6 +1024,25 @@ void CKxCheck::SaveImgToPath(const kxCImageBuf& SrcImg, Json::Value& sendresult)
 
 }
 
+void CKxCheck::CopyImg2SplicImg(const kxCImageBuf& SrcImg, int nrow, int ncol)
+{
+
+	int nsingleW = SrcImg.nWidth / _SPLICING_IMG_SCALEFACTOR;
+
+	int nsingleH = SrcImg.nHeight / _SPLICING_IMG_SCALEFACTOR;
+
+	IppiSize imgsize = {nsingleW, nsingleH};
+
+	m_ImgResize.Init(nsingleW, nsingleH, 3);
+
+	m_hBaseFun.KxResizeImage(SrcImg, m_ImgResize);
+
+	ippiCopy_8u_C3R(m_ImgResize.buf, m_ImgResize.nPitch, m_ImgSplicing.buf +
+		ncol * nsingleW * m_ImgSplicing.nChannel + nrow * nsingleH * m_ImgSplicing.nPitch, m_ImgSplicing.nPitch, imgsize);
+
+
+}
+
 int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 {
 	
@@ -1058,11 +1075,9 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	
 	// 2.确认图像属于哪个roi，哪段ID，先不考虑相机采集方向问题
 
-	//JudgeWhichROI(SrcCapImg);
 
 	kxCImageBuf bigimgA, bigimgB;
 
-	static int nchecktimes = 0;
 
 	for (int j = 0; j < m_param.m_nscantimes; j++)
 	{
@@ -1074,6 +1089,12 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 				if (m_param.params[i].m_nGrabTimes == j)
 				{
 					m_hCheckResult[0].clear();
+
+					m_hCheckResult[0]["ISFULL"] = 0;
+
+					m_hCheckResult[0]["currow"] = m_param.params[i].m_nCurGrabID;
+
+					m_hCheckResult[0]["curcol"] = m_param.params[i].m_nGrabTimes;
 
 					m_hcombineimg.GetImg(bigimgA, bigimgB, j);
 
@@ -1110,13 +1131,15 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 					//bhascheck = true;
 					SaveImgToPath(m_DstImg, m_hCheckResult[0]);
 
+
+					if (i == m_param.m_nROINUM - 1)// 表示全部检测完成,主站收到这个标志位会进行
+					{
+						m_hCheckResult[0]["ISFULL"] = 1;
+					}
+
 					AnalyseCheckResult(i, m_hCheckResult);
 
-					m_Savebigimg[nchecktimes].SetImageBuf(m_DstImg, true);
-
-					nchecktimes++;
-
-					
+					CopyImg2SplicImg(m_DstImg, m_param.params[i].m_nCurGrabID, m_param.params[i].m_nGrabTimes);
 
 				}
 
@@ -1133,52 +1156,27 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 		}
 	}
 
-	if (nchecktimes == 6)
+
+	// 存缩略图，以及发送主站当前PACK检测完成 （缺一个packID 号）
+
+	if (m_hcombineimg.IsAllFull())
 	{
+		m_hcombineimg.Clear();
+
 		//保存缩略图
-		int nresizeh = m_Savebigimg[0].nHeight / 10;
-		int nresizew = m_Savebigimg[0].nWidth / 10;
-
-		int nbigh = nresizeh * 2;
-		int nbigw = nresizew * 3;
-
-		kxCImageBuf bigimg;
-		bigimg.Init(nbigw, nbigh, m_Savebigimg[0].nChannel);
-
-		IppiSize imgsize = {nresizew, nresizeh};
-
-		kxCImageBuf resizeimg;
-		resizeimg.Init(nresizew, nresizeh, m_Savebigimg[0].nChannel);
-
-		m_hBaseFun.KxResizeImage(m_Savebigimg[0], resizeimg);
-		ippiCopy_8u_C3R(resizeimg.buf, resizeimg.nPitch, bigimg.buf, bigimg.nPitch, imgsize);
-
-		m_hBaseFun.KxResizeImage(m_Savebigimg[1], resizeimg);
-		ippiCopy_8u_C3R(resizeimg.buf, resizeimg.nPitch, bigimg.buf + nresizeh * bigimg.nPitch, bigimg.nPitch, imgsize);
-
-		m_hBaseFun.KxResizeImage(m_Savebigimg[2], resizeimg);
-		ippiCopy_8u_C3R(resizeimg.buf, resizeimg.nPitch, bigimg.buf + nresizew * bigimg.nChannel, bigimg.nPitch, imgsize);
-
-		m_hBaseFun.KxResizeImage(m_Savebigimg[3], resizeimg);
-		ippiCopy_8u_C3R(resizeimg.buf, resizeimg.nPitch, bigimg.buf + nresizeh * bigimg.nPitch + nresizew * bigimg.nChannel, bigimg.nPitch, imgsize);
-	
-		m_hBaseFun.KxResizeImage(m_Savebigimg[4], resizeimg);
-		ippiCopy_8u_C3R(resizeimg.buf, resizeimg.nPitch, bigimg.buf + nresizew * bigimg.nChannel * 2, bigimg.nPitch, imgsize);
-
-		m_hBaseFun.KxResizeImage(m_Savebigimg[5], resizeimg);
-		ippiCopy_8u_C3R(resizeimg.buf, resizeimg.nPitch, bigimg.buf + nresizeh * bigimg.nPitch + nresizew * bigimg.nChannel * 2, bigimg.nPitch, imgsize);
-
 		time_t now = time(0);
 		tm *ltm = localtime(&now);
-
 		static int nsaveindex = 0;
-		//
+
 		char suoluetu[64];
 		sprintf_s(suoluetu, "F:\\%d-%d-%d\\缩略图\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
 		if (_access(suoluetu, 0))
 			_mkdir(suoluetu);
 		sprintf_s(suoluetu, "F:\\%d-%d-%d\\缩略图\\%d.bmp", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, nsaveindex);
-		m_hBaseFun.SaveBMPImage_h(suoluetu, bigimg);
+		m_hBaseFun.SaveBMPImage_h(suoluetu, m_ImgSplicing);
+
+		// 保存后清除缩略图
+		ippsSet_8u(0, m_ImgSplicing.buf, m_ImgSplicing.nPitch * m_ImgSplicing.nHeight);
 	}
 
 

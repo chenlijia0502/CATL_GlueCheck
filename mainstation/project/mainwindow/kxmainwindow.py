@@ -15,6 +15,7 @@ from App import TimeStatus
 from project.other.globalparam import *
 from project.mainwindow.Calibrate import FindEdgeToCalibrate, ShowCalibrateWidget
 from project.mainwindow.CPCTSParam import WidgetCPCTSParam
+from library.common.globalfun import DriveFreeSpace, DriveTotalSize
 
 class kxmainwindow(KXBaseMainWidget):
     _BAUDRATE = 115200
@@ -23,6 +24,7 @@ class kxmainwindow(KXBaseMainWidget):
     _SIG_ERRORINFO = QtCore.pyqtSignal(str)
     def __init__(self, dict_config):
         super(kxmainwindow, self).__init__(dict_config)
+        self.logger = logging.getLogger('UI.%s' % self.__class__.__name__)
         self.widget_Realtime = KxBaseMonitoringWidget.create(name=dict_config["mointoringwidget_classname"], h_parent=self)
         self.widget_Paramsetting = KxBaseParameterSetting(hparent=self, dict_config=dict_config)#参数设置
         self.widget_runlog = KxBaseRunLog(self)#日志
@@ -52,6 +54,41 @@ class kxmainwindow(KXBaseMainWidget):
         self.h_threadlock.start()
         self.fp = None
         self.dialog_calibrate = ShowCalibrateWidget()
+        # 检查硬盘
+        self.ntimeout = 1000 * 60 * 60 * 12
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.__timeout2checkdiskcapacity)
+        self.timer.start(self.ntimeout)
+
+
+    def __timeout2checkdiskcapacity(self):
+        """
+        判断两个盘符剩余空间大小，如果剩余空间不足会提示，并且改变计时器定时判断的时间间隔
+        :return:
+        """
+        drive1 = "D:\\"
+        drive2 = "F:\\"
+        nresult1 = self._judgeisdriveout(drive1)
+        nresult2 = self._judgeisdriveout(drive2)
+        if nresult1 == 1 and nresult2 == 1:
+            self.timer.start(self.ntimeout)
+        else:
+            self.timer.start(1000 * 60 * 30)
+
+
+    def _judgeisdriveout(self, drive):
+        fall = DriveTotalSize(drive)
+        ffree = DriveFreeSpace(drive)
+        if fall == -1 and ffree == -1:
+            return 1
+        if (ffree / fall) < 0.1:
+            QtWidgets.QMessageBox.warning(self, u"错误", "！！！" + drive + "剩余空间不足 10%，请及时清理！！！",
+                                          QtWidgets.QMessageBox.Cancel)
+            self.logger.info(drive + "剩余空间不足 10%，请及时清理！！！")
+            return 0
+        else:
+            return 1
+
 
     def _judegIsTime2Lock(self):
         while 1:
@@ -59,7 +96,7 @@ class kxmainwindow(KXBaseMainWidget):
             diff = curtime - TimeStatus.g_curtime
 
             if self.widget_permission.isHidden():
-                if diff > 180: #表示超过这么多秒没有操作就锁屏
+                if diff > 300: #表示超过这么多秒没有操作就锁屏
                     self._SIG_SHOWLOCK.emit()
             else:
                 TimeStatus.g_curtime = time.time()
@@ -157,6 +194,7 @@ class kxmainwindow(KXBaseMainWidget):
         else:
             self._setstatus("00000")#锁住
 
+
     def _setstatus(self, slevel):
         list_status = list(map(int, slevel))
         list_bstatus = list(map(bool, list_status))
@@ -215,12 +253,14 @@ class kxmainwindow(KXBaseMainWidget):
         """
         self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2changecol')
 
+
     def callback2showbigimg(self):
         """
         回调告知全部拍完，进行演示
         :return:
         """
         self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2showbigimg')
+
 
     def callback2judgeisfull(self):
         """
@@ -229,6 +269,7 @@ class kxmainwindow(KXBaseMainWidget):
         """
         return self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2judgeisfull')
 
+
     def callback2changecol_second(self):
         """
         二次取图建模，回调告知已准备切换列，通知参数界面可进行新列图像拼接
@@ -236,12 +277,14 @@ class kxmainwindow(KXBaseMainWidget):
         """
         self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2changecol_second')
 
+
     def callback2showbigimg_second(self):
         """
         二次取图建模，回调告知全部拍完，进行演示
         :return:
         """
         self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2showbigimg_second')
+
 
     def callback2judgeisfull_second(self):
         """
@@ -369,6 +412,12 @@ class kxmainwindow(KXBaseMainWidget):
 
     def _showerrorinfo(self, info):
         respond = QtWidgets.QMessageBox.warning(self, u"错误", info, QtWidgets.QMessageBox.Cancel)
+
+    def callback2getrowcol(self):
+        return self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2getrowcol')
+
+    def callback2getlisthead(self):
+        return self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2getlisthead')
 
 
 

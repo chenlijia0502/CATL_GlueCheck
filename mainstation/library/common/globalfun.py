@@ -78,3 +78,35 @@ def ischildof(obj, cls):
     except AttributeError:
         return ischildof(obj.__class__, cls)
     return False
+
+
+
+
+import win32com.client as com
+
+def DriveTotalSize(drive):
+  """
+  输入盘符路径，如"d:\\"，返回盘符总大小，单位GB
+  :param drive:
+  :return:
+  """
+  try:
+    fso = com.Dispatch("Scripting.FileSystemObject")
+    drv = fso.GetDrive(drive)
+    return drv.TotalSize/2**30
+  except:
+    return -1
+
+def DriveFreeSpace(drive):
+  """
+  输入盘符路径，如"d:\\"，返回盘符剩余空间，单位GB
+  :param drive:
+  :return:
+  """
+  try:
+    fso = com.Dispatch("Scripting.FileSystemObject")
+    drv = fso.GetDrive(drive)
+    return drv.FreeSpace/2**30
+  except:
+    return -1
+workstations = ['dolphins']

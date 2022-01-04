@@ -16,6 +16,13 @@
 	<machineaddress>192.168.0.10</machineaddress>
 	<mointoringwidget_classname>GlueMonitorWidget</mointoringwidget_classname>
 	<maxCameraPerStation>1</maxCameraPerStation>
+	<AGV>
+		<IP></IP>
+		<></PORT>
+		<STATION1ID>19</STATION1ID>
+		<STATION2ID>20</STATION2ID>
+		<STATION3ID>21</STATION3ID>
+	</AGV>
 	<substation>
 		<substation1>
 			<stationstatu>1</stationstatu>

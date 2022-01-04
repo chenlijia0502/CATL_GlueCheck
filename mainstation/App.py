@@ -2,7 +2,7 @@ from PyQt5 import  QtWidgets, QtGui, QtCore
 import time
 
 class TimeStatus:
-    g_curtime = 0
+    g_curtime = 0 # 全局变量，界面点击时会更新这个值
 
 class App(QtWidgets.QApplication):
 

@@ -22,16 +22,20 @@ public:
 
 	bool IsColFull(int &nIndex);// 判断是否有列数满了，拿出来检测，返回nIndex代表那一列
 
+	bool IsAllFull();//判断是否所有列满了
+
 	void GetImg(kxCImageBuf& dstimgA, kxCImageBuf& dstimgB, int nIndex);
 
 	void ResetCol(int &nIndex);// 该列满了，重置该列
+
+	void Clear();//清楚所有，重置 
 
 private:
 	kxCImageBuf		m_ImgBigListA[_MAX_SCAN_NUM];// 输入进来的大图，正着走扫一列
 
 	kxCImageBuf		m_ImgBigListB[_MAX_SCAN_NUM];
 
-	bool			m_bstatus[_MAX_SCAN_NUM];
+	bool			m_bstatus[_MAX_SCAN_NUM];// 每列图像的拼接状态，检测完之后会进行复位
 
 	int				m_nEveryColImgnum[_MAX_SCAN_NUM];//每一列扫描区域的图像数量
 
@@ -42,6 +46,10 @@ private:
 	int				m_nSingleW;
 
 	CEmpiricaAlgorithm	m_hAlg;
+
+	int				m_nScanTimes;//扫描次数
+
+	int				m_nCurScanTimes;//当前pack扫描次数，用于判断当前pack是否已经完全扫完
 
 
 	void MatchTemplateAndTransform(int ncol);

@@ -35,6 +35,7 @@ class GuleParam(KxBaseParamWidget):
     """
               涂胶项目
     """
+    _SCAN_MAP_TIMES = 3 #全地图扫描次数
     _MAX_ROI_NUM = 32
     _MAX_SCAN_NUM = 6
     _BUILD_MODEL_SCALE_FACTOR = 4#建模的时候对图像进行压缩，不然会卡顿
@@ -53,8 +54,7 @@ class GuleParam(KxBaseParamWidget):
         self.h_bigimage = None
         self.threadWaitDialog = None
         self._connectlog()
-        self.ui.h_pBtLoad.clicked.connect(self.loadimg)
-
+        #self.ui.h_pBtLoad.clicked.connect(self.loadimg)
 
 
     def _initui(self):
@@ -71,6 +71,7 @@ class GuleParam(KxBaseParamWidget):
         self.h_imgitem = pg.ImageItem()
         self.view.addItem(self.h_imgitem)
         self.ui.h_pBtSave.clicked.connect(self.saveparameters)
+
 
     def _initparam(self):
         self.s_imgpath = None
@@ -92,8 +93,8 @@ class GuleParam(KxBaseParamWidget):
                 {'name': '起拍位置', 'type': 'int', 'value': 0, 'limits':[0, 2000]},
                 {'name': '拍摄组数', 'type': 'int', 'value': 3, 'limits': [1, self._MAX_SCAN_NUM]},
                 {'name': '横向重叠区域', 'type': 'int', 'value': 1, 'limits': [1, 2000]},
-                {'name': u'全局取图', 'type': 'action'},
-                {'name': u'扫描区域取图', 'type': 'action'},
+                {'name': '全局取图', 'type': 'action'},
+                {'name': '扫描区域取图', 'type': 'action'},
             ]},
             {'name': '建模图像缩放系数', 'type': 'str', 'value':str(self._BUILD_MODEL_SCALE_FACTOR),'visible':False,
              'readonly':True },
@@ -104,7 +105,11 @@ class GuleParam(KxBaseParamWidget):
                 {'name': '检高灵敏度', 'type': 'int', 'value': 3, 'limits': [0, 25]},
                 {'name': '检低灵敏度', 'type': 'int', 'value': 3, 'limits': [0, 25]},
             ]},
-
+            {'name': '拼图信息', 'type': 'group', 'visible':False,'children': [
+                {'name': '行数', 'type': 'int', 'value': 0, 'limits': [0, self._MAX_SCAN_NUM]},
+                {'name': '列数', 'type': 'int', 'value': 0, 'limits': [0, self._MAX_SCAN_NUM]},
+                {'name': '最大检测框高', 'type': 'str', 'value': ''},
+            ]},
         ])
 
         self._append_scan_area(self.params)
@@ -177,11 +182,13 @@ class GuleParam(KxBaseParamWidget):
                       "roi_opt": {"word": '检测区域'+ str(i), "scaleable": True, 'pen':1}, "infovisible": False},
                     {'name': u'扫描组号', 'type': 'list', 'values': {'组数一': 0, '组数二': 1, '组数三':2, '组数四':3,
                                                         '组数五':4, '组数六':5}},
+                    {'name': u'当前组ID', 'type': 'int', 'value': 0, 'limits':[0, 6], 'readonly':True},
                     {'name': '提取异物灰度', 'type': 'int', 'value': 100, 'limits': [0, 255]},
                     {'name': '异物最小点数', 'type': 'int', 'value': 20, 'limits': [0, 20000]},
                 ]}
             )
         dict_params.extend(list_standardschildrenitems)
+
 
     def _append_scan_area(self, dict_params):
 
@@ -207,6 +214,7 @@ class GuleParam(KxBaseParamWidget):
 
         dict_params.append(dict_scan)
 
+
     def _captureimg(self):
         """
         全局队列将参数送到界面，控制第一次全局拍照参数
@@ -217,14 +225,11 @@ class GuleParam(KxBaseParamWidget):
         # self.threadWaitDialog.setProcessBarRange(0, 100)
         # self.threadWaitDialog.show()
         #QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
-
         nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
         # ndisX = int(int(self.p.param('全局拍摄控制', '相机横向像素数').value()) *
         #             float(self.p.param('全局拍摄控制', '相机横向分辨率').value()))
-
-
         ndisY = int(self.p.param('全局拍摄控制', '拍摄长度').value())
-        nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
+        nXtimes = self._SCAN_MAP_TIMES
 
         imgH = int(self.p.param('全局拍摄控制', '相机纵向像素数').value())
         imgW = int(self.p.param('全局拍摄控制', '相机横向像素数').value())
@@ -246,15 +251,13 @@ class GuleParam(KxBaseParamWidget):
 
         self.h_mergeobj.clear()
 
-        print("全局取图： ", ndisY, n_firstbuild_imgnum, nbigimgW, nbigimgH)
+        #print("全局取图： ", ndisY, n_firstbuild_imgnum, nbigimgW, nbigimgH)
 
         self.h_mergeobj.initinfo(n_firstbuild_imgnum, nbigimgW, nbigimgH)
 
         self.build_status = BuildStatus.STATUS_ALL
 
         ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL, [nStartX, ndisX, ndisY, nXtimes]))
-
-
 
 
     def _captureimg_second(self):
@@ -320,20 +323,17 @@ class GuleParam(KxBaseParamWidget):
 
             self.p.param("扫描区域", "扫描区域%d图像数量"%nindex).setValue(n_build_imgnum)
 
-        print("list_buildimgnum: ", list_buildimgnum)
-
         self.h_mergelistobj.clear()
 
         self.h_mergelistobj.initinfo(list_buildimgnum, int(imgW / self._BUILD_MODEL_SCALE_FACTOR), list_bigimgH)
 
         self.build_status = BuildStatus.STATUS_SECOND
 
-        print ([list_x, list_y])
-
         ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL_SECOND, [list_x, list_y]))
 
 
     def call2back2getcaptureinfo(self):
+
         nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
         nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
@@ -372,8 +372,6 @@ class GuleParam(KxBaseParamWidget):
                         StaticConfigParam.MAX_Y_LEN)
 
             list_y[nindex] = ndisY
-
-        print("check: ", [list_x, list_y])
 
         return [list_x, list_y]
 
@@ -430,6 +428,8 @@ class GuleParam(KxBaseParamWidget):
 
 
     def saveparameters(self):
+        self._sortcheckpos()
+        self._saveMapColRow()
         self._setbaseimgpath()
         for nindex, img in enumerate(self.list_img):
             if img is not None:
@@ -438,6 +438,90 @@ class GuleParam(KxBaseParamWidget):
                 szSaveDir = self.p.param("主站设置", "底板路径" + str(nindex)).value()
                 imagesave.save(szSaveDir)
         super(GuleParam, self).saveparameters()
+
+
+    def _sortcheckpos(self):
+        """
+        同一扫描列的检测框，必须按照检测框号小的在上，检测框号大的在下
+        :return:
+        """
+        nchecknum = int(self.p.param('检测区域数量').value())
+        list_pos = []
+        list_obj = []
+        ncurcol = -1
+        for i in range(nchecknum):
+
+            ncol = int(self.p.param('检测区域' + str(i), '扫描组号').value())
+
+            if ncurcol != ncol:
+
+                ncurcol = ncol
+
+                if list_pos != []:
+
+                    array = np.array(list_pos).T
+
+                    print (list_pos)
+
+                    print(array)
+
+                    list_sortindex = sorted(range(len(array[1])), key=lambda k: array[0][k], reverse=True)
+
+                    print (list_sortindex)
+
+                    print ('---------')
+
+                    for nindex in range(len(list_pos)):
+
+                        list_obj[nindex].set_list_pos(list_pos[list_sortindex[nindex]])
+
+                    list_pos = []
+
+                    list_obj = []
+
+            list_pos.append(self.p.param('检测区域'+ str(i), '检测区域' ).get_list_pos())
+
+            list_obj.append(self.p.param('检测区域'+ str(i), '检测区域' ))
+
+
+
+
+
+
+    def _saveMapColRow(self):
+        """
+        根据扫描列数以及检测框中属于当前列的数量，得到一张全地图应该是N*M的组成，并且取最大的ROI作为图像大小
+        :return:
+        """
+        # 1. 确定图像最大
+        nchecknum = int(self.p.param('检测区域数量').value())
+        ncolnum = int(self.p.param('全局拍摄控制', '拍摄组数').value())
+        list_col = [0 for i in range(ncolnum)]
+        list_h = []
+        for i in range(nchecknum):
+            roipos = self.p.param('检测区域'+ str(i), '检测区域' ).get_list_pos()
+            list_h.append(roipos[3] - roipos[1] + 1)
+            ncol = int(self.p.param('检测区域' + str(i), '扫描组号').value())
+            if ncol < len(list_col):
+                list_col[ncol] += 1
+
+        nmaxrow = max(list_col)
+        nmaxh = max(list_h) * self._BUILD_MODEL_SCALE_FACTOR
+
+        self.p.param('拼图信息', '行数').setValue(nmaxrow)
+        self.p.param('拼图信息', '列数').setValue(ncolnum)
+        self.p.param('拼图信息', '最大检测框高').setValue(nmaxh)
+
+        #2. 设置每个检测区域的组ID，表示这个roi在当前组中属于第几个ID，便于显示检测结果的时候拼图
+        ncurcol = -1
+        ncurid = 0
+        for i in range(nchecknum):
+            ncol = int(self.p.param('检测区域' + str(i), '扫描组号').value())
+            if ncurcol != ncol:
+                ncurcol = ncol
+                ncurid = 0
+            self.p.param('检测区域' + str(i), '当前组ID').setValue(ncurid)
+            ncurid += 1
 
     def _changeshowimg(self, *even):
         nindex = int(even[1])
@@ -533,15 +617,11 @@ class GuleParam(KxBaseParamWidget):
             self.p.param('扫描区域', '扫描区域' + str(n_i)).isShow(True)
 
         #QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.AllEvents)
-
         # print("self.threadWaitDialog.setProcessBarVal(60)")
         #
         # self.threadWaitDialog.setProcessBarVal(60)
         #
         # self.threadWaitDialog.close()
-
-
-
 
 
     def callback2judgeisfull(self):
@@ -579,12 +659,6 @@ class GuleParam(KxBaseParamWidget):
             nOversize = int(self.p.param('全局拍摄控制', '横向重叠区域').value())
             h, w, c = self.h_bigimage.shape
             nsingleimgw = int(w / nXtimes)
-            #newsingleimgw = int(nsingleimgw - nOversize * 2)
-            # newimg = np.zeros((h, newsingleimgw * nXtimes, c), np.uint8)
-            # for i in range(nXtimes):
-            #     newimg[:, newsingleimgw*i:newsingleimgw*(i+1)] = self.h_bigimage[:, nsingleimgw * i + nOversize:nsingleimgw * i  + nOversize + newsingleimgw]
-            # self.h_imgitem.setImage(newimg, autoLevels=False)
-
             list_w = []
             list_offset_src = []
             list_offset_dst = []
@@ -601,9 +675,6 @@ class GuleParam(KxBaseParamWidget):
                     list_w.append(int(nsingleimgw - nOversize))
                 else:
                     list_w.append(int(nsingleimgw - nOversize * 2 ))
-
-            print ('solve: ', list_w, list_offset_src, list_offset_dst)
-
             nbigw = int(np.sum(np.array(list_w)))
             newimg = np.zeros((h, nbigw, c), np.uint8)
             for i in range(nXtimes):
@@ -611,12 +682,28 @@ class GuleParam(KxBaseParamWidget):
                     = self.h_bigimage[:, list_offset_src[i]:list_offset_src[i] + list_w[i]]
             self.h_imgitem.setImage(newimg, autoLevels=False)
 
-    def loadimg(self):
-        file_name = QtWidgets.QFileDialog.getOpenFileName(self, "open file dialog", "D://card",
-                                                          "bmp files(*.bmp)")
-        print(file_name)
-        image = cv2.imread(file_name[0], 1)
-        self.h_imgitem.setImage(image, autoLevels=False)
+    def callback2getrowcol(self):
+        nrow = self.p.param('拼图信息', '行数').value()
+        ncol = self.p.param('拼图信息', '列数').value()
+        return nrow, ncol
+
+    def callback2getlisthead(self):
+        nchecknum = int(self.p.param('检测区域数量').value())
+
+        list_shead = []
+
+        for i in range(nchecknum):
+
+            list_shead.append("检测区域%d"%i)
+
+        return list_shead
+
+    # def loadimg(self):
+    #     file_name = QtWidgets.QFileDialog.getOpenFileName(self, "open file dialog", "D://card",
+    #                                                       "bmp files(*.bmp)")
+    #     print(file_name)
+    #     image = cv2.imread(file_name[0], 1)
+    #     self.h_imgitem.setImage(image, autoLevels=False)
 
 
 registerkxwidget(name='GuleParam', cls=GuleParam, override=True)

@@ -10,6 +10,7 @@ from globalparam import ChineseWord
 from globalparam import PermissionLevel
 import struct
 from library.common.usermanager.adduserdialog import Adduserdialog
+import time
 
 """
     初始版本是比亚迪边检，后经宁德时代下箱体涂胶迭代
@@ -45,6 +46,24 @@ class kxprivilege_management(QtWidgets.QDialog):
         self.ui.lineEdit.setReadOnly(True)
         self.text = ""
 
+        # 定时器，确保对键盘输入进行定时清理
+        self.nrecordtime = time.time()
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.__timeout2clear)
+        self.timer.start(1000)
+
+
+    def __timeout2clear(self):
+        """
+        键盘输入的时候会记录一个输入时间self.nrecordtime，当键盘在连续输入的text不会被清零
+        因为读卡器输入的时候是连续的。加入这个可以将键盘输入的影响减小
+        :return:
+        """
+        curtime = time.time()
+        if curtime - self.nrecordtime > 1:
+            self.text = ""
+
+
     def __ininconnection(self):
         # self.ui.pbt_quit.clicked.connect(self.close)
 
@@ -54,10 +73,7 @@ class kxprivilege_management(QtWidgets.QDialog):
 
 
     def keyPressEvent(self, a0: QtGui.QKeyEvent):
-       # if len(self.text) == 11:
-       #     self.ui.lineEdit.setText(self.text)
-       #     self._judgeacount()
-       #     self.text = ""
+        self.nrecordtime = time.time()
         if a0.key() == QtCore.Qt.Key_Return:
             self.ui.lineEdit.setText(self.text)
             #print (self.text)
@@ -69,7 +85,6 @@ class kxprivilege_management(QtWidgets.QDialog):
 
     def _judgeacount(self):
         word = self.ui.lineEdit.text()
-        print (word)
         if len(word) > 0:
             list_list_account = self.adduserdialog.getUserlist()
             b_status = False
@@ -93,8 +108,6 @@ class kxprivilege_management(QtWidgets.QDialog):
 
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)  # 全屏
 
-        print("start: ", self.adduserdialog.userlist)
-
         self.inputdialog.show()
 
         self.inputdialog.exec()
@@ -104,9 +117,6 @@ class kxprivilege_management(QtWidgets.QDialog):
         self.inputdialog.clear()
 
         list_list_account = self.adduserdialog.getUserlist()
-
-        print("end: ", self.adduserdialog.userlist)
-
 
         bstatus = False
 
@@ -155,22 +165,48 @@ class InputDialog(QtWidgets.QDialog):
         self.lineedit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.s_input = ""
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
-        self.lineedit.setFocus()
+        self.lineedit.setReadOnly(True)
+
+        # 定时器，确保对键盘输入进行定时清理
+        self.nrecordtime = time.time()
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.__timeout2clear)
+        self.timer.start(1000)
+
+
+    def __timeout2clear(self):
+        """
+        键盘输入的时候会记录一个输入时间self.nrecordtime，当键盘在连续输入的text不会被清零
+        因为读卡器输入的时候是连续的。加入这个可以将键盘输入的影响减小
+        :return:
+        """
+        curtime = time.time()
+        if curtime - self.nrecordtime > 1:
+            self.s_input = ""
+
 
     def keyPressEvent(self, a0: QtGui.QKeyEvent):
+        self.nrecordtime = time.time()
         if a0.key() == QtCore.Qt.Key_Return:
-            self.s_input = self.lineedit.text()
-            self.lineedit.clear()
+            self.lineedit.setText(self.s_input)
             self.close()
+            #print (self.text)
+        else:
+            self.s_input = self.s_input + a0.text()
+
 
     def getinfo(self):
         return self.s_input
 
+
     def clear(self):
         self.s_input = ""
+        self.lineedit.clear()
+
 
     def showEvent(self, a0: QtGui.QShowEvent):
         pass
+
 
     def closeEvent(self, a0: QtGui.QCloseEvent):
         pass

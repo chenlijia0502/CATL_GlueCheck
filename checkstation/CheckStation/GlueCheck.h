@@ -35,6 +35,7 @@ public:
 	{
 		kxRect<int>		m_rcCheckROI;
 		int				m_nGrabTimes;//扫描列，设备移动扫描第几组,说明当前扫描图像属于第几组
+		int				m_nCurGrabID;// 当前扫描列第几个roi
 
 		int				m_ndefectthresh;
 		int				m_ndefectdots;//缺陷点数

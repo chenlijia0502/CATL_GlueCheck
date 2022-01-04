@@ -1,0 +1,8 @@
+pyinstaller.exe -w --uac-admin -i logo.ico main.py
+pyinstaller -w --uac-admin -i logo.ico main.spec
+
+
+
+
+chcp 65001 ½â¾öunicode´íÎó
+

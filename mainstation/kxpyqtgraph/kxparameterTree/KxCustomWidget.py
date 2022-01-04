@@ -811,6 +811,9 @@ class KxRoiParameter(KxParameter):
     def get_list_pos(self):
         return self.roi.get_list_pos()
 
+    def set_list_pos(self, list_pos):
+        self.roi.set_list_pos(list_pos)
+
     def roi_region_changed(self):
         # pos = self.roi.pos()
         # size = self.roi.size()

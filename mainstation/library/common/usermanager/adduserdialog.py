@@ -43,6 +43,8 @@ class Adduserdialog(QtWidgets.QDialog):
 
 
 
+
+
     def _initPermissionChoice(self, list_slevel:[]):
         """
         初始化权限选择

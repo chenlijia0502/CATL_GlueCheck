@@ -4,6 +4,8 @@
 
 void CCombineImg::Init(int nW, int nH, int ncol, int* nnums, kxRect<int>* modelroi)
 {
+	m_nScanTimes = ncol;
+
 	for (int i = 0; i < ncol; i++)
 	{
 		m_nEveryColImgnum[i] = nnums[i];
@@ -20,10 +22,7 @@ void CCombineImg::Init(int nW, int nH, int ncol, int* nnums, kxRect<int>* modelr
 
 	}
 
-	for (int i = 0; i < _MAX_SCAN_NUM; i++)
-	{
-		m_bstatus[i] = false;
-	}
+	Clear();
 }
 
 
@@ -86,10 +85,9 @@ void CCombineImg::appendImg(kxCImageBuf& srcimg, int nImgIndex)
 
 		m_bstatus[ncolindex] = true;
 
+		m_nCurScanTimes += 1;
 
 		// 4. 对列满的图像进行模板匹配，然后对齐
-
-		//TODO 12.13调试到这个位置，进行测试试试
 
 		MatchTemplateAndTransform(ncolindex);
 
@@ -175,4 +173,26 @@ void CCombineImg::MatchTemplateAndTransform(int ncol)
 
 	}
 
+}
+
+bool CCombineImg::IsAllFull()
+{
+	if (m_nCurScanTimes == m_nScanTimes)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void CCombineImg::Clear()
+{
+	m_nCurScanTimes = 0;
+
+	for (int i = 0; i < _MAX_SCAN_NUM; i++)
+	{
+		m_bstatus[i] = false;
+	}
 }

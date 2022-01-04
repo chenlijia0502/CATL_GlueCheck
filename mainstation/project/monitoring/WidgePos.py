@@ -16,9 +16,6 @@ class WidgetEdgePos(QtWidgets.QWidget):
         # TableWidget = QTableWidget()
         # TableWidget.setRowCount(4)
         # TableWidget.setColumnCount(3)
-
-
-
         #设置水平方向的表头标签与垂直方向上的表头标签，注意必须在初始化行列之后进行，否则，没有效果
         self.TableWidget.setHorizontalHeaderLabels(['检测区域1', '检测区域2','检测区域3','检测区域4', '检测区域5', '检测区域6'])
         #Todo 优化1 设置垂直方向的表头标签
@@ -76,3 +73,14 @@ class WidgetEdgePos(QtWidgets.QWidget):
         for col, data in enumerate(list_data):
             newItem = QtWidgets.QTableWidgetItem(data)
             self.TableWidget.setItem(rowindex, col, newItem)
+
+
+    def sethead(self, list_shead):
+
+        self.TableWidget.setHorizontalHeaderLabels(list_shead)
+
+        self.TableWidget.setVerticalHeaderLabels(['左', '右', '上', '下', '涂胶面积'])
+
+
+    def clear(self):
+        self.TableWidget.clear()

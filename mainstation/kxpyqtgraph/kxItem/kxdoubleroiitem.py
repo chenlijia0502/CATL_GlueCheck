@@ -604,8 +604,8 @@ class ROIwithText(pg.ROI):
         out_pos = copy.deepcopy(self.pos())
         out_size = copy.deepcopy(self.size())
 
-        self.dict_pos["out"] = [int(out_pos[0]),int(out_pos[1]),int(out_pos[0])+int(out_size[0]), \
-                                 int(out_pos[1]) + int(out_size[1])]
+        self.dict_pos["out"] = [int(out_pos[0]),int(out_pos[1]),int(out_pos[0])+int(out_size[0]) - 1, \
+                                 int(out_pos[1]) + int(out_size[1]) - 1]
 
     def get_list_pos(self):
         """

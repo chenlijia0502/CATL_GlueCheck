@@ -211,6 +211,7 @@ class KXBaseMainWidget(QtWidgets.QWidget):
         self.horizontalLayout_labwidget.addWidget(self.label_statusinf)
         self.horizontalLayout_labwidget.setStretch(1, 10)
 
+
     def _initconnect(self):
         """
         在这里连接几个基本的功能，比如开始、停止、模拟、存图等功能
@@ -223,6 +224,7 @@ class KXBaseMainWidget(QtWidgets.QWidget):
         self.ui.toolbtn_savebadimage.clicked.connect(self._saveimg)
         self.ui.pbt_minimize.clicked.connect(self.showMinimized)
 
+
     def _init_commuicate_connection(self):
         """
         连接通信信号，通信信号一般是与线程中的函数相挂载，比如硬件进程中心跳无回复，则讲命令发送到
@@ -232,6 +234,7 @@ class KXBaseMainWidget(QtWidgets.QWidget):
         self.sig_netconnectchange.connect(self._receive_netconnectchange_msg)
         self.sig_hardware_netconnectchange.connect(self._receive_hardware_netconnectchange_msg)
         self.sig_hardware_receive.connect(self._receive_hardware_msg)
+
 
     def _receive_netconnectchange_msg(self, n_stationid, bool_status):
         """
@@ -261,6 +264,7 @@ class KXBaseMainWidget(QtWidgets.QWidget):
             self.ui.toolbtn_onlinerun.setEnabled(True)
         else:
             self.ui.toolbtn_onlinerun.setEnabled(False)
+
 
     def _receive_hardware_netconnectchange_msg(self, bool_status):
         """
