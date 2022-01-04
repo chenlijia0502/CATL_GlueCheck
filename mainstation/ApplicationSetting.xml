@@ -17,8 +17,8 @@
 	<mointoringwidget_classname>GlueMonitorWidget</mointoringwidget_classname>
 	<maxCameraPerStation>1</maxCameraPerStation>
 	<AGV>
-		<IP></IP>
-		<></PORT>
+		<IP>192.168.100.1</IP>
+		<PORT>9000</PORT>
 		<STATION1ID>19</STATION1ID>
 		<STATION2ID>20</STATION2ID>
 		<STATION3ID>21</STATION3ID>
