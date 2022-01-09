@@ -14,6 +14,7 @@
 #include "KxGeneralFun.h"
 #include "zcudpclient.h"
 #include "global.h"
+#include "json.h"
 using namespace Check;
 
 CTestAsioTcpClient::CTestAsioTcpClient(int nStationID, const char *c_pszAddress, int nListenPort)
@@ -202,6 +203,9 @@ void CTestAsioTcpClient::OnRecvData(int nStationID, const unsigned char* pData, 
 					break;
 				case MSG_CLOSECAMERA:
 					Graber::g_GetCamera()->Close();// 主站关闭，子站优先释放相机
+					break;
+				case MSG_PACK_ID://收到pack id
+					RecMsgPackId(pExtData);
 					break;
 
 				
@@ -500,6 +504,21 @@ void CTestAsioTcpClient::RecMsgJustOpenCamera()
 	//给相机触发
 	Graber::g_GetCamera()->OpenInternalTrigger(1);//外触发
 	Graber::g_GetGrabPack().Start();
+}
+
+void CTestAsioTcpClient::RecMsgPackId(const unsigned char* pExtData)
+{
+	// 收到pack id，交给检测，检测收到packid 会对现有结果进行清零，重新开始新的id
+
+
+	Json::Reader reader;
+	Json::Value root;
+	if (reader.parse((const char*)pExtData, root))  // reader将Json字符串解析到root，root将包含Json里所有子元素  
+	{
+		std::string packid = root["packid"].asString();  //
+
+		Check::g_GetCheckCardObj().SetPackID(packid);
+	}
 }
 
 CTestAsioTcpClient* g_client ;

@@ -15,8 +15,18 @@ import cv2
 import numpy as np
 
 
-# 按列表a中元素的值进行排序，并返回元素对应索引序列
-a = [1, 3, 4, 5, 2, 7, 9]
-print('a:', a)
-sorted_id = sorted(range(len(a)), key=lambda k: a[k], reverse=True)
-print('元素索引序列：', sorted_id)
+# # 按列表a中元素的值进行排序，并返回元素对应索引序列
+# a = [1, 3, 4, 5, 2, 7, 9]
+# print('a:', a)
+# sorted_id = sorted(range(len(a)), key=lambda k: a[k], reverse=True)
+# print('元素索引序列：', sorted_id)
+
+
+# import time
+# print (time.time())
+#
+# time.sleep(3)
+# print (time.time())
+
+
+print (str(-182.5))

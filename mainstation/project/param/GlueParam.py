@@ -76,6 +76,7 @@ class GuleParam(KxBaseParamWidget):
     def _initparam(self):
         self.s_imgpath = None
         self.n_qualitytreenum = 0#当前已显示质量检查组数
+        self.n_measurehighnum = 0#测量高度的点
         self.n_checkarea = 0#当前检测区域
         dict_head = {'name': u'主站设置', 'type': 'group', 'visible':False, 'children': [
                 {'name': u'图像信息', 'type': 'imageinfo',
@@ -84,12 +85,13 @@ class GuleParam(KxBaseParamWidget):
         list_path = [{'name': '底板路径' + str(i), 'type': 'str'} for i in range(self._MAX_SCAN_NUM)]
         dict_head['children'].extend(list_path)
         self.params.append(dict_head)
+        self.params.append(self._append_fangdaifangcuo_point())
         self.params.extend([
             {'name': '全局拍摄控制', 'type': 'group', 'children':[
                 {'name': '相机横向像素数', 'type': 'int', 'value': 8192, 'limits': [1, 8192]},
                 {'name': '相机横向分辨率', 'type': 'float', 'value': 0.1, 'limits': [0, 1]},
                 {'name': '相机纵向像素数', 'type': 'int', 'value': 2000, 'limits': [200, 6600]},
-                {'name': '拍摄长度', 'type': 'int', 'value': 1000, 'limits': [0, StaticConfigParam.MAX_Y_LEN]},
+                {'name': '拍摄长度', 'type': 'int', 'value': 2000, 'limits': [0, StaticConfigParam.MAX_Y_LEN]},
                 {'name': '起拍位置', 'type': 'int', 'value': 0, 'limits':[0, 2000]},
                 {'name': '拍摄组数', 'type': 'int', 'value': 3, 'limits': [1, self._MAX_SCAN_NUM]},
                 {'name': '横向重叠区域', 'type': 'int', 'value': 1, 'limits': [1, 2000]},
@@ -130,20 +132,25 @@ class GuleParam(KxBaseParamWidget):
         self.p.param("全局拍摄控制").sigTreeStateChanged.connect(self._logparamchange)
         self.p.param("检测参数").sigTreeStateChanged.connect(self._logparamchange)
         self.p.param("检测区域数量").sigTreeStateChanged.connect(self._logparamchange)
+        self.p.param("防呆防错设置").sigTreeStateChanged.connect(self._logparamchange)
         for i in range(0, self._MAX_ROI_NUM):
             self.p.param('检测区域' + str(i)).sigTreeStateChanged.connect(self._logparamchange)
+
 
     def _disconnectlog(self):
         self.p.param("全局拍摄控制").sigTreeStateChanged.disconnect(self._logparamchange)
         self.p.param("检测参数").sigTreeStateChanged.disconnect(self._logparamchange)
         self.p.param("检测区域数量").sigTreeStateChanged.disconnect(self._logparamchange)
+        self.p.param("防呆防错设置").sigTreeStateChanged.disconnect(self._logparamchange)
         for i in range(0, self._MAX_ROI_NUM):
             self.p.param('检测区域' + str(i)).sigTreeStateChanged.disconnect(self._logparamchange)
+
 
     def _logparamchange(self, *args):
         s_log = args[0].name() + "--" + args[1][0][0].name() +\
                 " 由 " + str(args[1][0][0].defaultValue()) + "改为 " + str(args[1][0][2])
         ipc_tool.kxlog("main", logging.INFO, s_log)
+
 
     def _initsignal(self):
         self.p.param('检测区域数量').sigValueChanged.connect(self._add_checkarea)
@@ -151,16 +158,19 @@ class GuleParam(KxBaseParamWidget):
         self.p.param('全局拍摄控制', '扫描区域取图').sigActivated.connect(self._captureimg_second)
         self.p.param('显示图像').sigValueChanged.connect(self._changeshowimg)
         self.p.param('全局拍摄控制', '横向重叠区域').sigValueChanged.connect(self._adjustbigimgsize)
+        self.p.param('防呆防错设置', '基准点数量').sigValueChanged.connect(self._addpointparam)
+        self.p.param('防呆防错设置', '标定基准高度').sigActivated.connect(self._calibrate_highsensor_point)
 
-    def _addqualdetectslot(self, *even):
-        if int(even[1]) > self.n_qualitytreenum:
-            for n_i in range(int(even[1])):
-                self.p.param('质量检查标准','质量检查标准' + str(n_i)).show()
+
+    def _addpointparam(self, *even):
+        if int(even[1]) > self.n_measurehighnum:
+            for n_i in range(self.n_measurehighnum, int(even[1])):
+                self.p.param('防呆防错设置','防呆防错点' + str(n_i)).show()
         else:
-            for n_i in range(int(even[1]), self.n_qualitytreenum):
-                self.p.param('质量检查标准', '质量检查标准' + str(n_i)).hide()
+            for n_i in range(int(even[1]), self.n_measurehighnum):
+                self.p.param('防呆防错设置', '防呆防错点' + str(n_i)).hide()
+        self.n_measurehighnum = int(even[1])
 
-        self.n_qualitytreenum = int(even[1])
 
     def _add_checkarea(self, *even):
         if int(even[1]) > self.n_checkarea:
@@ -172,6 +182,7 @@ class GuleParam(KxBaseParamWidget):
                 self.p.param('检测区域' + str(n_i)).hide()
                 self.p.param('检测区域' + str(n_i), '检测区域').isShow(False)
         self.n_checkarea = int(even[1])
+
 
     def _append_checkarea_param(self, dict_params):
         list_standardschildrenitems = []
@@ -213,6 +224,24 @@ class GuleParam(KxBaseParamWidget):
         dict_scan = {'name': '扫描区域', 'type': 'group', 'visible':False, 'children':list_standardschildrenitems}
 
         dict_params.append(dict_scan)
+
+
+    def _append_fangdaifangcuo_point(self):
+        list_child = [{'name': '基准点数量', 'type': 'int', 'value': 0, 'limits': [0, 6]}]
+
+        for i in range(6):
+            dict_child = {'name': '防呆防错点%d'%i, 'type': 'group','expanded':False, 'visible':False, 'children': [
+            {'name': 'X位置', 'type': 'int', 'value': 0, 'limits': [0, StaticConfigParam.MAX_X_LEN]},
+            {'name': 'Y位置', 'type': 'int', 'value': 0, 'limits': [0, StaticConfigParam.MAX_Y_LEN]},
+            {'name':'基准值', 'type': 'str', 'value' : '0', 'readonly':True},
+            ]}
+            list_child.append(dict_child)
+
+        list_child.append({'name': '标定基准高度', 'type': 'action'})
+
+        dict_result = {'name': '防呆防错设置', 'type': 'group', 'children': list_child}
+
+        return dict_result
 
 
     def _captureimg(self):
@@ -376,6 +405,37 @@ class GuleParam(KxBaseParamWidget):
         return [list_x, list_y]
 
 
+    def _calibrate_highsensor_point(self):
+        """
+        标定基准高度值，通过公共队列往主界面传输点坐标，点坐标收到数据之后启动线程进行测量扫描，
+        扫描之后记录点值回调 callback2set_highsensor_point 将测量点结果送回
+        :return:
+        """
+        nnum = int(self.p.param('防呆防错设置', '基准点数量').value())
+
+        if nnum > 0:
+
+            list_pos = []
+
+            for nindex in range(nnum):
+
+                x = int(self.p.param('防呆防错设置', '防呆防错点%d'%nindex, 'X位置').value())
+
+                y = int(self.p.param('防呆防错设置', '防呆防错点%d'%nindex, 'Y位置').value())
+
+                list_pos.append([x, y])
+
+            ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_GET_BASE_POINT_HIGH, list_pos))
+
+
+    def callback2set_highsensor_point(self, list_param):
+
+        for nindex, data in enumerate(list_param):
+
+            self.p.param('防呆防错设置', '防呆防错点%d' % nindex, '基准值').setValue(str(int(data)))
+
+
+
     def recmsg(self, n_stationid, n_msgtype, tuple_data):
         '''
         接收子站发送过来的消息
@@ -495,6 +555,8 @@ class GuleParam(KxBaseParamWidget):
         """
         # 1. 确定图像最大
         nchecknum = int(self.p.param('检测区域数量').value())
+        if nchecknum ==0 :
+            return
         ncolnum = int(self.p.param('全局拍摄控制', '拍摄组数').value())
         list_col = [0 for i in range(ncolnum)]
         list_h = []
@@ -506,6 +568,7 @@ class GuleParam(KxBaseParamWidget):
                 list_col[ncol] += 1
 
         nmaxrow = max(list_col)
+        print (list_h)
         nmaxh = max(list_h) * self._BUILD_MODEL_SCALE_FACTOR
 
         self.p.param('拼图信息', '行数').setValue(nmaxrow)
@@ -697,6 +760,8 @@ class GuleParam(KxBaseParamWidget):
             list_shead.append("检测区域%d"%i)
 
         return list_shead
+
+
 
     # def loadimg(self):
     #     file_name = QtWidgets.QFileDialog.getOpenFileName(self, "open file dialog", "D://card",

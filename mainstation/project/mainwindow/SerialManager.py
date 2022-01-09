@@ -3,12 +3,27 @@ import threading
 import time
 import imc_msg
 import time
+import logging
+
+
 
 class SerialManager(object):
     def __init__(self, h_parent, port, baudrate, nreadbuffersize):
         super(SerialManager, self).__init__()
         self.h_parent = h_parent
         self.myserial = serial.Serial(port=port, baudrate=baudrate)
+
+        # 通信日志独此一份log
+        # self.logger = logging.getLogger(__name__)
+        # self.logger.setLevel(level=logging.INFO)
+        # handler = logging.FileHandler("D:\\log\\HARDWARE%s.txt"%time.strftime("%Y-%m-%d"))
+        # handler.setLevel(logging.INFO)
+        # formatter = logging.Formatter('%(asctime)s - %(message)s')
+        # handler.setFormatter(formatter)
+        # self.logger.addHandler(handler)
+        self.logger = logging.getLogger('UI.%s' % self.__class__.__name__)
+
+
         self.list_write = []
         self.list_read = []
         self.n_readbuffersize = nreadbuffersize
@@ -59,8 +74,6 @@ class SerialManager(object):
 
             return readdata
 
-
-
     def write(self, data):
 
         self.list_write.append(data)
@@ -80,6 +93,7 @@ class SerialManager(object):
     def reconnect(self):
         self.myserial.open()
 
+
     def _cycle_read(self):
 
         while True:
@@ -88,7 +102,7 @@ class SerialManager(object):
 
             hexdata = data.hex()
 
-            print (hexdata)
+            self.logger.log(logging.INFO, "read: " + hexdata)
 
 
             if len(hexdata) > 3:
@@ -113,6 +127,14 @@ class SerialManager(object):
 
                     self.list_read.append(data)
 
+    def _hex_to_str(self, list_data):
+        s = ""
+        for data in list_data:
+            high = int(data / 16)
+            s += hex(high & 0x0F)[2:]
+            low = data % 16
+            s += hex(low)[2:]
+        return s
 
     def _cycle_write(self):
 
@@ -121,6 +143,8 @@ class SerialManager(object):
             if self.list_write != []:
 
                 data = self.list_write[0]
+
+                self.logger.log(logging.INFO, "write: " + self._hex_to_str(data))
 
                 self.myserial.write(data)
 

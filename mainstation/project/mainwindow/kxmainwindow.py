@@ -1,6 +1,7 @@
 import time
 import threading
 import logging
+import socket
 from library.mainwindow.BaseMainWindow import KXBaseMainWidget
 from library.common.BaseRunLog import KxBaseRunLog
 from library.parametersetting.BaseParameterSetting import KxBaseParameterSetting
@@ -24,6 +25,7 @@ class kxmainwindow(KXBaseMainWidget):
     _SIG_ERRORINFO = QtCore.pyqtSignal(str)
     def __init__(self, dict_config):
         super(kxmainwindow, self).__init__(dict_config)
+        self.dict_config = dict_config
         self.logger = logging.getLogger('UI.%s' % self.__class__.__name__)
         self.widget_Realtime = KxBaseMonitoringWidget.create(name=dict_config["mointoringwidget_classname"], h_parent=self)
         self.widget_Paramsetting = KxBaseParameterSetting(hparent=self, dict_config=dict_config)#参数设置
@@ -34,7 +36,9 @@ class kxmainwindow(KXBaseMainWidget):
         self.mySeria = SerialManager(h_parent=self, port=dict_config['hardwarecom'], baudrate=self._BAUDRATE, nreadbuffersize=self._HARDWARE_QUEUELEN)# 波特率比较固定，没必要配置
         self.h_control = ControlManager(self)
         self.h_control.setserial(self.mySeria)
-        self.h_checkcontrolthread = CheckControlThread()
+        self.h_checkcontrolthread = CheckControlThread(self, dict_config['AGV']['IP'], dict_config['AGV']['PORT'],
+                                                       dict_config['AGV']['STATION1ID'],dict_config['AGV']['STATION2ID'],
+                                                       dict_config['AGV']['STATION3ID'])
         self.h_checkcontrolthread.start()
 
         self.pushbutton_cpcts = QtWidgets.QPushButton(self)
@@ -169,6 +173,7 @@ class kxmainwindow(KXBaseMainWidget):
     def _offlinerun(self):
         super(kxmainwindow, self)._offlinerun()
         if self.ui.toolbtn_offlinerun.isChecked():  # 开始离线跑
+            self.callbarck2sendnextpackid(int(time.time()))
             self.widget_Realtime.clear()
 
 
@@ -232,8 +237,15 @@ class kxmainwindow(KXBaseMainWidget):
             self.h_control.setserial(self.mySeria)
             t = threading.Thread(target=self.h_control.buildmodel_second, args=s_extdata)
             t.start()
+        elif n_msgtype == imc_msg.MSG_GET_BASE_POINT_HIGH:
+            ipc_tool.kxlog("主站", logging.INFO, "开始标定高度")
+            self.serial_Reconnect()
+            self.h_control.setserial(self.mySeria)
+            t = threading.Thread(target=self.h_control.buildmodel_getsensorhigh, args=s_extdata)
+            t.start()
         elif n_msgtype == imc_msg.MSG_DOT_CHECK_RESULT:
             self.reccalibrateimg(s_extdata)
+
 
 
     def serial_Reconnect(self):
@@ -358,13 +370,16 @@ class kxmainwindow(KXBaseMainWidget):
         else:
             self.sendmsg(0, imc_msg.MSG_RECOVER_CAMERA_INFO_REVERSE)
 
+
     def _shoujian(self):
         ipc_tool.kxlog("主站", logging.INFO, "开始首件检测")
         self.serial_Reconnect()
         self.h_control.setserial(self.mySeria)
-        # self.h_control.buildmodel(s_extdata)
-        t = threading.Thread(target=self.h_control.control_calibrate)
+        t = threading.Thread(target=self.h_control.control_calibrate, args = [self.dict_config['SHOUJIAN']['XPOS'],
+                                                                             self.dict_config['SHOUJIAN']['YPOS1'],
+                                                                             self.dict_config['SHOUJIAN']['YPOS2']])
         t.start()
+
 
     def callback2dotcheck(self):
         self.sendmsg(0, imc_msg.MSG_DOT_CHECK_OPEN)
@@ -421,13 +436,47 @@ class kxmainwindow(KXBaseMainWidget):
 
 
 
+    def callbarck2sendnextpackid(self, packid):
+        print ('packid: ', packid)
+        data = json.dumps({'packid':str(packid)})
+        self.sendmsg(0, imc_msg.MSG_PACK_ID, data)
+
+
+    def callback2autorun(self):
+        """
+        自动循环检
+        :return:
+        """
+        # self.ui.toolbtn_offlinerun.setChecked(False)
+        # timeclock = QtCore.QTimer()
+        # timeclock.timeout.connect(self.__autorun)
+        # timeclock.start(1000 * 10)
+        print("开始循环检，10s后开始下一轮")
+
+    def __autorun(self):
+        pass
+        # self.ui.toolbtn_offlinerun.setChecked(True)
+        # self._offlinerun()
+
+    def callback2set_highsensor_point(self, list_param):
+        self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2set_highsensor_point', list_param)
+
+
+
 class CheckControlThread(threading.Thread):
-    def __init__(self):
+    def __init__(self, hparent, ip, port, nid1, nid2, nid3):
         super(CheckControlThread, self).__init__()
+        self.h_parent = hparent
         self.b_runstaus = False
         self.list_info = []
         self.controlmanger = None
         self.b_emit = False
+        # self.tcp_agvclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # self.tcp_agvclient.connect((ip, int(port)))
+        self.nid1 = nid1
+        self.nid2 = nid2
+        self.nid3 = nid3
+
 
 
     def setstatus(self, bstatus):
@@ -466,7 +515,8 @@ class CheckControlThread(threading.Thread):
 
                 self.b_emit = False
 
-                #动作1
+                #动作1, 监听设备上是否有小车
+                self.h_parent.callbarck2sendnextpackid(int(time.time()))
 
 
                 self.controlmanger.check_control(self.list_info)

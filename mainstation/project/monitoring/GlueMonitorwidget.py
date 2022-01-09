@@ -157,6 +157,9 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
                     self.view.addItem(roi)
 
+                # TODO : 为循环检而加
+                self.h_parentwidget.callback2autorun()
+
 
 
     def _transformpos(self, pos, w, h, rowid, colid):

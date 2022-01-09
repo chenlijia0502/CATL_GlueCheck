@@ -99,6 +99,9 @@ enum MessageType
 
 	MSG_CLOSECAMERA = 1090, //关闭海康相机
 
+	MSG_PACK_ID = 701, //发送pack id
+
+
 
 };
 

@@ -55,6 +55,7 @@ private:
 
 	void RecMsgToChangeCameraCaptureDirection(int nstatus);
 	void RecMsgJustOpenCamera();
+	void RecMsgPackId(const unsigned char* pExtData);// ’µΩÕ–≈Ãpack id 
 
 };
 

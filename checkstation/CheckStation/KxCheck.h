@@ -102,6 +102,9 @@ private:
 	kxCImageBuf					m_ImgSplicing;//拼接图（原图压缩之后拼接一起）
 	kxCImageBuf					m_ImgResize;
 
+	std::string					m_sPackID;
+	int							m_nCurPackIDimgindex;//当前pack id采集的第几张图
+
 private:
 	//转Bayer图像为彩色图像或模拟数据转换
 	int TransferImage(const CKxCaptureImage& card);
@@ -121,7 +124,7 @@ private:
 
 	void DotCheckImg(const kxCImageBuf& SrcImg);
 
-	void SaveImgToPath(const kxCImageBuf& SrcImg, Json::Value& sendresult);// 根据检测结果将数据保存到
+	void SaveBadImg(const kxCImageBuf& SrcImg, Json::Value& sendresult);// 根据检测结果将数据保存到
 
 	void CopyImg2SplicImg(const kxCImageBuf& SrcImg, int nrow, int ncol);
 	
@@ -146,6 +149,18 @@ public:
 	
 
 	void SetSaveStatus(SaveImgStatus status, char* savepath=NULL);//HYH 2020.02.15 设置存图状态，也即存取什么图。
+
+	void SetPackID(std::string packid)//收到pack id后会初始化所有参数
+	{
+		m_sPackID = packid;
+
+		m_hcombineimg.Clear();
+
+		m_nCurPackIDimgindex = 0;
+
+	}
+
+	
 };
 
 extern  CKxCheck   g_CheckObj;
