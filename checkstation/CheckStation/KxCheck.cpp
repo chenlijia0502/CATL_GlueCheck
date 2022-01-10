@@ -21,7 +21,8 @@ CKxCheck::CKxCheck()
 {
 	m_nimgsavenum = 0;
 	InitCheckMethod();
-	//InitPythonEnvironment();
+	m_echeckstatus = _OFFLINE_RUN;
+
 }
 
 CKxCheck::~CKxCheck()
@@ -605,22 +606,26 @@ int CKxCheck::ClearIndex()
 
 void CKxCheck::SaveImg(CheckResultStatus status)
 {
-	time_t now = time(0);
-	tm *ltm = localtime(&now);
-	char goodpath[128];
-	memset(goodpath, 0, sizeof(goodpath));
-	sprintf_s(goodpath, "F:\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
-	if (_access(goodpath, 0))
-		_mkdir(goodpath);
-	sprintf_s(goodpath, "F:\\%d-%d-%d\\%s\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str());
-	if (_access(goodpath, 0))
-		_mkdir(goodpath);
-	sprintf_s(goodpath, "F:\\%d-%d-%d\\%s\\原图\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str());
-	if (_access(goodpath, 0))
-		_mkdir(goodpath);
-	sprintf_s(goodpath, "F:\\%d-%d-%d\\%s\\原图\\%d.bmp", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str(), m_nCurPackIDimgindex);
+	if (m_echeckstatus == _ONLINE_RUN)
+	{
+		time_t now = time(0);
+		tm *ltm = localtime(&now);
+		char goodpath[128];
+		memset(goodpath, 0, sizeof(goodpath));
+		sprintf_s(goodpath, "F:\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
+		if (_access(goodpath, 0))
+			_mkdir(goodpath);
+		sprintf_s(goodpath, "F:\\%d-%d-%d\\%s\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str());
+		if (_access(goodpath, 0))
+			_mkdir(goodpath);
+		sprintf_s(goodpath, "F:\\%d-%d-%d\\%s\\原图\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str());
+		if (_access(goodpath, 0))
+			_mkdir(goodpath);
+		sprintf_s(goodpath, "F:\\%d-%d-%d\\%s\\原图\\%d.bmp", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str(), m_nCurPackIDimgindex);
 
-	m_hBaseFun.SaveBMPImage_h(goodpath, m_TransferImage);
+		m_hBaseFun.SaveBMPImage_h(goodpath, m_TransferImage);
+	}
+
 
 }
 
@@ -935,70 +940,70 @@ void CKxCheck::DotCheckImg(const kxCImageBuf& SrcImg)
 
 void CKxCheck::SaveBadImg(const kxCImageBuf& SrcImg, Json::Value& sendresult)
 {
-	int ndefectnum = sendresult["defect num"].asInt();
-	time_t now = time(0);
-	tm *ltm = localtime(&now);
 
-	//
-	char badpath[128];
-	sprintf_s(badpath, "F:\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
-	if (_access(badpath, 0))
-		_mkdir(badpath);
-	sprintf_s(badpath, "F:\\%d-%d-%d\\%s", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str());
-	if (_access(badpath, 0))
-		_mkdir(badpath);
-	sprintf_s(badpath, "F:\\%d-%d-%d\\%s\\缺陷图\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str());
-	if (_access(badpath, 0))
-		_mkdir(badpath);
-	
-	for (int i = 0; i < ndefectnum; i++)
+	if (m_echeckstatus == _ONLINE_RUN)
 	{
-		Json::Value single = sendresult["defect feature"][i];
-		
-		std::string a = single["defectid"].asString();
 
-		char path[32];
+		int ndefectnum = sendresult["defect num"].asInt();
+		time_t now = time(0);
+		tm *ltm = localtime(&now);
 
-		sprintf_s(path, "%s.bmp", a.c_str());
+		//
+		char badpath[128];
+		sprintf_s(badpath, "F:\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
+		if (_access(badpath, 0))
+			_mkdir(badpath);
+		sprintf_s(badpath, "F:\\%d-%d-%d\\%s", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str());
+		if (_access(badpath, 0))
+			_mkdir(badpath);
+		sprintf_s(badpath, "F:\\%d-%d-%d\\%s\\缺陷图\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str());
+		if (_access(badpath, 0))
+			_mkdir(badpath);
 
-		sprintf_s(badpath, "F:\\%d-%d-%d\\%s\\缺陷图\\%s", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str(), path);
-
-		int pos[4];//left,top,width,height
-
-		for (int nindex = 0; nindex < 4; nindex++)
+		for (int i = 0; i < ndefectnum; i++)
 		{
-			pos[nindex] = single["pos"][nindex].asInt();
+			Json::Value single = sendresult["defect feature"][i];
+
+			std::string a = single["defectid"].asString();
+
+			char path[32];
+
+			sprintf_s(path, "%s.bmp", a.c_str());
+
+			sprintf_s(badpath, "F:\\%d-%d-%d\\%s\\缺陷图\\%s", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str(), path);
+
+			int pos[4];//left,top,width,height
+
+			for (int nindex = 0; nindex < 4; nindex++)
+			{
+				pos[nindex] = single["pos"][nindex].asInt();
+			}
+			int cutpos[4];
+
+			cutpos[0] = max(0, pos[0] - 50);
+
+			cutpos[1] = max(0, pos[1] - 50);
+
+			cutpos[2] = min(SrcImg.nWidth - 1, pos[0] + pos[2] + 50 - 1);
+
+			cutpos[3] = min(SrcImg.nHeight - 1, pos[1] + pos[3] + 50 - 1);
+
+
+
+			kxRect<int> cutRect;
+
+			cutRect.setup(cutpos[0], cutpos[1], cutpos[2], cutpos[3]);
+
+			kxCImageBuf cutimg;
+
+			cutimg.Init(cutRect.Width(), cutRect.Height(), SrcImg.nChannel);
+
+			m_hBaseFun.KxCopyImage(SrcImg, cutimg, cutRect);
+
+			m_hBaseFun.SaveBMPImage_h(badpath, cutimg);
 		}
-		int cutpos[4];
 
-		cutpos[0] = max(0, pos[0] - 50);
-
-		cutpos[1] = max(0, pos[1] - 50);
-
-		cutpos[2] = min(SrcImg.nWidth - 1, pos[0] + pos[2] + 50 - 1);
-		
-		cutpos[3] = min(SrcImg.nHeight - 1, pos[1] + pos[3] + 50 - 1);
-
-
-
-		kxRect<int> cutRect;
-
-		cutRect.setup(cutpos[0], cutpos[1], cutpos[2], cutpos[3]);
- 
-		kxCImageBuf cutimg;
-
-		cutimg.Init(cutRect.Width(), cutRect.Height(), SrcImg.nChannel);
-
-		m_hBaseFun.KxCopyImage(SrcImg, cutimg, cutRect);
-
-		m_hBaseFun.SaveBMPImage_h(badpath, cutimg);
 	}
-
-
-
-
-
-
 
 }
 
@@ -1009,6 +1014,8 @@ void CKxCheck::CopyImg2SplicImg(const kxCImageBuf& SrcImg, int nrow, int ncol)
 
 	int nsingleH = SrcImg.nHeight / _SPLICING_IMG_SCALEFACTOR;
 
+	cv::Mat srcmat = cv::Mat(SrcImg.nHeight, SrcImg.nWidth, CV_8UC(SrcImg.nChannel), SrcImg.buf, SrcImg.nPitch);
+
 	IppiSize imgsize = {nsingleW, nsingleH};
 
 	m_ImgResize.Init(nsingleW, nsingleH, 3);
@@ -1017,6 +1024,16 @@ void CKxCheck::CopyImg2SplicImg(const kxCImageBuf& SrcImg, int nrow, int ncol)
 
 	ippiCopy_8u_C3R(m_ImgResize.buf, m_ImgResize.nPitch, m_ImgSplicing.buf +
 		ncol * nsingleW * m_ImgSplicing.nChannel + nrow * nsingleH * m_ImgSplicing.nPitch, m_ImgSplicing.nPitch, imgsize);
+
+	//static int nsaveidx = 0;
+
+	//char savepath[32];
+
+	//sprintf_s(savepath, "d:\\suoluetu%d.bmp", nsaveidx);
+
+	//nsaveidx++;
+
+	//m_hBaseFun.SaveBMPImage_h(savepath, SrcImg);
 
 
 }
@@ -1031,6 +1048,8 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	//TransferImage(SrcCapImg);
 	m_TransferImage.SetImageBuf(SrcCapImg.m_Image.buf, SrcCapImg.m_Image.nWidth, SrcCapImg.m_Image.nHeight, SrcCapImg.m_Image.nPitch, SrcCapImg.m_Image.nChannel, true);
 	
+	SaveImg(_Check_Ok);
+
 	
 	m_hcombineimg.appendImg(m_TransferImage, m_nCurPackIDimgindex);
 	//m_hcombineimg.appendImg(m_TransferImage, SrcCapImg.m_ImageID - 1);
@@ -1039,7 +1058,6 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	
 	m_finalcheckstatus = CheckResultStatus::_Check_Ok;
 	
-	SaveImg(_Check_Ok);
 
 	m_nCurPackIDimgindex++;
 
@@ -1078,6 +1096,12 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
  
 					m_hBaseFun.KxCopyImage(bigimgA, checkimgA, copyrect);
 
+					//char savepath[32];
+
+					//sprintf_s(savepath, "d:\\1.bmp");
+
+					//m_hBaseFun.SaveBMPImage_h(savepath, bigimgB);
+
 					m_hBaseFun.KxCopyImage(bigimgB, checkimgB, copyrect);
 
 					m_hCheckTools[0]->SetParam(&m_param.params[i]);
@@ -1096,18 +1120,26 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 
 					m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_ImgMaxSizeA, m_ImgMaxSizeB, m_DstImg, m_hCheckResult[0]);
 
-					//bhascheck = true;
-					SaveBadImg(m_DstImg, m_hCheckResult[0]);
+					char savepath[32];
 
+					sprintf_s(savepath, "d:\\dstimg.bmp", m_DstImg);
+
+					m_hBaseFun.SaveBMPImage_h(savepath, m_DstImg);
+
+					SaveBadImg(m_DstImg, m_hCheckResult[0]);
 
 					if (i == m_param.m_nROINUM - 1)// 表示全部检测完成,主站收到这个标志位会进行
 					{
 						m_hCheckResult[0]["ISFULL"] = 1;
 					}
 
+					CopyImg2SplicImg(m_DstImg, m_param.params[i].m_nCurGrabID, m_param.params[i].m_nGrabTimes);
+
+
 					AnalyseCheckResult(i, m_hCheckResult);
 
-					CopyImg2SplicImg(m_DstImg, m_param.params[i].m_nCurGrabID, m_param.params[i].m_nGrabTimes);
+
+
 
 				}
 
@@ -1131,27 +1163,31 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	{
 		m_hcombineimg.Clear();
 
-		//保存缩略图
-		time_t now = time(0);
-		tm *ltm = localtime(&now);
-		static int nsaveindex = 0;
+		if (m_echeckstatus == _ONLINE_RUN)
+		{
+			//保存缩略图
+			time_t now = time(0);
+			tm *ltm = localtime(&now);
+			static int nsaveindex = 0;
 
-		char suoluetu[128];
-		memset(suoluetu, 0, sizeof(suoluetu));
-		sprintf_s(suoluetu, "F:\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
-		if (_access(suoluetu, 0))
-			_mkdir(suoluetu);
-		sprintf_s(suoluetu, "F:\\%d-%d-%d\\%s\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str());
-		if (_access(suoluetu, 0))
-			_mkdir(suoluetu);
-		sprintf_s(suoluetu, "F:\\%d-%d-%d\\%s\\缩略图\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str());
-		if (_access(suoluetu, 0))
-			_mkdir(suoluetu);
-		sprintf_s(suoluetu, "F:\\%d-%d-%d\\%s\\缩略图\\%d.bmp", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str(), nsaveindex);
-		m_hBaseFun.SaveBMPImage_h(suoluetu, m_ImgSplicing);
+			char suoluetu[128];
+			memset(suoluetu, 0, sizeof(suoluetu));
+			sprintf_s(suoluetu, "F:\\%d-%d-%d\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday);
+			if (_access(suoluetu, 0))
+				_mkdir(suoluetu);
+			sprintf_s(suoluetu, "F:\\%d-%d-%d\\%s\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str());
+			if (_access(suoluetu, 0))
+				_mkdir(suoluetu);
+			sprintf_s(suoluetu, "F:\\%d-%d-%d\\%s\\缩略图\\", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str());
+			if (_access(suoluetu, 0))
+				_mkdir(suoluetu);
+			sprintf_s(suoluetu, "F:\\%d-%d-%d\\%s\\缩略图\\%d.bmp", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, m_sPackID.c_str(), nsaveindex);
+			m_hBaseFun.SaveBMPImage_h(suoluetu, m_ImgSplicing);
 
-		// 保存后清除缩略图
-		ippsSet_8u(0, m_ImgSplicing.buf, m_ImgSplicing.nPitch * m_ImgSplicing.nHeight);
+			// 保存后清除缩略图
+			ippsSet_8u(0, m_ImgSplicing.buf, m_ImgSplicing.nPitch * m_ImgSplicing.nHeight);
+		}
+
 	}
 
 

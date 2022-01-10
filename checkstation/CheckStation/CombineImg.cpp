@@ -23,6 +23,9 @@ void CCombineImg::Init(int nW, int nH, int ncol, int* nnums, kxRect<int>* modelr
 	}
 
 	Clear();
+
+	m_bisinit = true;
+
 }
 
 
@@ -30,6 +33,21 @@ void CCombineImg::appendImg(kxCImageBuf& srcimg, int nImgIndex)
 {
 
 	// 1. 确认是哪一列    nImgIndex是从0开始数的
+
+	if (nImgIndex == 71)
+	{
+		int nnn = 1;
+		//char savepath[32];
+		//sprintf_s(savepath, "d:\\1.bmp");
+		//cv::Mat saveimg;
+		//saveimg = cv::Mat(srcimg.nHeight, srcimg.nWidth, CV_8UC(srcimg.nChannel), srcimg.buf, srcimg.nPitch);
+		//cv::imwrite(savepath, saveimg);
+		//saveimg = cv::Mat(m_ImgBigListB[0].nHeight, m_ImgBigListB[0].nWidth, CV_8UC(srcimg.nChannel), srcimg.buf);
+
+		//sprintf_s(savepath, "d:\\2.bmp");
+
+
+	}
 
 	int ncolindex = 0;
 
@@ -81,15 +99,23 @@ void CCombineImg::appendImg(kxCImageBuf& srcimg, int nImgIndex)
 
 		cv::flip(src, dst, 0);
 
-		m_ImgBigListB[ncolindex].SetImageBuf(dst.data, dst.cols, dst.rows, dst.step, dst.channels(), false);
+		m_ImgBigListB[ncolindex].SetImageBuf(dst.data, dst.cols, dst.rows, dst.step, dst.channels(), true);
 
-		m_bstatus[ncolindex] = true;
 
 		m_nCurScanTimes += 1;
+		//m_bstatus[ncolindex] = true;
 
 		// 4. 对列满的图像进行模板匹配，然后对齐
 
-		MatchTemplateAndTransform(ncolindex);
+		if (MatchTemplateAndTransform(ncolindex))
+		{
+			m_bstatus[ncolindex] = true;
+		}
+		else
+		{
+			m_bstatus[ncolindex] = false;
+
+		}
 
 
 	}
@@ -122,7 +148,7 @@ void CCombineImg::ResetCol(int &nIndex)
 }
 
 
-void CCombineImg::MatchTemplateAndTransform(int ncol)
+bool CCombineImg::MatchTemplateAndTransform(int ncol)
 {
 	kxCImageBuf templateimg;
 
@@ -152,10 +178,12 @@ void CCombineImg::MatchTemplateAndTransform(int ncol)
 
 	float frate = m_hAlg.Matchtemplate(matchpos, matchimg, templateimg);
 
-	if (frate > 0.6)
+	int ncaptureoffset = m_rectmodel[ncol].top - (matchpos.y + ntop);// B的位置比A往上了这么多
+
+	return true;
+	if (frate > 0.6 && ncaptureoffset >= 0)// ncaptureoffset 在理想的位置只应该大于0
 	{
 		//int ncaptureoffset = nH - matchpos.y - templateimg.nHeight;
-		int ncaptureoffset = m_rectmodel[ncol].top - (matchpos.y + ntop);// B的位置比A往上了这么多
 
 		kxCImageBuf bigimg;
 
@@ -165,12 +193,28 @@ void CCombineImg::MatchTemplateAndTransform(int ncol)
 
 		IppiSize copybigsize = { m_ImgBigListB[ncol].nWidth, m_ImgBigListB[ncol].nHeight - ncaptureoffset };
 
-		ippiCopy_8u_C3R(m_ImgBigListB[ncol].buf , m_ImgBigListB[ncol].nPitch,
+		IppStatus status = ippiCopy_8u_C3R(m_ImgBigListB[ncol].buf , m_ImgBigListB[ncol].nPitch,
 			
 			bigimg.buf + ncaptureoffset * bigimg.nPitch, bigimg.nPitch, copybigsize);
 
-		m_ImgBigListB[ncol].SetImageBuf(bigimg, true);
+		//m_ImgBigListB[ncol].SetImageBuf(bigimg, true);
 
+		IppiSize bigsize = { m_ImgBigListB[ncol].nWidth, m_ImgBigListB[ncol].nHeight};
+
+		status = ippiCopy_8u_C3R(bigimg.buf, bigimg.nPitch, m_ImgBigListB[ncol].buf, m_ImgBigListB[ncol].nPitch, bigsize);
+
+		if (status != 0)
+		{
+			int kk = 0;
+		}
+
+		return true;
+
+	}
+	else
+	{
+		std::cout << "匹配结果为负，" << ncol << std::endl;
+		return false;
 	}
 
 }
@@ -191,8 +235,25 @@ void CCombineImg::Clear()
 {
 	m_nCurScanTimes = 0;
 
-	for (int i = 0; i < _MAX_SCAN_NUM; i++)
+	if (m_bisinit)
 	{
-		m_bstatus[i] = false;
+		for (int i = 0; i < m_nScanTimes; i++)
+		{
+			m_bstatus[i] = false;
+
+			ippsSet_8u(0, m_ImgBigListA[i].buf, m_ImgBigListA[i].nPitch * m_ImgBigListA[i].nHeight);
+
+			ippsSet_8u(0, m_ImgBigListB[i].buf, m_ImgBigListB[i].nPitch * m_ImgBigListB[i].nHeight);
+
+		}
+
 	}
+	else
+	{
+		for (int i = 0; i < _MAX_SCAN_NUM; i++)
+		{
+			m_bstatus[i] = false;
+		}
+	}
+
 }

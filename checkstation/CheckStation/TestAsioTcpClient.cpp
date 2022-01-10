@@ -295,6 +295,7 @@ void CTestAsioTcpClient::RecMsgToStartCheck(const unsigned char* pExtData)
 		}
 		return; //参数加载失败，不检查
 	}
+	Check::g_GetCheckCardObj().SetCheckStatua(1);
 
 	Graber::g_GetGraberBuffer().Init(true);
 	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("载入模板完成"));
@@ -363,7 +364,8 @@ void CTestAsioTcpClient::RecMsgToStartSimulate(const unsigned char* pExtData)
 	}
 
 	Graber::g_GetGraberBuffer().Init(false);
-	
+	Check::g_GetCheckCardObj().SetCheckStatua(0);
+
 
 	if (_access(pStimulateDir, 0) != 0)
 	{

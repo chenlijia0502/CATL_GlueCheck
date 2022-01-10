@@ -55,6 +55,12 @@ public:
 
 	};
 
+	enum CheckStatus
+	{
+		_OFFLINE_RUN = 0,//离线检，模拟跑
+		_ONLINE_RUN = 1,//在线检
+	};
+
 
 
 	struct Param
@@ -101,9 +107,11 @@ private:
 	kxCImageBuf					m_Savebigimg[6];
 	kxCImageBuf					m_ImgSplicing;//拼接图（原图压缩之后拼接一起）
 	kxCImageBuf					m_ImgResize;
+	cv::Mat						m_MatResize;
 
 	std::string					m_sPackID;
 	int							m_nCurPackIDimgindex;//当前pack id采集的第几张图
+	CheckStatus					m_echeckstatus;
 
 private:
 	//转Bayer图像为彩色图像或模拟数据转换
@@ -158,6 +166,18 @@ public:
 
 		m_nCurPackIDimgindex = 0;
 
+	}
+
+	void SetCheckStatua(int nstatus)
+	{
+		if (nstatus > 0)
+		{
+			m_echeckstatus = _ONLINE_RUN;
+		}
+		else
+		{
+			m_echeckstatus = _OFFLINE_RUN;
+		}
 	}
 
 	

@@ -17,12 +17,14 @@ from project.other.globalparam import *
 from project.mainwindow.Calibrate import FindEdgeToCalibrate, ShowCalibrateWidget
 from project.mainwindow.CPCTSParam import WidgetCPCTSParam
 from library.common.globalfun import DriveFreeSpace, DriveTotalSize
+from project.mainwindow.MesParamTree import MesParamTreeWidget
 
 class kxmainwindow(KXBaseMainWidget):
     _BAUDRATE = 115200
     _HARDWARE_QUEUELEN = 7
     _SIG_SHOWLOCK = QtCore.pyqtSignal()
     _SIG_ERRORINFO = QtCore.pyqtSignal(str)
+    _SIG_SHOWMES  = QtCore.pyqtSignal(str)
     def __init__(self, dict_config):
         super(kxmainwindow, self).__init__(dict_config)
         self.dict_config = dict_config
@@ -63,6 +65,19 @@ class kxmainwindow(KXBaseMainWidget):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.__timeout2checkdiskcapacity)
         self.timer.start(self.ntimeout)
+
+        self.widget_mes = MesParamTreeWidget()
+        self._SIG_SHOWMES.connect(self.showmeswidget)
+        self.widget_mes.SIG_CHUZHAN.connect(self._control_out)
+
+
+    def _control_out(self):
+        self.h_checkcontrolthread.sendagv2next()
+
+
+    def showmeswidget(self, spackid):
+        self.widget_mes.setpackid(spackid)
+        self.widget_mes.show()
 
 
     def __timeout2checkdiskcapacity(self):
@@ -364,6 +379,7 @@ class kxmainwindow(KXBaseMainWidget):
             self.h_control.setcheckstatus(False)
 
 
+
     def changeCameraCapturedirection(self, status=False):
         if status == False:
             self.sendmsg(0, imc_msg.MSG_CHANGE_CAMERA_INFO_REVERSE)
@@ -451,7 +467,12 @@ class kxmainwindow(KXBaseMainWidget):
         # timeclock = QtCore.QTimer()
         # timeclock.timeout.connect(self.__autorun)
         # timeclock.start(1000 * 10)
-        print("开始循环检，10s后开始下一轮")
+        #print("开始循环检，10s后开始下一轮")
+        print('开始循环检')
+        self.h_checkcontrolthread.emits()
+        pass
+
+
 
     def __autorun(self):
         pass
@@ -464,18 +485,23 @@ class kxmainwindow(KXBaseMainWidget):
 
 
 class CheckControlThread(threading.Thread):
+    _MAX_AGV_BUFFERLEN = 100  # 赌小车答复不会一次性答复这么长
+
     def __init__(self, hparent, ip, port, nid1, nid2, nid3):
         super(CheckControlThread, self).__init__()
         self.h_parent = hparent
         self.b_runstaus = False
+        self.b_isfirstrun = True# 是否为第一次触发，第一次触发需要人为按下开始按钮
         self.list_info = []
         self.controlmanger = None
         self.b_emit = False
-        # self.tcp_agvclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.tcp_agvclient.connect((ip, int(port)))
-        self.nid1 = nid1
-        self.nid2 = nid2
-        self.nid3 = nid3
+        self.tcp_agvclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.tcp_agvclient.connect((ip, int(port)))
+        self.tcp_agvclient.settimeout(2)
+        self.nid1 = int(nid1)
+        self.nid2 = int(nid2)
+        self.nid3 = int(nid3)
+        self.s_packid = str(int(time.time()))
 
 
 
@@ -486,6 +512,8 @@ class CheckControlThread(threading.Thread):
         :return:
         """
         self.b_runstaus = bstatus
+        if bstatus:
+            self.b_isfirstrun = True
 
 
     def setinfo(self, list_info):
@@ -504,6 +532,230 @@ class CheckControlThread(threading.Thread):
     def emits(self):
         self.b_emit = True
 
+
+    def str_to_hex(self, data):
+        list_hex = []
+        for i in range(0, len(data), 2):
+            list_hex.append(int(data[i:i + 2], 16))
+        return list_hex
+
+
+    def list_hex_to_str(self, list_data):
+        sword = ''
+
+        for data in list_data:
+
+            sword += chr(data)
+
+        return sword
+
+
+    # def waitforagv(self):
+    #     #1. 等待小车
+    #
+    #     nagvid = 0
+    #
+    #     while 1:
+    #         self.tcp_agvclient.send(bytes(self.MSG_LISTEN[0]))
+    #
+    #         data = self.tcp_agvclient.recv(11).hex()
+    #
+    #         list_data = self.str_to_hex(data)
+    #         print('read data: ', list_data)
+    #
+    #         if len(list_data) > 8 :
+    #
+    #             if list_data[8] == 3:# 3代表站点有车
+    #
+    #                 nagvid = list_data[7]
+    #
+    #                 break
+    #         else:
+    #             time.sleep(1)
+    #
+    #     #2. 获取packid
+    #
+    #     self.MSG_GETPACKID[5] = nagvid
+    #
+    #     self.tcp_agvclient.send(bytes(self.MSG_GETPACKID))
+    #
+    #     readdata = self.tcp_agvclient.recv(100).hex()
+    #     list_readdata = self.str_to_hex(readdata)
+    #
+    #     datalen = list_readdata[3]
+    #
+    #     targetlist = list_readdata[6 : 6 + datalen - 2]
+    #
+    #     spackid = ""
+    #     for data in targetlist:
+    #         spackid += chr(data)
+    #
+    #     self.s_packid = spackid
+    #     print ('pack id :', self.s_packid)
+    #
+    #     # #3. 控制小车出发去下一个工位
+    #     print('开始往下个工位去')
+    #     self.tcp_agvclient.send(bytes(self.MSG_CONTROL[0]))
+    #     print(self.tcp_agvclient.recv(11).hex())
+    #
+    #     while 1:
+    #         self.tcp_agvclient.send(bytes(self.MSG_LISTEN[1]))
+    #
+    #         data = self.tcp_agvclient.recv(11).hex()
+    #
+    #         list_data = self.str_to_hex(data)
+    #
+    #         print ('read data: ', list_data)
+    #
+    #         if len(list_data) > 8:
+    #
+    #             if list_data[8] == 3:# 3代表站点有车
+    #
+    #                 break
+    #
+    #         else:
+    #
+    #             time.sleep(1)
+    #
+    #     print('小车已进入到检测工位')
+
+
+    def _get_status_and_packid(self, nagvstationid):
+        """
+        获取站点状态以及pack号
+        :param nagvstationid: 站点号
+        :return: 1为当前站点有车，0为没有
+        """
+
+        MSG_AGV_GETINFO = imc_msg.AGVMSG.MSG_BASE_GET_STATION_STATUS
+
+        MSG_AGV_GETINFO[5] = nagvstationid
+
+        self.tcp_agvclient.send(bytes(MSG_AGV_GETINFO))
+
+        print('发送获取站点状态， 1： ', MSG_AGV_GETINFO)
+
+        sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
+
+        print('发送获取站点状态， 2： ', sreaddata)
+
+
+        list_readdata = self.str_to_hex(sreaddata)
+
+        if len(list_readdata) > 8 and list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_ONSTATION:
+
+            nagvid = list_readdata[7]
+
+            MSG_GET_PACKID = imc_msg.AGVMSG.MSG_BASE_GET_PACK_ID
+
+            MSG_GET_PACKID[5] = nagvid
+
+            while 1:
+
+                self.tcp_agvclient.send(bytes(MSG_GET_PACKID))
+
+                print('发送获取站点状态， 3： ', MSG_GET_PACKID)
+
+                sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
+
+                print('发送获取站点状态， 4： ', MSG_GET_PACKID)
+
+
+                list_readdata = self.str_to_hex(sreaddata)
+
+                if len(list_readdata) > 5 and list_readdata[4] == 0xB1:
+
+                    nidlen = list_readdata[3]
+
+                    list_packid = list_readdata[6:6 + nidlen - 2]
+
+                    self.s_packid = self.list_hex_to_str(list_packid)
+
+                    print('发送获取站点状态， 5： ', list_readdata, self.s_packid)
+
+                    return 1
+
+                time.sleep(1)
+
+        else:
+
+            return 0
+
+
+    def waitforagv(self):
+        """
+        等待agv小车的到来
+        :return:
+        """
+        #1. 清楚接收缓存
+        try:
+            try:
+                self.tcp_agvclient.recv(1000)
+            except Exception as e:
+                pass#清除缓存
+
+            #2. 获取中间站点小车状态
+            if self._get_status_and_packid(self.nid2):
+
+                return# 站点2内有车直接返回，并开始
+
+            else:
+                # 3. 获取进站口站点状态
+                while not self._get_status_and_packid(self.nid1):
+
+                    time.sleep(1)
+
+                # 4. 关闭光栅放入小车
+                self.controlmanger.control_guangshan(0)
+
+                MSG_CONTROL_AGV = imc_msg.AGVMSG.MSG_BASE_CONTROL_STATION_STATUS
+
+                MSG_CONTROL_AGV[5] = self.nid1
+
+                self.tcp_agvclient.send(bytes(MSG_CONTROL_AGV))
+
+                print ('放入小车: ', MSG_CONTROL_AGV)
+
+                # 5. 检测小车到位中间站点
+                while 1:
+
+                    MSG_AGV_GETINFO = imc_msg.AGVMSG.MSG_BASE_GET_STATION_STATUS
+
+                    MSG_AGV_GETINFO[5] = self.nid2
+
+                    self.tcp_agvclient.send(bytes(MSG_AGV_GETINFO))
+
+                    print('请求站点20状态: ', MSG_CONTROL_AGV)
+
+                    sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
+
+                    print('获取站点20状态: ', sreaddata)
+
+                    list_readdata = self.str_to_hex(sreaddata)
+
+                    if len(list_readdata) > 8 and list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_ONSTATION:
+
+                        break
+
+                # 6. 打开光栅
+                self.controlmanger.control_guangshan(1)
+        except Exception as e:
+            print('等待AGV错误', e)
+
+
+
+
+
+    def sendagv2next(self):
+
+        MSG_CONTROL_AGV = imc_msg.AGVMSG.MSG_BASE_CONTROL_STATION_STATUS
+
+        MSG_CONTROL_AGV[5] = self.nid2
+
+        self.tcp_agvclient.send(bytes(MSG_CONTROL_AGV))
+
+
+
     def run(self):
         """
         执行检测需要的动作
@@ -515,18 +767,30 @@ class CheckControlThread(threading.Thread):
 
                 self.b_emit = False
 
+                #复位开始按钮按下，只对开始检测后第一次有用
+                self.controlmanger.waitforstart(self.b_isfirstrun)
+
+                #初始化所有气缸状态
+                self.controlmanger.MakeEveryposFuwei()
+
                 #动作1, 监听设备上是否有小车
-                self.h_parent.callbarck2sendnextpackid(int(time.time()))
+                self.waitforagv()
 
+                #发送packdi
+                self.h_parent.callbarck2sendnextpackid(self.s_packid)
 
+                #控制主流程
                 self.controlmanger.check_control(self.list_info)
 
-                #动作完判断
+                self.b_isfirstrun = False
+
                 if not self.b_runstaus: continue
 
-                #动作2
+                #送小车到下一个工位
+                #self.sendagv2next()
 
                 #..........
+                self.h_parent._SIG_SHOWMES.emit(self.s_packid)
 
             else:
 

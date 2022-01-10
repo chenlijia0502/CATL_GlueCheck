@@ -470,24 +470,7 @@ void CGlueCheck::GetGlueMask()
 
 	/* 方案二   RGB 转HSV，S - V 的结果二值化取最大结果 */
 
-
-	//cv::Mat targetimg1 = cv::Mat(m_ImgHSV[1].nHeight, m_ImgHSV[1].nWidth, CV_8UC1, m_ImgHSV[1].buf, m_ImgHSV[1].nPitch);
-
-	//cv::Mat targetimg2 = cv::Mat(m_ImgHSV[0].nHeight, m_ImgHSV[0].nWidth, CV_8UC1, m_ImgHSV[2].buf, m_ImgHSV[2].nPitch);
-
-
-	//cv::Mat blurresult1, blurresult2, subresult, threshimg;
-
-	//cv::blur(targetimg1, blurresult1, cv::Size(7, 7));
-
-	//cv::blur(targetimg2, blurresult2, cv::Size(7, 7));
-
-	//cv::subtract(blurresult1, blurresult2, subresult);
-
-	//cv::threshold(subresult, threshimg, 50, 255, cv::THRESH_BINARY);
-
-	//m_ImgThresh.SetImageBuf(threshimg.data, threshimg.cols, threshimg.rows, threshimg.step, threshimg.channels(), false);
-
+	/*
 	m_hAlg.ThreshImg(m_ImgHSV[1], m_ImgThresh, 95, CEmpiricaAlgorithm::_BINARY);
 	
 	m_hFun.KxOpenImage(m_ImgThresh, m_ImgOpen, 11, 11);
@@ -522,16 +505,12 @@ void CGlueCheck::GetGlueMask()
 	IppiSize copysize = { cutimg.cols, cutimg.rows };
 
 	ippiCopy_8u_C1R(cutimg.data, cutimg.step, srcimg.data + x + srcimg.step * y, srcimg.step, copysize);
+	*/
 
 
+	m_ImgGlueMask.Init(m_ImgHSV[1].nWidth, m_ImgHSV[1].nHeight);
 
-	////int maskheight = m_ImgGlueMask.nHeight / 5;
-
-	////int maskstart = m_ImgGlueMask.nHeight - maskheight;
-
-	////IppiSize blobsize = { m_ImgGlueMask.nWidth,maskheight };
-
-	////ippiSet_8u_C1R(0, m_ImgGlueMask.buf + maskstart * m_ImgGlueMask.nPitch, m_ImgGlueMask.nPitch, blobsize);
+	ippsSet_8u(255, m_ImgGlueMask.buf, m_ImgGlueMask.nPitch * m_ImgGlueMask.nHeight);
 
 	m_ImgColorGlueMask.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight, 3);
 
@@ -674,6 +653,9 @@ void CGlueCheck::MergeImg(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB
 
 	ippiCopy_8u_P3C3R(pbuf, threshimg.nPitch, guobaomaskimg.buf, guobaomaskimg.nPitch, imgsize);
 
+
+
+
 	// A - mask 
 	ippiSub_8u_C3RSfs(guobaomaskimg.buf, guobaomaskimg.nPitch, SrcImgA.buf, SrcImgA.nPitch, img1.buf, img1.nPitch, imgsize, 0);
 
@@ -683,6 +665,7 @@ void CGlueCheck::MergeImg(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB
 	DstImg.Init(threshimg.nWidth, threshimg.nHeight, 3);
 
 	ippiAdd_8u_C3RSfs(img1.buf, img1.nPitch, img2.buf, img2.nPitch, DstImg.buf, DstImg.nPitch, imgsize, 0);
+
 
 }
 
@@ -774,7 +757,7 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 
 	MergeImg(SrcImgA, SrcImgB, m_ImgCheck);
 
-	checkyiwu(m_ImgCheck, checkresult);
+	//checkyiwu(m_ImgCheck, checkresult);
 
 	DstImg.SetImageBuf(m_ImgCheck, true);
 

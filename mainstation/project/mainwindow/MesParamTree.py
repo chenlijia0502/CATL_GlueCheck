@@ -11,13 +11,14 @@ import logging
 
 
 class MesParamTreeWidget(QtWidgets.QDialog):
+    SIG_CHUZHAN =  QtCore.pyqtSignal()
     def __init__(self):
         super(MesParamTreeWidget, self).__init__()
         self.h_parameterTree = ParameterTree(self, False)
         self._initui()
         self.dict_param = readXmlInfo("MesParam.xml")
         self.setWindowTitle("MES")
-        self.setWindowIcon(QtGui.QIcon("res//mes.jpg"))
+        #self.setWindowIcon(QtGui.QIcon("res//mes.jpg"))
         self._initparam()
         self._initmes()
         self.pushButton.clicked.connect(self.sendmes)
@@ -116,6 +117,7 @@ class MesParamTreeWidget(QtWidgets.QDialog):
     def _initparam(self):
         params = []
         for key in self.dict_param:
+            #print('key', key)
             name = self.dict_param[key]['chinesename'] + '(' + key + ")"
             ischangeable = self.getbool(self.dict_param[key]["readonly"])
             isvisible = self.getbool(self.dict_param[key]["isvisible"])
@@ -287,35 +289,46 @@ class MesParamTreeWidget(QtWidgets.QDialog):
             self.machineIntegrationParametricData[0].name = "JSGJJCJG"
             self.machineIntegrationParametricData[0].value = 1# 先上传结果是OK的情况
             self.machineIntegrationParametricData[0].dataType = "NUMBER"
+            # self.machineIntegrationParametricData = []
+            # self.machineIntegrationParametricData.append(
+            #     self.client.factory.create('tns:MachineIntegrationModeProcessSfc'))
+            # self.machineIntegrationParametricData[0].name = "JSGJJCJG"
+            # self.machineIntegrationParametricData[0].value = 1# 先上传结果是OK的情况
+            # self.machineIntegrationParametricData[0].dataType = "NUMBER"
 
             dict_senddata = {}
             for key in self.dict_param:
                 name = self.dict_param[key]['chinesename'] + '(' + key + ")"
                 value = self.p.param(name).value()
+                print(key, value, name)
                 dict_senddata[key] = value
             dict_senddata["parametricDataArray"] = self.machineIntegrationParametricData
 
             # TODO 需不需要"resourceRequest"修饰待定
-            print (dict_senddata)
-            dict_senddata['modeProcessSfc'] = ''
             payloads = dict_senddata
-
+            #payloads['modeProcessSfc'] = 'MODE_NONE'
             print(payloads)
 
-            result = self.client.service.dataCollectForSfcEx(payloads)  # 出站api
 
-            print('上传回复结果：', result)
-            if result[0] == 0:
-                warnwindows = QtWidgets.QMessageBox()
-                respond = warnwindows.information(self, "上传成功", "数据已成功上传", QtWidgets.QMessageBox.Ok)
-                self.close()
-            else:
-                errorwindow = QtWidgets.QMessageBox()
-                respond = errorwindow.warning(self, "警告，数据上传失败", result[1], QtWidgets.QMessageBox.Ok)
+            # result = self.client.service.dataCollectForSfcEx(payloads)  # 出站api
+            #
+            #
+            # print('上传回复结果：', result)
+            # if result[0] == 0:
+            #     warnwindows = QtWidgets.QMessageBox()
+            #     respond = warnwindows.information(self, "上传成功", "数据已成功上传", QtWidgets.QMessageBox.Ok)
+            #     self.SIG_CHUZHAN.emit()
+            #     self.close()
+            # else:
+            #     errorwindow = QtWidgets.QMessageBox()
+            #     respond = errorwindow.warning(self, "警告，数据上传失败", result[1], QtWidgets.QMessageBox.Ok)
         except Exception as e:
             s_msg = " MES SEND ERROR "
             print(s_msg, e)
 
+
+    def setpackid(self, spackid):
+        self.p.param('SFC模组号(sfc)').setValue(spackid)
 
 
 if __name__ == "__main__":

@@ -176,7 +176,7 @@ class ControlManager(object):
 
         self.h_parent.callback2showbigimg()
 
-        self._MakeEveryposFuwei()
+        self.MakeEveryposFuwei()
 
 
     def buildmodel_second(self, *list_info):
@@ -285,7 +285,7 @@ class ControlManager(object):
 
         self.h_parent.callback2showbigimg_second()
 
-        self._MakeEveryposFuwei()
+        self.MakeEveryposFuwei()
 
 
     def buildmodel_getsensorhigh(self, *list_info):
@@ -357,7 +357,7 @@ class ControlManager(object):
         self.h_parent.callback2set_highsensor_point(list_result)
 
 
-        self._MakeEveryposFuwei()
+        self.MakeEveryposFuwei()
 
 
 
@@ -446,6 +446,20 @@ class ControlManager(object):
     def setcheckstatus(self, bstatus):
         self.b_checkstatus = bstatus
 
+        if self.b_checkstatus == False:
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_END_CHECK)
+
+    def waitforstart(self, bisfirst):
+        """
+            等待双启动按下
+        """
+        self._clear_hardware_recqueue()
+        if bisfirst:
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_REC_START)
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_START_CHECK)
+
 
     def check_control(self, list_info):
         """
@@ -457,7 +471,6 @@ class ControlManager(object):
 
         self._clear_hardware_recqueue()
 
-        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_REC_START)
 
         self.h_parent.closeCamera()
 
@@ -465,7 +478,7 @@ class ControlManager(object):
 
         self._rebackZERO()
 
-        self._MakeEveryposFuwei()
+        #self.MakeEveryposFuwei()
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIAJIN)
 
@@ -759,7 +772,7 @@ class ControlManager(object):
 
 
 
-    def _MakeEveryposFuwei(self):
+    def MakeEveryposFuwei(self):
         """
         让光源，夹紧，顶升，对位气缸复位，原因是为了初始化最初状态
         :return:
@@ -829,3 +842,11 @@ class ControlManager(object):
             b_rectargetstatus = (np.sum(list_status) == len(list_status))
 
         return b_rectargetstatus
+
+
+
+    def control_guangshan(self, nstatus):
+        if nstatus:
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_TURNON_GUANGSHAN)
+        else:
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_TURNOFF_GUANGSHAN)

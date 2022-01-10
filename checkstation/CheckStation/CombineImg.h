@@ -8,7 +8,7 @@
 class CCombineImg
 {
 public:
-	CCombineImg() {}
+	CCombineImg() { m_bisinit = false; }
 	~CCombineImg() {}
 
 	enum
@@ -51,6 +51,8 @@ private:
 
 	int				m_nCurScanTimes;//当前pack扫描次数，用于判断当前pack是否已经完全扫完
 
+	bool			m_bisinit;
 
-	void MatchTemplateAndTransform(int ncol);
+
+	bool MatchTemplateAndTransform(int ncol);
 };

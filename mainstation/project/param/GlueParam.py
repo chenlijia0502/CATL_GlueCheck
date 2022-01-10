@@ -21,8 +21,7 @@ from project.param.MergeImg import CMergeImg, CMergeImgToList
 from PIL import Image
 from project.param.WaitDialogWithText import WaitDialogWithText
 import  logging
-# from pyqtgraph.imageview.ImageView import ImageView
-
+from library.common.readconfig import readconfig, MAINSTATION_CONFIG
 #节拍  分析
 #
 
@@ -44,6 +43,10 @@ class GuleParam(KxBaseParamWidget):
         self.h_parent = h_parentwidget
         self.ui = Ui_ParamPYLoadWidget()
         self.ui.setupUi(self)
+        self.dict_config = readconfig(MAINSTATION_CONFIG)
+        #self.DIS2PIXEL = 1.0 / self.dict_config['resolution']
+        StaticConfigParam.DIS2PIXEL = 1.0 / float(self.dict_config['resolution'])
+        print(StaticConfigParam.DIS2PIXEL)
         self._initui()
         self._initparam()
         self.fp = None
@@ -89,7 +92,7 @@ class GuleParam(KxBaseParamWidget):
         self.params.extend([
             {'name': '全局拍摄控制', 'type': 'group', 'children':[
                 {'name': '相机横向像素数', 'type': 'int', 'value': 8192, 'limits': [1, 8192]},
-                {'name': '相机横向分辨率', 'type': 'float', 'value': 0.1, 'limits': [0, 1]},
+                {'name': '相机横向分辨率', 'type': 'float', 'value': 0.1, 'limits': [0, 1], 'visible':False},
                 {'name': '相机纵向像素数', 'type': 'int', 'value': 2000, 'limits': [200, 6600]},
                 {'name': '拍摄长度', 'type': 'int', 'value': 2000, 'limits': [0, StaticConfigParam.MAX_Y_LEN]},
                 {'name': '起拍位置', 'type': 'int', 'value': 0, 'limits':[0, 2000]},
@@ -268,9 +271,9 @@ class GuleParam(KxBaseParamWidget):
         else:
             ndisX = StaticConfigParam.MAX_X_LEN - nStartX
 
-        n_firstbuild_imgnum = (ndisY * StaticConfigParam.DIS2PIXEL) / imgH + 1
+        n_firstbuild_imgnum = int(ndisY * StaticConfigParam.DIS2PIXEL) / imgH + 1
 
-        ndisY = min((n_firstbuild_imgnum + 1) * imgH /  StaticConfigParam.DIS2PIXEL, StaticConfigParam.MAX_Y_LEN )#当取到最长的时候这个地方就起作用
+        ndisY = min(int((n_firstbuild_imgnum + 1) * imgH /  StaticConfigParam.DIS2PIXEL), StaticConfigParam.MAX_Y_LEN )#当取到最长的时候这个地方就起作用
 
         n_firstbuild_imgnum = int(ndisY * StaticConfigParam.DIS2PIXEL / imgH)
 
@@ -351,6 +354,8 @@ class GuleParam(KxBaseParamWidget):
             list_bigimgH.append(int(n_build_imgnum * int(imgH / self._BUILD_MODEL_SCALE_FACTOR)))
 
             self.p.param("扫描区域", "扫描区域%d图像数量"%nindex).setValue(n_build_imgnum)
+
+        print ("二次扫描图像数量: ", list_buildimgnum,list_y )
 
         self.h_mergelistobj.clear()
 
@@ -521,15 +526,7 @@ class GuleParam(KxBaseParamWidget):
 
                     array = np.array(list_pos).T
 
-                    print (list_pos)
-
-                    print(array)
-
-                    list_sortindex = sorted(range(len(array[1])), key=lambda k: array[0][k], reverse=True)
-
-                    print (list_sortindex)
-
-                    print ('---------')
+                    list_sortindex = sorted(range(len(array[1])), key=lambda k: array[1][k], reverse=False)
 
                     for nindex in range(len(list_pos)):
 

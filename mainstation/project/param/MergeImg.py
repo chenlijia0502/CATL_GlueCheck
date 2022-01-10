@@ -105,6 +105,8 @@ class CMergeImgToList(object):
         :param img:
         :return:
         """
+        print ("self.n_curcol_imgnum: ", self.n_curcol_imgnum, self.list_build_imgnum[self.n_curcol])
+
         if self.n_curcol_imgnum == self.list_build_imgnum[self.n_curcol]:# 当前列已填满
             return False
         nH, nW, nC = img.shape

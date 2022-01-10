@@ -374,7 +374,7 @@ class KXBaseMainWidget(QtWidgets.QWidget):
                 self._offlinecheck_ready()
                 self.s_offlinerunpath = offlinerundialog.gettext()
                 for pos in range(self.n_substationcount):
-                    filePath = self.s_offlinerunpath + '\\' + str(pos + 1)
+                    filePath = self.s_offlinerunpath + '\\'
                     list_picturepath.append(filePath)
             else:
                 self.ui.toolbtn_offlinerun.setChecked(False)

@@ -14,7 +14,7 @@
 	</user>
     <operation>
 		<chinesename>工位</chinesename>
-		<value>RFNO01</value>
+		<value>BSBWLD</value>
 		<readonly>0</readonly>
 		<isvisible>1</isvisible>
 	</operation>
@@ -26,47 +26,38 @@
 	</operationRevision>
 	<resource>
 		<chinesename>设备资源号</chinesename>
-		<value>
-			<NONE>NONE</NONE>
-			<L26_1>WXXX111s</L26_1>
-			<L26_2>WXXX1120</L26_2>
-			<L26_3>WXXX111T</L26_3>
-			<L26_4>WXXX111Y</L26_4>
-			<L26_5>WXXX111U</L26_5>
-			<L26_6>WXXX111X</L26_6>
-		</value>
+		<value>MLWMA014</value>
 		<readonly>0</readonly>
 		<isvisible>1</isvisible>
 	</resource>
 	<dcGroup>
 		<chinesename>数据收集组</chinesename>
-		<value>2RFNO01FI1DS002</value>
+		<value>*I</value>
 		<readonly>0</readonly>
 		<isvisible>1</isvisible>
 	</dcGroup>
-    <dcGroupRevision>
+	<dcGroupRevision>
 		<chinesename>数据收集组版本</chinesename>
-		<value>A</value>
+		<value>#</value>
 		<readonly>0</readonly>
 		<isvisible>1</isvisible>
 	</dcGroupRevision>
 	<modeProcessSfc>
 		<chinesename>过站模式</chinesename>
 		<value>
-			<NONE>NONE</NONE>
-			<A>MODE_NONE</A>
-			<B>MODE_COMPLETE_SFC_POST_DC</B>
-			<C>MODE_PASS_SFC_POST_DC</C>
-			<D>MODE_START_SFC_PRE_DC</D>
+			<NONE>请选择</NONE>
+			<MODE_NONE>MODE_NONE</MODE_NONE>
+			<MODE_COMPLETE_SFC_POST_DC>MODE_COMPLETE_SFC_POST_DC</MODE_COMPLETE_SFC_POST_DC>
+			<MODE_PASS_SFC_POST_DC>MODE_PASS_SFC_POST_DC</MODE_PASS_SFC_POST_DC>
+			<MODE_START_SFC_PRE_DC>MODE_START_SFC_PRE_DC</MODE_START_SFC_PRE_DC>
 		</value>
 		<readonly>0</readonly>
 		<isvisible>1</isvisible>
 	</modeProcessSfc>
 	<sfc>
 		<chinesename>SFC模组号</chinesename>
-		<value>1</value>
+		<value>000000000</value>
 		<readonly>0</readonly>
 		<isvisible>1</isvisible>
 	</sfc>
 </root>
-

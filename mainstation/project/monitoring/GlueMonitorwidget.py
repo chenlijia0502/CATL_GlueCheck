@@ -149,6 +149,8 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
                 self.imgitem.setImage(self.h_defectinfo.getbigimg())
 
+                self.widget_edgepos.setdata(self.h_defectinfo.list_narea, 4)
+
                 for roi in self.h_defectinfo.list_roi:
 
                     roi.sigClicked.connect(self._roiclicked)
@@ -158,7 +160,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
                     self.view.addItem(roi)
 
                 # TODO : 为循环检而加
-                self.h_parentwidget.callback2autorun()
+                #self.h_parentwidget.callback2autorun()
 
 
 
