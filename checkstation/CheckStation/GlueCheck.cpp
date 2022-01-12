@@ -48,6 +48,7 @@ bool CGlueCheck::ReadParamXml(const char* filePath, char *ErrorInfo, const char 
 
 }
 
+
 void CGlueCheck::checkcolordiff(const kxCImageBuf& SrcImg)
 {
 	/*
@@ -103,6 +104,7 @@ void CGlueCheck::checkcolordiff(const kxCImageBuf& SrcImg)
 
 }
 
+
 void CGlueCheck::checkyiwu(const kxCImageBuf& SrcImg, Json::Value &checkresult)
 {
 	//1，创建基础模板
@@ -147,49 +149,14 @@ void CGlueCheck::checkyiwu(const kxCImageBuf& SrcImg, Json::Value &checkresult)
 
 	m_hFun.KxAddImage(m_ImgCheckLowGray, m_ImgCheckHighGray);
 
-	//char savepath1[64];
-	//sprintf_s(savepath1, "d:\\save%d.bmp", m_nID);
-	//m_hFun.SaveBMPImage_h(savepath1, SrcImg);
+	kxCImageBuf checkopenimg;
 
-	//sprintf_s(savepath1, "d:\\save1%d.bmp", m_nID);
-	//m_hFun.SaveBMPImage_h(savepath1, m_ImgCheckLowGray);
+	checkopenimg.Init(m_ImgCheckHighGray.nWidth, m_ImgCheckHighGray.nHeight, m_ImgCheckHighGray.nChannel);
 
-	//sprintf_s(savepath1, "d:\\save2%d.bmp", m_nID);
-	//m_hFun.SaveBMPImage_h(savepath1, m_ImgCheckHighGray);
+	m_hFun.KxOpenImage(m_ImgCheckHighGray, checkopenimg, 1, 7);
 
 
-
-	
-
-	/*
-	m_hBlobFun.ToBlobByCV(m_ImgCheckHighGray, CKxBlobAnalyse::_SORT_BYDOTS, 16);
-
-	checkresult["defect num"] = 0;
-
-	if (m_hBlobFun.GetBlobCount() > 0)
-	{
-		for (int i = 0; i < m_hBlobFun.GetBlobCount(); i++)
-		{
-			CKxBlobAnalyse::SingleBlobInfo blobinfo;
-
-			blobinfo = m_hBlobFun.GetSortSingleBlob(i);
-
-			if (blobinfo.m_nDots > m_param.m_ndefectdots)
-			{
-				Json::Value single;
-				single["Dots"] = blobinfo.m_nDots;
-				single["Energy"] = 0;
-				single["pos"].append(blobinfo.m_rc.left);
-				single["pos"].append(blobinfo.m_rc.top);
-				single["pos"].append(blobinfo.m_rc.Width());
-				single["pos"].append(blobinfo.m_rc.Height());
-				checkresult["defect feature"].append(single);
-				checkresult["defect num"] = checkresult["defect num"].asInt() + 1;
-			}
-		}
-	}
-	*/
-	CutImg2MulImg(m_ImgCheckHighGray);
+	CutImg2MulImg(checkopenimg);
 
 	ParallelBlob(checkresult);
 }
@@ -343,6 +310,7 @@ void CGlueCheck::checkqipao(const kxCImageBuf& SrcImg)
 	// 检测高亮
 }
 
+
 void CGlueCheck::checkEdge(const kxCImageBuf& SrcImg)
 {
 	//得到一个空心边缘
@@ -434,6 +402,75 @@ void CGlueCheck::checkEdge(const kxCImageBuf& SrcImg)
 
 }
 
+
+void CGlueCheck::SearchEdge(const kxCImageBuf& GrayImg, int ndir, int nThreshvalue, int& nedge1, int& nedge2)
+{
+
+	const int nContinuityTimes = 30;
+
+	cv::Mat projectimg;
+
+	if (ndir == _Vertical_Project_Dir)
+	{
+		m_hAlg.CreatProjectImg(GrayImg, projectimg, ndir, m_ImgRGB[0].nHeight);
+	}
+	else
+	{
+		m_hAlg.CreatProjectImg(GrayImg, projectimg, ndir, m_ImgRGB[0].nWidth);
+	}
+
+
+
+	int ntimes = 0;
+
+	nedge1 = 0;
+
+	nedge2 = projectimg.cols - 1;
+
+	for (int i = projectimg.cols / 2; i > 0; i--)
+	{
+		if (projectimg.at<float>(0, i) > nThreshvalue)
+		{
+			ntimes++;
+
+			if (ntimes > nContinuityTimes)
+			{
+				nedge1 = i + ntimes;
+			
+				break;
+			}
+		}
+		else
+		{
+			ntimes = 0;
+		}
+	}
+
+	for (int i = projectimg.cols / 2; i < projectimg.cols; i++)
+	{
+		if (projectimg.at<float>(0, i) > nThreshvalue)
+		{
+			ntimes++;
+
+			if (ntimes > nContinuityTimes)
+			{
+				nedge2 = i - ntimes;
+				
+				break;
+			}
+		}
+		else
+		{
+			ntimes = 0;
+		}
+	}
+
+
+
+
+}
+
+
 void CGlueCheck::GetGlueMask()
 {
 
@@ -470,7 +507,37 @@ void CGlueCheck::GetGlueMask()
 
 	/* 方案二   RGB 转HSV，S - V 的结果二值化取最大结果 */
 
+	//1. 提取边框
+
+	int ntop, nright, nbottom, nleft;
+
+	SearchEdge(m_ImgRGB[0], _Vertical_Project_Dir, 180, nleft, nright);
+
+	SearchEdge(m_ImgRGB[0], _Horizontal_Project_Dir, 150, ntop, nbottom);
+
+	int hoffset = 50;
+
+	int woffset = 250;
+
+	nleft = min(nleft + woffset, m_ImgRGB[0].nWidth / 2);
+
+	nright = max(nright - woffset, m_ImgRGB[0].nWidth / 2);
+
+	ntop = min(ntop + hoffset, m_ImgRGB[0].nHeight / 2);
+
+	nbottom = max(nbottom - hoffset, m_ImgRGB[0].nHeight / 2);
+
+	m_ImgGlueMask.Init(m_ImgRGB[0].nWidth, m_ImgRGB[0].nHeight, m_ImgRGB[0].nChannel);
+
+	ippsSet_8u(0, m_ImgGlueMask.buf, m_ImgGlueMask.nPitch * m_ImgGlueMask.nHeight);
+
+	IppiSize copysize = { nright - nleft + 1, nbottom - ntop + 1 };
+
+	ippiSet_8u_C1R(255, m_ImgGlueMask.buf + m_ImgGlueMask.nPitch * ntop + nleft, m_ImgGlueMask.nPitch, copysize);
+
 	/*
+	//2. 对边框内图案进行提取
+	
 	m_hAlg.ThreshImg(m_ImgHSV[1], m_ImgThresh, 95, CEmpiricaAlgorithm::_BINARY);
 	
 	m_hFun.KxOpenImage(m_ImgThresh, m_ImgOpen, 11, 11);
@@ -507,10 +574,6 @@ void CGlueCheck::GetGlueMask()
 	ippiCopy_8u_C1R(cutimg.data, cutimg.step, srcimg.data + x + srcimg.step * y, srcimg.step, copysize);
 	*/
 
-
-	m_ImgGlueMask.Init(m_ImgHSV[1].nWidth, m_ImgHSV[1].nHeight);
-
-	ippsSet_8u(255, m_ImgGlueMask.buf, m_ImgGlueMask.nPitch * m_ImgGlueMask.nHeight);
 
 	m_ImgColorGlueMask.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight, 3);
 
@@ -629,8 +692,6 @@ void CGlueCheck::MergeImg(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB
 	//取srcimgA里RGB最大值
 	GetMaxGray(SrcImgA, gray1);
 
-	ippiAnd_8u_C1IR(m_ImgGlueMask.buf, m_ImgGlueMask.nPitch, gray1.buf, gray1.nPitch, imgsize);
-
 	m_hAlg.ThreshImg(gray1, threshimg, 100, CEmpiricaAlgorithm::_BINARY);
 
 	dilateimg.Init(threshimg.nWidth, threshimg.nHeight);
@@ -653,9 +714,6 @@ void CGlueCheck::MergeImg(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB
 
 	ippiCopy_8u_P3C3R(pbuf, threshimg.nPitch, guobaomaskimg.buf, guobaomaskimg.nPitch, imgsize);
 
-
-
-
 	// A - mask 
 	ippiSub_8u_C3RSfs(guobaomaskimg.buf, guobaomaskimg.nPitch, SrcImgA.buf, SrcImgA.nPitch, img1.buf, img1.nPitch, imgsize, 0);
 
@@ -665,6 +723,8 @@ void CGlueCheck::MergeImg(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB
 	DstImg.Init(threshimg.nWidth, threshimg.nHeight, 3);
 
 	ippiAdd_8u_C3RSfs(img1.buf, img1.nPitch, img2.buf, img2.nPitch, DstImg.buf, DstImg.nPitch, imgsize, 0);
+
+	ippiAnd_8u_C3IR(m_ImgColorGlueMask.buf, m_ImgColorGlueMask.nPitch, DstImg.buf, DstImg.nPitch, imgsize);
 
 
 }
@@ -729,11 +789,19 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 	//nsaveindex++;
 
 	//m_hFun.SaveBMPImage_h(path, SrcImgB);
-
+	tick_count tbb_start, tbb_end;
 
 	checkresult["defect num"] = 0;
 
+	tbb_start = tick_count::now();
+
 	m_hAlg.SplitRGB(SrcImgA, m_ImgRGB);
+
+	tbb_end = tick_count::now();
+
+	printf_s("split rgb cost : %f ms\n", (tbb_end - tbb_start).seconds() * 1000);
+
+	tbb_start = tick_count::now();
 
 	cv::Mat hsv;
 
@@ -747,7 +815,21 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 
 	m_hAlg.SplitRGB(phsv, m_ImgHSV);
 
+	tbb_end = tick_count::now();
+
+	printf_s("split hsv cost : %f ms\n", (tbb_end - tbb_start).seconds() * 1000);
+
+	tbb_start = tick_count::now();
+
+
 	GetGlueMask();
+
+	tbb_end = tick_count::now();
+
+	printf_s("getmask cost : %f ms\n", (tbb_end - tbb_start).seconds() * 1000);
+
+	tbb_start = tick_count::now();
+
 
 	cv::Mat targetimg = cv::Mat(m_ImgGlueMask.nHeight, m_ImgGlueMask.nWidth, CV_8UC1, m_ImgGlueMask.nPitch);
 
@@ -757,7 +839,14 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 
 	MergeImg(SrcImgA, SrcImgB, m_ImgCheck);
 
-	//checkyiwu(m_ImgCheck, checkresult);
+	tbb_end = tick_count::now();
+
+	printf_s("mergeimg cost : %f ms\n", (tbb_end - tbb_start).seconds() * 1000);
+
+	tbb_start = tick_count::now();
+
+
+	checkyiwu(m_ImgCheck, checkresult);
 
 	DstImg.SetImageBuf(m_ImgCheck, true);
 

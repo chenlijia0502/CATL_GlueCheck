@@ -118,11 +118,11 @@ void CEmpiricaAlgorithm::CreatProjectImg(const kxCImageBuf& SrcImg, cv::Mat& Dst
 	cv::Mat projectimg;
 	if (nDir == 0)
 	{
-		projectimg.create(1, SrcImg.nWidth, CV_32FC1);
+		projectimg.create(1, SrcImg.nWidth, CV_32F);
 	}
 	else
 	{
-		projectimg.create(1, SrcImg.nHeight, CV_32FC1);
+		projectimg.create(1, SrcImg.nHeight, CV_32F);
 	}
 
 	m_hfun.KxProjectImage(SrcImg, nDir, (Ipp32f*)projectimg.data, nscalefactor);

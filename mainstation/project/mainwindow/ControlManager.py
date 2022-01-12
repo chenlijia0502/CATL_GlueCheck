@@ -51,7 +51,7 @@ class ControlManager(object):
         self.h_parent = h_parent
         self.mySeria = None
         self._DIS2PULSE = StaticConfigParam.DIS2PULSE
-        self.b_checkstatus = False#检测状态，检测状态为False的时候停止检测
+        self.b_checkstatus = False#检测状态，检测状态为False的时候停止检测，很多循环都依赖这个状态，只要不在检测状态立刻返回
         self.logger = logging.getLogger('UI.%s' % self.__class__.__name__)
 
 
@@ -140,7 +140,7 @@ class ControlManager(object):
 
             self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
 
-            while self.h_parent.callback2judgeisfull() != True:
+            while self.h_parent.callback2judgeisfull() != True and self.b_checkstatus:
 
                 time.sleep(0.5)
 
@@ -263,7 +263,7 @@ class ControlManager(object):
 
             self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
 
-            while not self.h_parent.callback2judgeisfull_second():
+            while not self.h_parent.callback2judgeisfull_second() and self.b_checkstatus:
 
                 time.sleep(0.5)
 
@@ -381,7 +381,7 @@ class ControlManager(object):
             data = str_to_hex(data)
         else:
             if len(np.array(info).shape) == 1:
-                while(1):
+                while self.b_checkstatus:
                     data = self.mySeria.read(ntimeout).hex()
                     print('read ori data: ', data)
                     data = str_to_hex(data)
@@ -392,7 +392,7 @@ class ControlManager(object):
                         break
             else:
                 list_status = [False for i in range(len(info))]
-                while np.sum(list_status) != len(list_status):
+                while np.sum(list_status) != len(list_status) and self.b_checkstatus:
                     data = self.mySeria.read(ntimeout).hex()
                     print('read ori data: ', data)
                     data = str_to_hex(data)
@@ -407,7 +407,7 @@ class ControlManager(object):
                             break
 
 
-        time.sleep(0.5)
+        #time.sleep(0.5)
         return data
 
 
@@ -476,6 +476,8 @@ class ControlManager(object):
 
         self._rebackXY()
 
+        if not self.b_checkstatus: return
+
         self._rebackZERO()
 
         #self.MakeEveryposFuwei()
@@ -489,8 +491,8 @@ class ControlManager(object):
 
         self._clear_hardware_recqueue()
 
-        # 判断托盘是否到位
-        #
+        # # 判断托盘是否到位
+        # #
         # nstatus = self._judgeZisRight()
         #
         # if nstatus == 0:
@@ -702,7 +704,7 @@ class ControlManager(object):
         """判断Z轴是否到位"""
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_GET_Z_POS)
 
-        while 1:
+        while self.b_checkstatus:
 
             list_recdata = self._waitfor_hardware_queue_result()
 
@@ -724,7 +726,7 @@ class ControlManager(object):
     def _GetZpos(self):
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_GET_Z_POS)
 
-        while 1:
+        while self.b_checkstatus:
 
             list_recdata = self._waitfor_hardware_queue_result()
 
@@ -820,7 +822,7 @@ class ControlManager(object):
         b_rectargetstatus = False
 
         if len(np.array(info).shape) == 1:
-            while time.time() - curtime < ntimeout:
+            while (time.time() - curtime < ntimeout) and self.b_checkstatus:
                 data = self.mySeria.read(1).hex()
                 data = str_to_hex(data)
                 if data != info:
@@ -831,7 +833,7 @@ class ControlManager(object):
         else:
             list_status = [False for i in range(len(info))]
 
-            while (np.sum(list_status) != len(list_status))  and (int(time.time() - curtime) <= ntimeout):
+            while (np.sum(list_status) != len(list_status))  and (int(time.time() - curtime) <= ntimeout) and self.b_checkstatus:
                 data = self.mySeria.read(1).hex()
                 data = str_to_hex(data)
 

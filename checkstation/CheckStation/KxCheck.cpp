@@ -22,7 +22,7 @@ CKxCheck::CKxCheck()
 	m_nimgsavenum = 0;
 	InitCheckMethod();
 	m_echeckstatus = _OFFLINE_RUN;
-
+	m_nCurPackIDimgindex = 0;
 }
 
 CKxCheck::~CKxCheck()
@@ -241,6 +241,39 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 
 	nlowoffset *= 10;
 
+	int ndefectthresh = 0;
+
+	int ndefectdots = 0;
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测参数", "提取异物灰度", szResult);
+
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "提取异物灰度");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, ndefectthresh);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测参数", "异物最小点数", szResult);
+
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "异物最小点数");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, ndefectdots);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+
 
 	for (int nindex = 0; nindex < m_param.m_nROINUM; nindex++)
 	{
@@ -248,6 +281,10 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 		m_param.params[nindex].m_noffsethigh = nhighoffset;
 
 		m_param.params[nindex].m_noffsetlow = nlowoffset;
+
+		m_param.params[nindex].m_ndefectthresh = ndefectthresh;
+
+		m_param.params[nindex].m_ndefectdots = ndefectdots;
 
 		char name[64];
 
@@ -299,33 +336,7 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 			return false;
 		}
 
-		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "提取异物灰度", szResult);
-
-		if (!nSearchStatus)
-		{
-			sprintf_s(ErrorInfo, 256, "提取异物灰度");
-			return false;
-		}
-
-		nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.params[nindex].m_ndefectthresh);
-		if (!nStatus)
-		{
-			return false;
-		}
-
-		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "异物最小点数", szResult);
-
-		if (!nSearchStatus)
-		{
-			sprintf_s(ErrorInfo, 256, "异物最小点数");
-			return false;
-		}
-
-		nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.params[nindex].m_ndefectdots);
-		if (!nStatus)
-		{
-			return false;
-		}
+		
 
 	}
 
@@ -488,6 +499,8 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 	delete[] nimgnum;
 
 	delete[] rect;
+
+	return true;
 
 }
 
@@ -1118,13 +1131,12 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 
 					ippiCopy_8u_C3R(checkimgB.buf, checkimgB.nPitch, m_ImgMaxSizeB.buf, m_ImgMaxSizeB.nPitch, copysize);
 
+					if (i == 1)// 表示全部检测完成,主站收到这个标志位会进行
+					{
+						int ntette = 0;
+					}
+
 					m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_ImgMaxSizeA, m_ImgMaxSizeB, m_DstImg, m_hCheckResult[0]);
-
-					char savepath[32];
-
-					sprintf_s(savepath, "d:\\dstimg.bmp", m_DstImg);
-
-					m_hBaseFun.SaveBMPImage_h(savepath, m_DstImg);
 
 					SaveBadImg(m_DstImg, m_hCheckResult[0]);
 
@@ -1134,7 +1146,6 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 					}
 
 					CopyImg2SplicImg(m_DstImg, m_param.params[i].m_nCurGrabID, m_param.params[i].m_nGrabTimes);
-
 
 					AnalyseCheckResult(i, m_hCheckResult);
 

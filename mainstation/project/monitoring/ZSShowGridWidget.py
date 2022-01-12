@@ -223,14 +223,15 @@ class ZSImgListDetectWidget(QtWidgets.QWidget):
         except Exception as e:
             self.logger.error('', exc_info=True)
 
-    def addOneDefectItemwithID(self, defectImage, ndefectid, s_defectword, pos):
+    def addOneDefectItemwithID(self, defectImage, ndefectid, s_defectword, pos, farea):
         try:
             text1 = s_defectword
+            text2 = str(round(farea, 2))
             self.list_data.append(DataStruct(defectImage, ndefectid, pos))
             imgView = self.historyShowArea.cellWidget(*self.curDefectTablePos)
             if isinstance(imgView, ComboImageLabelWidget):
                 self.updateImgView(imgView, defectImage)
-                imgView.setShowValues((text1, ""))
+                imgView.setShowValues((text1, text2))
                 if self.defectTableValidCount < self.maxHistoryTableRowCount * self.__imgCntPerRow:
                     self.defectTableValidCount += 1
             self.curDefectTablePos = self.getNextTablePos()

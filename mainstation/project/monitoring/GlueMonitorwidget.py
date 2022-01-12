@@ -5,6 +5,7 @@ from project.monitoring.ZSShowGridWidget import ZSImgListDetectWidget
 import pyqtgraph as pg
 from library.common.KxImageBuf import KxImageBuf
 from project.monitoring.WidgePos import WidgetEdgePos
+from library.common.readconfig import readconfig
 import imc_msg
 import json
 import numpy as np
@@ -20,6 +21,8 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
     def __init__(self, h_parent):
         super(GlueMonitorWidget, self).__init__(h_parent)
         self._initui()
+        dict_config = readconfig()
+        self.f_resolution = float(dict_config["resolution"])
         self.fp = None
         self.frameitem = None
         self.h_defectinfo = DefectClass()
@@ -32,7 +35,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.widget_map = QtWidgets.QWidget(self)
         self.verticallayout = QtWidgets.QVBoxLayout(self.widget_map)
         self.graphicsView = pg.GraphicsView(self.widget_map)
-        self.view = pg.ViewBox()
+        self.view = pg.ViewBox(lockAspect=True)
         self.graphicsView.setCentralItem(self.view)
         self.imgitem = pg.ImageItem()
         self.view.addItem(self.imgitem)
@@ -40,7 +43,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         # self.view.setAspectLocked(True)
         self.verticallayout.addWidget(self.graphicsView, 1)
         self.graphicsView_small = pg.GraphicsView(self.widget_map)
-        self.view_small = pg.ViewBox()
+        self.view_small = pg.ViewBox(lockAspect=True)
         self.graphicsView_small.setCentralItem(self.view_small)
         self.imgitem_small = pg.ImageItem()
         self.view_small.addItem(self.imgitem_small)
@@ -135,15 +138,17 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
                     pos = singledefect['pos']
 
+                    ndots = int(singledefect['Dots'])
+
                     smallimg, expandpos = self._expandimg(img, pos)
 
                     h, w, c = img.shape
 
                     newpos = self._transformpos(expandpos, w, h, ncurrow, ncurcol)
 
-                    self.h_defectinfo.append_defectinfo(smallimg, newpos, sdefectid)
+                    self.h_defectinfo.append_defectinfo(smallimg, newpos, sdefectid, ndots)
 
-                    self.list_defectwidgt.addOneDefectItemwithID(smallimg, self.h_defectinfo.size(), sdefectid, pos[0:2])
+                    self.list_defectwidgt.addOneDefectItemwithID(smallimg, self.h_defectinfo.size(), sdefectid, pos[0:2], ndots * self.f_resolution * self.f_resolution)
 
             if nIsFull == 1:# 当前pack已检完
 
@@ -185,11 +190,11 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
         nh = int(pos[3] / self._SCALE_FACTOR)
 
-        # 偏移坐标在整图中的位置
+        # 偏移坐标在整图中的位置， x、y、w、h
 
         newpos.append(y)
 
-        newpos.append(int(w / self._SCALE_FACTOR) * self.ncol - x)
+        newpos.append(int(w / self._SCALE_FACTOR) * self.ncol - x - nw)
 
         newpos.append(nh)
 
@@ -251,6 +256,7 @@ class DefectClass(object):
         self.list_defectimg = []#小缺陷图
         self.list_defectpos = []#缺陷坐标
         self.list_roi = []      #缺陷roi对象
+        self.list_dots = []     #缺陷点数
         self.list_bigimg = []   #每个块原图
         self.list_narea = []    #每个块面积
         self.nrow = 0#大图是由这么多行列组成
@@ -262,16 +268,18 @@ class DefectClass(object):
         self.nrow = row
         self.ncol = col
 
-    def append_defectinfo(self, defectimg, pos, sdefectword):
+    def append_defectinfo(self, defectimg, pos, sdefectword, dots):
         """
         存储检测结果，针对单个缺陷
         :param defectimg:   单张缺陷图
         :param pos:         单个缺陷坐标
         :param sdefectword: 缺陷名称（格式： 块号_缺陷号）
+        :param dots:        缺陷点数
         :return:
         """
         self.list_defectimg.append(defectimg)
         self.list_defectpos.append(pos)
+        self.list_dots.append(dots)
         roi = ROIwithID(pos=pos[:2], nid=len(self.list_defectpos) - 1, word=sdefectword, size=pos[2:], pen=1)
         self.list_roi.append(roi)
 
@@ -309,6 +317,7 @@ class DefectClass(object):
     def clear(self):
         self.list_defectimg = []#小缺陷图
         self.list_defectpos = []#缺陷坐标
+        self.list_dots = []     #缺陷点数
         self.list_roi = []      #缺陷roi对象
         self.list_bigimg = []   #每个块原图
         self.list_narea = []    #每个块面积

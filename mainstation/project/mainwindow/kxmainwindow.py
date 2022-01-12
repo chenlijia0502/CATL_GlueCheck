@@ -186,9 +186,10 @@ class kxmainwindow(KXBaseMainWidget):
             self.widget_Paramsetting.str2paramitemfun(0, 1, "setlearnstatus", False)
 
     def _offlinerun(self):
+        if self.ui.toolbtn_offlinerun.isChecked():  # 只要点击就发送
+            self.callbarck2sendnextpackid(int(time.time()))
         super(kxmainwindow, self)._offlinerun()
         if self.ui.toolbtn_offlinerun.isChecked():  # 开始离线跑
-            self.callbarck2sendnextpackid(int(time.time()))
             self.widget_Realtime.clear()
 
 
@@ -550,76 +551,6 @@ class CheckControlThread(threading.Thread):
         return sword
 
 
-    # def waitforagv(self):
-    #     #1. 等待小车
-    #
-    #     nagvid = 0
-    #
-    #     while 1:
-    #         self.tcp_agvclient.send(bytes(self.MSG_LISTEN[0]))
-    #
-    #         data = self.tcp_agvclient.recv(11).hex()
-    #
-    #         list_data = self.str_to_hex(data)
-    #         print('read data: ', list_data)
-    #
-    #         if len(list_data) > 8 :
-    #
-    #             if list_data[8] == 3:# 3代表站点有车
-    #
-    #                 nagvid = list_data[7]
-    #
-    #                 break
-    #         else:
-    #             time.sleep(1)
-    #
-    #     #2. 获取packid
-    #
-    #     self.MSG_GETPACKID[5] = nagvid
-    #
-    #     self.tcp_agvclient.send(bytes(self.MSG_GETPACKID))
-    #
-    #     readdata = self.tcp_agvclient.recv(100).hex()
-    #     list_readdata = self.str_to_hex(readdata)
-    #
-    #     datalen = list_readdata[3]
-    #
-    #     targetlist = list_readdata[6 : 6 + datalen - 2]
-    #
-    #     spackid = ""
-    #     for data in targetlist:
-    #         spackid += chr(data)
-    #
-    #     self.s_packid = spackid
-    #     print ('pack id :', self.s_packid)
-    #
-    #     # #3. 控制小车出发去下一个工位
-    #     print('开始往下个工位去')
-    #     self.tcp_agvclient.send(bytes(self.MSG_CONTROL[0]))
-    #     print(self.tcp_agvclient.recv(11).hex())
-    #
-    #     while 1:
-    #         self.tcp_agvclient.send(bytes(self.MSG_LISTEN[1]))
-    #
-    #         data = self.tcp_agvclient.recv(11).hex()
-    #
-    #         list_data = self.str_to_hex(data)
-    #
-    #         print ('read data: ', list_data)
-    #
-    #         if len(list_data) > 8:
-    #
-    #             if list_data[8] == 3:# 3代表站点有车
-    #
-    #                 break
-    #
-    #         else:
-    #
-    #             time.sleep(1)
-    #
-    #     print('小车已进入到检测工位')
-
-
     def _get_status_and_packid(self, nagvstationid):
         """
         获取站点状态以及pack号
@@ -745,14 +676,43 @@ class CheckControlThread(threading.Thread):
 
 
 
-
     def sendagv2next(self):
 
+        while self.b_runstaus:
+
+            MSG_AGV_GETINFO = imc_msg.AGVMSG.MSG_BASE_GET_STATION_STATUS
+
+            MSG_AGV_GETINFO[5] = self.nid3
+
+            self.tcp_agvclient.send(bytes(MSG_AGV_GETINFO))
+
+            print('发送获取出站状态， 1： ', MSG_AGV_GETINFO)
+
+            sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
+
+            print('发送获取出站状态， 2： ', sreaddata)
+
+            list_readdata = self.str_to_hex(sreaddata)
+
+            if len(list_readdata) > 8 and (list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_FREE or
+                                           list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_NONE) :
+
+                break
+
+        #关闭光栅
+        self.controlmanger.control_guangshan(0)
+
+        #送出小车
         MSG_CONTROL_AGV = imc_msg.AGVMSG.MSG_BASE_CONTROL_STATION_STATUS
 
         MSG_CONTROL_AGV[5] = self.nid2
 
         self.tcp_agvclient.send(bytes(MSG_CONTROL_AGV))
+
+        #监听送出小车状态
+
+        #开启光栅
+        #self.controlmanger.control_guangshan(0)
 
 
 
@@ -768,13 +728,15 @@ class CheckControlThread(threading.Thread):
                 self.b_emit = False
 
                 #复位开始按钮按下，只对开始检测后第一次有用
-                self.controlmanger.waitforstart(self.b_isfirstrun)
+                #self.controlmanger.waitforstart(self.b_isfirstrun)
 
                 #初始化所有气缸状态
                 self.controlmanger.MakeEveryposFuwei()
 
                 #动作1, 监听设备上是否有小车
                 self.waitforagv()
+
+                if not self.b_runstaus: continue
 
                 #发送packdi
                 self.h_parent.callbarck2sendnextpackid(self.s_packid)
@@ -786,10 +748,11 @@ class CheckControlThread(threading.Thread):
 
                 if not self.b_runstaus: continue
 
+
                 #送小车到下一个工位
                 #self.sendagv2next()
 
-                #..........
+                #触发mes上传，同时送出packid
                 self.h_parent._SIG_SHOWMES.emit(self.s_packid)
 
             else:

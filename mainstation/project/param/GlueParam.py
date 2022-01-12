@@ -109,6 +109,8 @@ class GuleParam(KxBaseParamWidget):
             {'name': '检测参数', 'type': 'group', 'children': [
                 {'name': '检高灵敏度', 'type': 'int', 'value': 3, 'limits': [0, 25]},
                 {'name': '检低灵敏度', 'type': 'int', 'value': 3, 'limits': [0, 25]},
+                {'name': '提取异物灰度', 'type': 'int', 'value': 100, 'limits': [0, 255]},
+                {'name': '异物最小点数', 'type': 'int', 'value': 20, 'limits': [0, 20000]},
             ]},
             {'name': '拼图信息', 'type': 'group', 'visible':False,'children': [
                 {'name': '行数', 'type': 'int', 'value': 0, 'limits': [0, self._MAX_SCAN_NUM]},
@@ -197,8 +199,7 @@ class GuleParam(KxBaseParamWidget):
                     {'name': u'扫描组号', 'type': 'list', 'values': {'组数一': 0, '组数二': 1, '组数三':2, '组数四':3,
                                                         '组数五':4, '组数六':5}},
                     {'name': u'当前组ID', 'type': 'int', 'value': 0, 'limits':[0, 6], 'readonly':True},
-                    {'name': '提取异物灰度', 'type': 'int', 'value': 100, 'limits': [0, 255]},
-                    {'name': '异物最小点数', 'type': 'int', 'value': 20, 'limits': [0, 20000]},
+
                 ]}
             )
         dict_params.extend(list_standardschildrenitems)

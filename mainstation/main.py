@@ -90,7 +90,7 @@ if __name__ == "__main__":
     except Exception as e:
         pass
 
-    #dll = cdll.LoadLibrary("res\\UI_key.dll") # 加密狗加密
+    #dll = cdll.LoadLibrary("res\\UI_key.dll") #加密狗加密
 
 
     app = App([])

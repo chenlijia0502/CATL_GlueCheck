@@ -3,7 +3,11 @@
 #include "opencv2/opencv.hpp"
 #include "KxAlogrithm.h"
 #include "EmpiricaAlgorithm.h"
-
+#include "tbb/tbb.h"
+#include "tbb/parallel_for.h"
+#include "tbb/blocked_range2d.h"
+#include "tbb/partitioner.h"
+using namespace tbb;
 
 class CCombineImg
 {

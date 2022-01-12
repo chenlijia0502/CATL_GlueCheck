@@ -105,6 +105,8 @@ private:
 	kxCImageBuf				 m_ImgZero2split;
 	int						 m_nID;//当前是第几个blob，用于存储缺陷图片信息
 
+
+
 private:
 	void checkcolordiff(const kxCImageBuf& SrcImg);// 检色差
 
@@ -122,9 +124,10 @@ private:
 
 	void GetMaxGray(const kxCImageBuf& ColorImg, kxCImageBuf& DstGrayImg);
 
-
 	void CutImg2MulImg(const kxCImageBuf& CheckImg);
 
-	void ParallelBlob(Json::Value &checkresult);
+	void ParallelBlob(Json::Value &checkresult);//并行blob,把图切片进行blob
+
+	void SearchEdge(const kxCImageBuf& GrayImg, int ndir, int nThreshvalue, int& nedge1, int& nedge2);//根据搜索方向，由中间向两侧搜索，得到两个边
 
 };

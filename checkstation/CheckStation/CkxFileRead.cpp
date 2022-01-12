@@ -86,6 +86,7 @@ void CkxFileRead::readAllPic( string path )
 		//cv::Mat img = cv::imread(iter->c_str(), 1);
 		//m_readImg.Init(img.cols, img.rows, img.channels());
 		//m_readImg.SetImageBuf(img.data, img.cols, img.rows, img.step, img.channels(), false);
+		//std::cout << iter->c_str() << std::endl;
 
 		m_hBaseFun.LoadBMPImage_h(iter->c_str(), m_readImg);
 		if (m_readImg.nWidth == 0 || m_readImg.nHeight == 0)
