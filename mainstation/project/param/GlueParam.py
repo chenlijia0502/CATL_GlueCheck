@@ -44,9 +44,8 @@ class GuleParam(KxBaseParamWidget):
         self.ui = Ui_ParamPYLoadWidget()
         self.ui.setupUi(self)
         self.dict_config = readconfig(MAINSTATION_CONFIG)
-        #self.DIS2PIXEL = 1.0 / self.dict_config['resolution']
         StaticConfigParam.DIS2PIXEL = 1.0 / float(self.dict_config['resolution'])
-        print(StaticConfigParam.DIS2PIXEL)
+        #print(StaticConfigParam.DIS2PIXEL)
         self._initui()
         self._initparam()
         self.fp = None
@@ -57,7 +56,7 @@ class GuleParam(KxBaseParamWidget):
         self.h_bigimage = None
         self.threadWaitDialog = None
         self._connectlog()
-        #self.ui.h_pBtLoad.clicked.connect(self.loadimg)
+        self.ui.h_pBtLoad.clicked.connect(self.loadimg)
 
 
     def _initui(self):
@@ -761,12 +760,12 @@ class GuleParam(KxBaseParamWidget):
 
 
 
-    # def loadimg(self):
-    #     file_name = QtWidgets.QFileDialog.getOpenFileName(self, "open file dialog", "D://card",
-    #                                                       "bmp files(*.bmp)")
-    #     print(file_name)
-    #     image = cv2.imread(file_name[0], 1)
-    #     self.h_imgitem.setImage(image, autoLevels=False)
+    def loadimg(self):
+        file_name = QtWidgets.QFileDialog.getOpenFileName(self, "open file dialog", "D://card",
+                                                          "bmp files(*.bmp)")
+        print(file_name)
+        image = cv2.imread(file_name[0], 1)
+        self.h_imgitem.setImage(image, autoLevels=False)
 
 
 registerkxwidget(name='GuleParam', cls=GuleParam, override=True)

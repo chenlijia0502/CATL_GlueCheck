@@ -53,6 +53,7 @@ class ControlManager(object):
         self._DIS2PULSE = StaticConfigParam.DIS2PULSE
         self.b_checkstatus = False#检测状态，检测状态为False的时候停止检测，很多循环都依赖这个状态，只要不在检测状态立刻返回
         self.logger = logging.getLogger('UI.%s' % self.__class__.__name__)
+        self.b_zerostatus = False# 每次调用rebackzero内会会将这个值置为True，检测开始后又置为False，目的是减少时间花费
 
 
     def setserial(self, serial:SerialManager):
@@ -375,6 +376,7 @@ class ControlManager(object):
         :return:    None
         """
         print('hope rec: ', info)
+        data = []
         if info == None:
             data = self.mySeria.read().hex()
             print ('None rec: ', data)
@@ -425,22 +427,24 @@ class ControlManager(object):
 
         self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
 
+
     def _rebackZERO(self):
         """
         返回模组的原点，这是因为设备有可能运动过程中丢失原点
         :return:
         """
-        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ZERO)
-        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
-        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ZERO)
-        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+        if not self.b_zerostatus:
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ZERO)
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ZERO)
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+            self.b_zerostatus = True
 
 
 
     def _sendhardwaremsg(self, info):
         print('send, ', info)
         self.mySeria.write(info)
-        time.sleep(0.4)
 
 
     def setcheckstatus(self, bstatus):
@@ -458,7 +462,9 @@ class ControlManager(object):
         if bisfirst:
             self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_REC_START)
 
-            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_START_CHECK)
+            if self.b_checkstatus:
+
+                self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_START_CHECK)
 
 
     def check_control(self, list_info):
@@ -479,6 +485,8 @@ class ControlManager(object):
         if not self.b_checkstatus: return
 
         self._rebackZERO()
+
+        self.b_zerostatus = False
 
         #self.MakeEveryposFuwei()
 
@@ -834,6 +842,7 @@ class ControlManager(object):
             list_status = [False for i in range(len(info))]
 
             while (np.sum(list_status) != len(list_status))  and (int(time.time() - curtime) <= ntimeout) and self.b_checkstatus:
+
                 data = self.mySeria.read(1).hex()
                 data = str_to_hex(data)
 
@@ -850,5 +859,6 @@ class ControlManager(object):
     def control_guangshan(self, nstatus):
         if nstatus:
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_TURNON_GUANGSHAN)
+            print ("----------------- 打开光栅 -----------------------")
         else:
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_TURNOFF_GUANGSHAN)

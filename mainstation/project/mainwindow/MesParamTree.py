@@ -280,7 +280,10 @@ class MesParamTreeWidget(QtWidgets.QDialog):
 
     def chuzhan(self):
         #self.sendmes()
-        print('出站命令')
+        print('出站命令, 记得注释掉， self.SIG_CHUZHAN.emit()')
+
+        self.SIG_CHUZHAN.emit()
+
         try:
             # TODO 下面几句话传输结果，将结果按照格式放入self.machineIntegrationParametricData
             self.machineIntegrationParametricData = []
@@ -309,19 +312,17 @@ class MesParamTreeWidget(QtWidgets.QDialog):
             #payloads['modeProcessSfc'] = 'MODE_NONE'
             print(payloads)
 
+            result = self.client.service.dataCollectForSfcEx(payloads)  # 出站api
 
-            # result = self.client.service.dataCollectForSfcEx(payloads)  # 出站api
-            #
-            #
-            # print('上传回复结果：', result)
-            # if result[0] == 0:
-            #     warnwindows = QtWidgets.QMessageBox()
-            #     respond = warnwindows.information(self, "上传成功", "数据已成功上传", QtWidgets.QMessageBox.Ok)
-            #     self.SIG_CHUZHAN.emit()
-            #     self.close()
-            # else:
-            #     errorwindow = QtWidgets.QMessageBox()
-            #     respond = errorwindow.warning(self, "警告，数据上传失败", result[1], QtWidgets.QMessageBox.Ok)
+            print('上传回复结果：', result)
+            if result[0] == 0:
+                warnwindows = QtWidgets.QMessageBox()
+                respond = warnwindows.information(self, "上传成功", "数据已成功上传", QtWidgets.QMessageBox.Ok)
+                self.SIG_CHUZHAN.emit()
+                self.close()
+            else:
+                errorwindow = QtWidgets.QMessageBox()
+                respond = errorwindow.warning(self, "警告，数据上传失败", result[1], QtWidgets.QMessageBox.Ok)
         except Exception as e:
             s_msg = " MES SEND ERROR "
             print(s_msg, e)

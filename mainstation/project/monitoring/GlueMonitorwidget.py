@@ -35,7 +35,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.widget_map = QtWidgets.QWidget(self)
         self.verticallayout = QtWidgets.QVBoxLayout(self.widget_map)
         self.graphicsView = pg.GraphicsView(self.widget_map)
-        self.view = pg.ViewBox(lockAspect=True)
+        self.view = pg.ViewBox(invertY=True, enableMenu=False, lockAspect=True)
         self.graphicsView.setCentralItem(self.view)
         self.imgitem = pg.ImageItem()
         self.view.addItem(self.imgitem)
@@ -43,7 +43,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         # self.view.setAspectLocked(True)
         self.verticallayout.addWidget(self.graphicsView, 1)
         self.graphicsView_small = pg.GraphicsView(self.widget_map)
-        self.view_small = pg.ViewBox(lockAspect=True)
+        self.view_small = pg.ViewBox(invertY=True, enableMenu=False, lockAspect=True)
         self.graphicsView_small.setCentralItem(self.view_small)
         self.imgitem_small = pg.ImageItem()
         self.view_small.addItem(self.imgitem_small)
@@ -65,6 +65,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
 
     def _slotCellClick(self, img, ndefectID, pos):
+        print ("_slotCellClick", ndefectID)
         if ndefectID >= self.h_defectinfo.size():
             return
         else:
@@ -165,7 +166,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
                     self.view.addItem(roi)
 
                 # TODO : 为循环检而加
-                #self.h_parentwidget.callback2autorun()
+                self.h_parentwidget.callback2autorun()
 
 
 

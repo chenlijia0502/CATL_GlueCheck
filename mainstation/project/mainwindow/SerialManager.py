@@ -104,28 +104,29 @@ class SerialManager(object):
 
             self.logger.log(logging.INFO, "read: " + hexdata)
 
+            print(hexdata)
+
 
             if len(hexdata) > 3:
 
-                if data.hex() == imc_msg.HARDWAREBASEMSG.MSG_GUANGSHAN:
+                if data.hex() in imc_msg.HARDWAREBASEMSG.MSG_GUANGSHAN:
 
                     self.h_parent.callback2showerror("！！！光栅被遮挡，请注意！！！")
 
-                elif data.hex()[:12] == imc_msg.HARDWAREBASEMSG.MSG_JITINGMENKONG:
-
-                    nmsgtype = int(data.hex()[13])
-
-                    if nmsgtype < 5:
+                elif data.hex() in imc_msg.HARDWAREBASEMSG.MSG_JITING:
 
                         self.h_parent.callback2showerror("！！！急停按下！！！")
 
-                    else:
+                elif data.hex() in imc_msg.HARDWAREBASEMSG.MSG_MENKONG:
 
                         self.h_parent.callback2showerror("！！！门控打开！！！")
 
                 else:
 
                     self.list_read.append(data)
+
+            time.sleep(0.5)
+
 
     def _hex_to_str(self, list_data):
         s = ""
@@ -150,8 +151,8 @@ class SerialManager(object):
 
                 del self.list_write[0]
 
-                time.sleep(0.1)
+                time.sleep(0.5)
 
             else:
 
-                time.sleep(0.1)
+                time.sleep(0.5)

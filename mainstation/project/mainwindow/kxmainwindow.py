@@ -25,6 +25,7 @@ class kxmainwindow(KXBaseMainWidget):
     _SIG_SHOWLOCK = QtCore.pyqtSignal()
     _SIG_ERRORINFO = QtCore.pyqtSignal(str)
     _SIG_SHOWMES  = QtCore.pyqtSignal(str)
+    #_SIG_AUTORUN = QtCore.pyqtSignal()
     def __init__(self, dict_config):
         super(kxmainwindow, self).__init__(dict_config)
         self.dict_config = dict_config
@@ -69,13 +70,16 @@ class kxmainwindow(KXBaseMainWidget):
         self.widget_mes = MesParamTreeWidget()
         self._SIG_SHOWMES.connect(self.showmeswidget)
         self.widget_mes.SIG_CHUZHAN.connect(self._control_out)
+        self.spackid = str(int(time.time()))
+        #self._SIG_AUTORUN.connect(self.__autorun)
 
 
     def _control_out(self):
-        self.h_checkcontrolthread.sendagv2next()
+        self.h_checkcontrolthread.emitnext()
 
 
     def showmeswidget(self, spackid):
+        print ('showmeswidget')
         self.widget_mes.setpackid(spackid)
         self.widget_mes.show()
 
@@ -176,7 +180,8 @@ class kxmainwindow(KXBaseMainWidget):
         t.start()
 
     def _emitmove(self):
-        self.h_checkcontrolthread.emits()
+        pass
+        #self.h_checkcontrolthread.emits()
 
 
     def _setlearnstatus(self):
@@ -373,6 +378,9 @@ class kxmainwindow(KXBaseMainWidget):
 
             self.h_checkcontrolthread.setstatus(True)
 
+            self.h_checkcontrolthread.emits()
+
+
         else:
 
             self.h_checkcontrolthread.setstatus(False)
@@ -454,7 +462,7 @@ class kxmainwindow(KXBaseMainWidget):
 
 
     def callbarck2sendnextpackid(self, packid):
-        print ('packid: ', packid)
+        self.spackid = packid
         data = json.dumps({'packid':str(packid)})
         self.sendmsg(0, imc_msg.MSG_PACK_ID, data)
 
@@ -464,21 +472,21 @@ class kxmainwindow(KXBaseMainWidget):
         自动循环检
         :return:
         """
-        # self.ui.toolbtn_offlinerun.setChecked(False)
-        # timeclock = QtCore.QTimer()
-        # timeclock.timeout.connect(self.__autorun)
-        # timeclock.start(1000 * 10)
-        #print("开始循环检，10s后开始下一轮")
         print('开始循环检')
+        self.widget_Realtime.clear()
+
         self.h_checkcontrolthread.emits()
-        pass
+        #测试下状态
+        #self._SIG_SHOWMES.emit(self.spackid)
 
 
 
     def __autorun(self):
-        pass
-        # self.ui.toolbtn_offlinerun.setChecked(True)
-        # self._offlinerun()
+        self.ui.toolbtn_offlinerun.setChecked(False)
+        self._offlinerun()
+        self.ui.toolbtn_offlinerun.setChecked(True)
+        self._offlinerun()
+
 
     def callback2set_highsensor_point(self, list_param):
         self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2set_highsensor_point', list_param)
@@ -487,7 +495,6 @@ class kxmainwindow(KXBaseMainWidget):
 
 class CheckControlThread(threading.Thread):
     _MAX_AGV_BUFFERLEN = 100  # 赌小车答复不会一次性答复这么长
-
     def __init__(self, hparent, ip, port, nid1, nid2, nid3):
         super(CheckControlThread, self).__init__()
         self.h_parent = hparent
@@ -503,6 +510,7 @@ class CheckControlThread(threading.Thread):
         self.nid2 = int(nid2)
         self.nid3 = int(nid3)
         self.s_packid = str(int(time.time()))
+        self.b_nextstatus = False #进入下一个站点
 
 
 
@@ -525,6 +533,7 @@ class CheckControlThread(threading.Thread):
         """
         self.list_info = list_info
 
+
     def setControlmanger(self, serials:ControlManager):
 
         self.controlmanger = serials
@@ -532,6 +541,9 @@ class CheckControlThread(threading.Thread):
 
     def emits(self):
         self.b_emit = True
+
+    def emitnext(self):
+        self.b_nextstatus = True
 
 
     def str_to_hex(self, data):
@@ -581,7 +593,7 @@ class CheckControlThread(threading.Thread):
 
             MSG_GET_PACKID[5] = nagvid
 
-            while 1:
+            while self.b_runstaus:
 
                 self.tcp_agvclient.send(bytes(MSG_GET_PACKID))
 
@@ -632,9 +644,11 @@ class CheckControlThread(threading.Thread):
 
             else:
                 # 3. 获取进站口站点状态
-                while not self._get_status_and_packid(self.nid1):
+                while not self._get_status_and_packid(self.nid1) and self.b_runstaus:
 
                     time.sleep(1)
+
+                if not self.b_runstaus: return
 
                 # 4. 关闭光栅放入小车
                 self.controlmanger.control_guangshan(0)
@@ -648,7 +662,7 @@ class CheckControlThread(threading.Thread):
                 print ('放入小车: ', MSG_CONTROL_AGV)
 
                 # 5. 检测小车到位中间站点
-                while 1:
+                while self.b_runstaus:
 
                     MSG_AGV_GETINFO = imc_msg.AGVMSG.MSG_BASE_GET_STATION_STATUS
 
@@ -675,10 +689,17 @@ class CheckControlThread(threading.Thread):
 
 
 
-
     def sendagv2next(self):
 
-        while self.b_runstaus:
+        while (not self.b_nextstatus) and self.b_runstaus:#等待外部将b_nextstatus置为True
+
+            time.sleep(1)
+
+        self.b_nextstatus = False
+
+        if not self.b_runstaus: return
+
+        while self.b_runstaus :
 
             MSG_AGV_GETINFO = imc_msg.AGVMSG.MSG_BASE_GET_STATION_STATUS
 
@@ -711,8 +732,34 @@ class CheckControlThread(threading.Thread):
 
         #监听送出小车状态
 
+        while self.b_runstaus:
+
+            MSG_AGV_GETINFO = imc_msg.AGVMSG.MSG_BASE_GET_STATION_STATUS
+
+            MSG_AGV_GETINFO[5] = self.nid3
+
+            self.tcp_agvclient.send(bytes(MSG_AGV_GETINFO))
+
+            print('发送获取出站状态， 1： ', MSG_AGV_GETINFO)
+
+            sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
+
+            print('发送获取出站状态， 2： ', sreaddata)
+
+            list_readdata = self.str_to_hex(sreaddata)
+
+            if len(list_readdata) > 8 and (list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_ONSTATION):
+
+                break
+
+            time.sleep(1)
+
+        print('车已到达下一站点')
         #开启光栅
-        #self.controlmanger.control_guangshan(0)
+        self.controlmanger.control_guangshan(1)
+
+        #开启下个状态
+        self.b_emit = True
 
 
 
@@ -724,14 +771,19 @@ class CheckControlThread(threading.Thread):
         while (1):
 
             if self.b_runstaus and self.b_emit:
+            #if self.b_runstaus:
 
                 self.b_emit = False
 
                 #复位开始按钮按下，只对开始检测后第一次有用
-                #self.controlmanger.waitforstart(self.b_isfirstrun)
+                self.controlmanger.waitforstart(self.b_isfirstrun)
+
+                if not self.b_runstaus: continue
 
                 #初始化所有气缸状态
                 self.controlmanger.MakeEveryposFuwei()
+
+                if not self.b_runstaus: continue
 
                 #动作1, 监听设备上是否有小车
                 self.waitforagv()
@@ -748,12 +800,11 @@ class CheckControlThread(threading.Thread):
 
                 if not self.b_runstaus: continue
 
-
-                #送小车到下一个工位
+                #小车出站
                 #self.sendagv2next()
 
                 #触发mes上传，同时送出packid
-                self.h_parent._SIG_SHOWMES.emit(self.s_packid)
+                #self.h_parent._SIG_SHOWMES.emit(self.s_packid)
 
             else:
 
