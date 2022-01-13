@@ -535,6 +535,8 @@ void CGlueCheck::GetGlueMask()
 
 	ippiSet_8u_C1R(255, m_ImgGlueMask.buf + m_ImgGlueMask.nPitch * ntop + nleft, m_ImgGlueMask.nPitch, copysize);
 
+	//std::cout << nleft << " " << ntop << " " << nright << " " << nbottom << std::endl;
+
 	/*
 	//2. 对边框内图案进行提取
 	
@@ -831,7 +833,7 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 	tbb_start = tick_count::now();
 
 
-	cv::Mat targetimg = cv::Mat(m_ImgGlueMask.nHeight, m_ImgGlueMask.nWidth, CV_8UC1, m_ImgGlueMask.nPitch);
+	cv::Mat targetimg = cv::Mat(m_ImgGlueMask.nHeight, m_ImgGlueMask.nWidth, CV_8UC1, m_ImgGlueMask.buf, m_ImgGlueMask.nPitch);
 
 	int narea = cv::countNonZero(targetimg);
 

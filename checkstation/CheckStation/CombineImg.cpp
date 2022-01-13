@@ -168,19 +168,40 @@ bool CCombineImg::MatchTemplateAndTransform(int ncol)
 
 	kxCImageBuf matchimg;
 
-	matchimg.Init(m_rectmodel[ncol].Width(), nH, 3);
+	const int horizonoffset = 5;
+
+	int nleft = max(0, m_rectmodel[ncol].left - horizonoffset);
+
+	int nright = min(m_ImgBigListB[ncol].nWidth - 1, m_rectmodel[ncol].right + horizonoffset);
+
+	int nw = nright - nleft + 1;
+
+	matchimg.Init(nw, nH, 3);
 
 	IppiSize bigsize = { matchimg.nWidth, matchimg.nHeight};
 
-	ippiCopy_8u_C3R(m_ImgBigListB[ncol].buf + ntop * m_ImgBigListB[ncol].nPitch + m_rectmodel[ncol].left * m_ImgBigListB[ncol].nChannel, m_ImgBigListB[ncol].nPitch, matchimg.buf, matchimg.nPitch, bigsize);
+	ippiCopy_8u_C3R(m_ImgBigListB[ncol].buf + ntop * m_ImgBigListB[ncol].nPitch + nleft * m_ImgBigListB[ncol].nChannel, m_ImgBigListB[ncol].nPitch, matchimg.buf, matchimg.nPitch, bigsize);
 
 	kxPoint<float> matchpos;
 
 	float frate = m_hAlg.Matchtemplate(matchpos, matchimg, templateimg);
 
+	char savepath[32];
+
+	sprintf_s(savepath, "d:\\matchimg%d.bmp", ncol);
+
+	CKxBaseFunction fun;
+
+	fun.SaveBMPImage_h(savepath, matchimg);
+
+	sprintf_s(savepath, "d:\\templateimg%d.bmp", ncol);
+
+	fun.SaveBMPImage_h(savepath, templateimg);
+
+
 	int ncaptureoffset = m_rectmodel[ncol].top - (matchpos.y + ntop);// B的位置比A往上了这么多
 
-	if (frate > 0.6 && ncaptureoffset >= 0)// ncaptureoffset 在理想的位置只应该大于0
+	if (frate > 0.4 && ncaptureoffset >= 0)// ncaptureoffset 在理想的位置只应该大于0
 	{
 		//int ncaptureoffset = nH - matchpos.y - templateimg.nHeight;
 

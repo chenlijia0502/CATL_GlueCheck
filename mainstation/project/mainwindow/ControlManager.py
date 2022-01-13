@@ -830,7 +830,7 @@ class ControlManager(object):
         b_rectargetstatus = False
 
         if len(np.array(info).shape) == 1:
-            while (time.time() - curtime < ntimeout) and self.b_checkstatus:
+            while (time.time() - curtime < ntimeout):
                 data = self.mySeria.read(1).hex()
                 data = str_to_hex(data)
                 if data != info:
@@ -841,7 +841,7 @@ class ControlManager(object):
         else:
             list_status = [False for i in range(len(info))]
 
-            while (np.sum(list_status) != len(list_status))  and (int(time.time() - curtime) <= ntimeout) and self.b_checkstatus:
+            while (np.sum(list_status) != len(list_status))  and (int(time.time() - curtime) <= ntimeout):
 
                 data = self.mySeria.read(1).hex()
                 data = str_to_hex(data)

@@ -226,7 +226,7 @@ class ZSImgListDetectWidget(QtWidgets.QWidget):
     def addOneDefectItemwithID(self, defectImage, ndefectid, s_defectword, pos, farea):
         try:
             text1 = s_defectword
-            text2 = str(round(farea, 2))
+            text2 = str(round(farea, 2)) + " mm²"
             self.list_data.append(DataStruct(defectImage, ndefectid, pos))
             imgView = self.historyShowArea.cellWidget(*self.curDefectTablePos)
             if isinstance(imgView, ComboImageLabelWidget):

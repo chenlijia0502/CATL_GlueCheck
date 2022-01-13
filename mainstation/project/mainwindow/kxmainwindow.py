@@ -71,6 +71,7 @@ class kxmainwindow(KXBaseMainWidget):
         self._SIG_SHOWMES.connect(self.showmeswidget)
         self.widget_mes.SIG_CHUZHAN.connect(self._control_out)
         self.spackid = str(int(time.time()))
+
         #self._SIG_AUTORUN.connect(self.__autorun)
 
 
@@ -79,7 +80,6 @@ class kxmainwindow(KXBaseMainWidget):
 
 
     def showmeswidget(self, spackid):
-        print ('showmeswidget')
         self.widget_mes.setpackid(spackid)
         self.widget_mes.show()
 
@@ -163,13 +163,14 @@ class kxmainwindow(KXBaseMainWidget):
         font.setPointSize(14)
         self.ui.toolButton_userlevel.setFont(font)
 
+
     def _completeconnect(self):
         self.ui.toolButton_userlevel.clicked.connect(self.showpermissiondialog)
-        #self.toolbutton_move.clicked.connect(self._emitmove)
         self.toolbutton_move.clicked.connect(self._shoujian)
-        self.toolbutton_test.clicked.connect(self._emitmove)
+        self.toolbutton_test.clicked.connect(self._emitshowmes)
         self._SIG_SHOWLOCK.connect(self._lockpermissiondialog)
         self._SIG_ERRORINFO.connect(self._showerrorinfo)
+
 
     def _test_adjust_z(self):
         ipc_tool.kxlog("主站", logging.INFO, "测试z轴调节")
@@ -179,8 +180,9 @@ class kxmainwindow(KXBaseMainWidget):
         t = threading.Thread(target=self.h_control.control_adjust_z)
         t.start()
 
-    def _emitmove(self):
-        pass
+    def _emitshowmes(self):
+        self.widget_mes.show()
+
         #self.h_checkcontrolthread.emits()
 
 
@@ -221,10 +223,11 @@ class kxmainwindow(KXBaseMainWidget):
             self._setstatus("00000")#锁住
 
 
+
     def _setstatus(self, slevel):
         list_status = list(map(int, slevel))
         list_bstatus = list(map(bool, list_status))
-        self.ui.widget_3.setEnabled(list_bstatus[1])
+        self._settoolbuttonEnable(list_bstatus[1])
         if list_bstatus[2]:
             self.widget_Paramsetting.modelmanage_load_unlock()
         else:
@@ -238,6 +241,12 @@ class kxmainwindow(KXBaseMainWidget):
         else:
             self.widget_cpcts.setEnabled(False)
 
+
+    def _settoolbuttonEnable(self, bstatus):
+        self.ui.toolbtn_offlinerun.setEnabled(bstatus)
+        self.ui.toolbtn_savebadimage.setEnabled(bstatus)
+        self.toolbutton_move.setEnabled(bstatus)
+        self.toolbutton_test.setEnabled(bstatus)
 
 
     def recmsg(self, n_stationid, n_msgtype, s_extdata=b''):
@@ -451,7 +460,10 @@ class kxmainwindow(KXBaseMainWidget):
         self._SIG_ERRORINFO.emit(info)
 
     def _showerrorinfo(self, info):
+        self.ui.toolbtn_onlinerun.setChecked(False)
+        self._onlinerun()
         respond = QtWidgets.QMessageBox.warning(self, u"错误", info, QtWidgets.QMessageBox.Cancel)
+
 
     def callback2getrowcol(self):
         return self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2getrowcol')
@@ -524,6 +536,8 @@ class CheckControlThread(threading.Thread):
         if bstatus:
             self.b_isfirstrun = True
 
+            self.b_nextstatus = False
+
 
     def setinfo(self, list_info):
         """
@@ -589,6 +603,8 @@ class CheckControlThread(threading.Thread):
 
             nagvid = list_readdata[7]
 
+            print('小车 ID：', nagvid)
+
             MSG_GET_PACKID = imc_msg.AGVMSG.MSG_BASE_GET_PACK_ID
 
             MSG_GET_PACKID[5] = nagvid
@@ -609,6 +625,8 @@ class CheckControlThread(threading.Thread):
                 if len(list_readdata) > 5 and list_readdata[4] == 0xB1:
 
                     nidlen = list_readdata[3]
+
+                    logging.log(logging.WARNING, "AGV PACKID： " + sreaddata)
 
                     list_packid = list_readdata[6:6 + nidlen - 2]
 
@@ -650,6 +668,8 @@ class CheckControlThread(threading.Thread):
 
                 if not self.b_runstaus: return
 
+
+
                 # 4. 关闭光栅放入小车
                 self.controlmanger.control_guangshan(0)
 
@@ -682,6 +702,8 @@ class CheckControlThread(threading.Thread):
 
                         break
 
+                    time.sleep(1)
+
                 # 6. 打开光栅
                 self.controlmanger.control_guangshan(1)
         except Exception as e:
@@ -690,6 +712,8 @@ class CheckControlThread(threading.Thread):
 
 
     def sendagv2next(self):
+
+        print('sendagv2next')
 
         while (not self.b_nextstatus) and self.b_runstaus:#等待外部将b_nextstatus置为True
 
@@ -800,11 +824,12 @@ class CheckControlThread(threading.Thread):
 
                 if not self.b_runstaus: continue
 
-                #小车出站
-                #self.sendagv2next()
+                # 触发mes上传，同时送出packid
+                self.h_parent._SIG_SHOWMES.emit(self.s_packid)
 
-                #触发mes上传，同时送出packid
-                #self.h_parent._SIG_SHOWMES.emit(self.s_packid)
+                #小车出站
+                self.sendagv2next()
+
 
             else:
 

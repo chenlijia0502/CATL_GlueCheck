@@ -24,6 +24,12 @@
 		<readonly>0</readonly>
 		<isvisible>1</isvisible>
 	</operationRevision>
+	<activityId>
+		<chinesename>activityId</chinesename>
+		<value>EAP_WS</value>
+		<readonly>0</readonly>
+		<isvisible>1</isvisible>
+	</activityId>
 	<resource>
 		<chinesename>设备资源号</chinesename>
 		<value>MLWMA014</value>

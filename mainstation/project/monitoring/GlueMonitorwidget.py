@@ -23,7 +23,8 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self._initui()
         dict_config = readconfig()
         self.f_resolution = float(dict_config["resolution"])
-        self.fp = None
+        self.fp = None#检测结果
+        self.fp_realtime = None#实时显示
         self.frameitem = None
         self.h_defectinfo = DefectClass()
         self.nrow, self.ncol = 0, 0# 大图拼成的行列
@@ -47,8 +48,11 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.graphicsView_small.setCentralItem(self.view_small)
         self.imgitem_small = pg.ImageItem()
         self.view_small.addItem(self.imgitem_small)
-        self.text_item = pg.TextItem(color=(255, 0, 0))
-        self.view_small.addItem(self.text_item)
+        self.text_item = pg.TextItem(anchor=(0, 0), angle=0,color=(255, 255, 255))
+        h_font = QtGui.QFont('Consolas', 14)
+        self.text_item.setFont(h_font)
+
+        self.graphicsView_small.addItem(self.text_item)
         self.verticallayout.addWidget(self.graphicsView_small, 1)
 
         self.widget_edgepos = WidgetEdgePos()
@@ -65,12 +69,12 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
 
     def _slotCellClick(self, img, ndefectID, pos):
-        print ("_slotCellClick", ndefectID)
         if ndefectID >= self.h_defectinfo.size():
             return
         else:
             self._paintroi(ndefectID)
         self.imgitem_small.setImage(img, autoLevels=False)
+        self._showinfo(ndefectID)
 
 
     def _paintroi(self, ndefectID):
@@ -81,20 +85,20 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.n_curid = ndefectID
 
 
-    def _getimage(self, dict_result):
+    def _getimage(self, fp, dict_result):
         try:
             readimagepath = dict_result['imagepath']
             startoffset = dict_result['startoffset']
             offsetlen = dict_result['imageoffsetlen']
         except AttributeError:
             return None
-        if self.fp is None:
+        if fp is None:
             try:
-                self.fp = open(readimagepath, "rb")
+                fp = open(readimagepath, "rb")
             except IOError:
                 return None
-        self.fp.seek(startoffset)
-        data = self.fp.read(offsetlen)
+        fp.seek(startoffset)
+        data = fp.read(offsetlen)
         Img = KxImageBuf()
         Img.unpack(data)
         arrImg = Img.Kximage2npArr()
@@ -107,7 +111,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
             dict_result = json.loads(tuple_data)
 
-            img = self._getimage(dict_result)
+            img = self._getimage(self.fp, dict_result)
 
             neww = int(img.shape[1] / self._SCALE_FACTOR)
 
@@ -125,7 +129,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
             ncurcol = dict_result['curcol']
 
-            self.h_defectinfo.append_blockinfo(resizeimg, dict_result['area'], ncurrow,  ncurcol)
+            self.h_defectinfo.append_blockinfo(resizeimg, int(dict_result['area']) * self.f_resolution * self.f_resolution, ncurrow,  ncurcol)
 
             if ndefectnum != 0:
 
@@ -147,9 +151,12 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
                     newpos = self._transformpos(expandpos, w, h, ncurrow, ncurcol)
 
-                    self.h_defectinfo.append_defectinfo(smallimg, newpos, sdefectid, ndots)
+                    self.h_defectinfo.append_defectinfo(smallimg, newpos, sdefectid, ndots,
+                                                        [round(pos[2] * self.f_resolution, 2), round(pos[3] * self.f_resolution, 2)],
+                                                        round(ndots * self.f_resolution * self.f_resolution, 2))
 
-                    self.list_defectwidgt.addOneDefectItemwithID(smallimg, self.h_defectinfo.size(), sdefectid, pos[0:2], ndots * self.f_resolution * self.f_resolution)
+                    self.list_defectwidgt.addOneDefectItemwithID(smallimg, self.h_defectinfo.size() - 1, sdefectid,
+                                                                 pos[0:2], ndots * self.f_resolution * self.f_resolution)
 
             if nIsFull == 1:# 当前pack已检完
 
@@ -166,7 +173,16 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
                     self.view.addItem(roi)
 
                 # TODO : 为循环检而加
-                self.h_parentwidget.callback2autorun()
+                #self.h_parentwidget.callback2autorun()
+                #self.h_parentwidget.showmeswidget()
+
+        elif n_msgtype == imc_msg.MSG_SHOW_IMG:
+
+            dict_result = json.loads(tuple_data)
+
+            showimg = self._getimage(self.fp_realtime, dict_result)
+
+            self.imgitem.setImage(showimg, autoLevels=False)
 
 
 
@@ -209,6 +225,18 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         s_word = args[0].word
         self.imgitem_small.setImage(self.h_defectinfo.list_defectimg[nid], autoLevels=False)
         self._paintroi(nid)
+        self._showinfo(nid)
+
+
+    def _showinfo(self, nid):
+        if nid > self.h_defectinfo.size():
+            return
+        s_word = "缺陷块位置：" + str(self.h_defectinfo.list_defectword[nid]) + '\n'
+        s_word = s_word + "缺陷宽：" + str(self.h_defectinfo.list_defectwh[nid][0]) + ' mm\n'
+        s_word = s_word + "缺陷高：" + str(self.h_defectinfo.list_defectwh[nid][1]) + ' mm\n'
+        s_word = s_word + "缺陷面积：" + str(self.h_defectinfo.list_defectarea[nid]) + ' mm²\n'
+        s_word = s_word + "缺陷点数：" + str(self.h_defectinfo.list_dots[nid]) + '\n'
+
         self.text_item.setText(s_word)
 
 
@@ -234,6 +262,9 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.widget_edgepos.clear()
         list_shead = self.h_parentwidget.callback2getlisthead()
         self.widget_edgepos.sethead(list_shead)
+        self.imgitem_small.clear()
+        #self.view.autoRange()
+        #self.view_small.autoRange()
 
 
 
@@ -258,24 +289,30 @@ class DefectClass(object):
         self.list_defectpos = []#缺陷坐标
         self.list_roi = []      #缺陷roi对象
         self.list_dots = []     #缺陷点数
+        self.list_defectwh = [] #缺陷宽高
+        self.list_defectarea = []#缺陷面积
+        self.list_defectword = []#缺陷位置名称
         self.list_bigimg = []   #每个块原图
         self.list_narea = []    #每个块面积
         self.nrow = 0#大图是由这么多行列组成
         self.ncol = 0
-
         self.bigimg = None
+
 
     def setrowcol(self, row, col):
         self.nrow = row
         self.ncol = col
 
-    def append_defectinfo(self, defectimg, pos, sdefectword, dots):
+
+    def append_defectinfo(self, defectimg, pos, sdefectword, dots, list_wh, ndefectarea):
         """
         存储检测结果，针对单个缺陷
         :param defectimg:   单张缺陷图
         :param pos:         单个缺陷坐标
         :param sdefectword: 缺陷名称（格式： 块号_缺陷号）
         :param dots:        缺陷点数
+        :param list_wh:     缺陷宽高
+        :param ndefectarea: 缺陷面积
         :return:
         """
         self.list_defectimg.append(defectimg)
@@ -283,6 +320,9 @@ class DefectClass(object):
         self.list_dots.append(dots)
         roi = ROIwithID(pos=pos[:2], nid=len(self.list_defectpos) - 1, word=sdefectword, size=pos[2:], pen=1)
         self.list_roi.append(roi)
+        self.list_defectwh.append(list_wh)
+        self.list_defectarea.append(ndefectarea)
+        self.list_defectword.append(sdefectword)
 
 
     def append_blockinfo(self, bigimg, narea, nrowid, ncolid):
@@ -322,6 +362,12 @@ class DefectClass(object):
         self.list_roi = []      #缺陷roi对象
         self.list_bigimg = []   #每个块原图
         self.list_narea = []    #每个块面积
+        self.list_defectwh = [] #缺陷宽高
+        self.list_defectarea = []#缺陷面积
+        self.list_defectword = []#缺陷位置名称
+
+
+
 
 
 class testviewwidget(QtWidgets.QWidget):

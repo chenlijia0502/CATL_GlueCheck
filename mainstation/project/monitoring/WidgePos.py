@@ -71,7 +71,7 @@ class WidgetEdgePos(QtWidgets.QWidget):
 
     def setdata(self, list_data, rowindex):
         for col, data in enumerate(list_data):
-            newItem = QtWidgets.QTableWidgetItem(data)
+            newItem = QtWidgets.QTableWidgetItem(str(round(data, 1)) + "mm²")
             self.TableWidget.setItem(rowindex, col, newItem)
 
 
@@ -84,3 +84,11 @@ class WidgetEdgePos(QtWidgets.QWidget):
 
     def clear(self):
         self.TableWidget.clear()
+
+
+if __name__ == "__main__":
+    a = QtWidgets.QApplication([])
+    w = WidgetEdgePos()
+    w.setdata([69369856, 69369856, 69369856, 69369856, 69369856, 69369856], 4)
+    w.show()
+    a.exec_()

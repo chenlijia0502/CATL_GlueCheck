@@ -101,6 +101,7 @@ enum MessageType
 
 	MSG_PACK_ID = 701, //发送pack id
 
+	MSG_SHOW_IMG = 1100, //检测时候拍的实时图像，用于实时显示界面显示
 
 
 };

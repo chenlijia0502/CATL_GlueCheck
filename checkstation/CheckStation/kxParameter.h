@@ -61,6 +61,8 @@ public:
 	char            m_szNetBuildModelSaveImagePath[1 << 8]; //建模的存图队列
 	bool			m_bIsBuildModelStatus;					//当前是否存图状态，是的话直接将图像发送到主站
 
+	char			m_szNetDotCheckImgpath[1 << 8];//点检采集图像保存路径
+
 public:
 	Parameter & GetParameter()
 	{

@@ -31,6 +31,7 @@ class kxprivilege_management(QtWidgets.QDialog):
         super(kxprivilege_management, self).__init__(parent)
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
+        self.setWindowTitle("权限")
         self.list_curpermission = 0
         self.ChangePasswordDialog = None
         self.ui.lineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
@@ -38,7 +39,7 @@ class kxprivilege_management(QtWidgets.QDialog):
         self.adduserdialog = Adduserdialog(list_slevel)
         self.inputdialog = InputDialog()
         self.__ininconnection()
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint |QtCore.Qt.WindowStaysOnTopHint)#全屏
+        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)#全屏
         #self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
 
         self.ui.lineEdit_2.setReadOnly(True)

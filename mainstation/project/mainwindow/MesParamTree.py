@@ -8,6 +8,7 @@ import csv
 import time
 from library.ipc.ipc_tool import getqueue_queue_kxlog
 import logging
+from project.other.ExcelManager import CExcelManager
 
 
 class MesParamTreeWidget(QtWidgets.QDialog):
@@ -137,6 +138,13 @@ class MesParamTreeWidget(QtWidgets.QDialog):
             params.append(dict_single)
         self.p = KxParameter.create(name='params', type='group', children=params)
         self.h_parameterTree.setParameters(self.p, showTop=False)
+
+    def _initexcellog(self):
+        """
+        创建excel log dir
+        """
+        pass
+        #if os.path.isdir("d:\\MES")
 
 
 
@@ -280,9 +288,9 @@ class MesParamTreeWidget(QtWidgets.QDialog):
 
     def chuzhan(self):
         #self.sendmes()
-        print('出站命令, 记得注释掉， self.SIG_CHUZHAN.emit()')
+        #print('出站命令, 记得注释掉， self.SIG_CHUZHAN.emit()')
 
-        self.SIG_CHUZHAN.emit()
+        #self.SIG_CHUZHAN.emit()
 
         try:
             # TODO 下面几句话传输结果，将结果按照格式放入self.machineIntegrationParametricData

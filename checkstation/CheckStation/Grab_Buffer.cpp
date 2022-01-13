@@ -222,58 +222,17 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 				kxPrintf(KX_INFO, "子站配置参数图宽高设置错误");
 			}
 
-			/*
-			if (Config::g_GetParameter().m_bChangeExpoureTimeStatus && (Config::g_GetParameter().m_nSendImageCount++ % 8))
-			{
-				ConvertBayer2Color(m_CaptureQueue.GetRearElement().m_Image, m_TmpImg);
-
-				unsigned int nOffset;
-				if (g_SaveImgQueExposure.m_fp == NULL)
-					g_SaveImgQueExposure.OpenFile(Config::g_GetParameter().m_szNetExposureSaveImagePath, m_TmpImg.nWidth, m_TmpImg.nHeight, m_TmpImg.nPitch, 10);
-				g_SaveImgQueExposure.SaveImg(m_TmpImg, nOffset);
-				//auto m_fp = _fsopen("d:\\123.bmp", "wb", _SH_DENYNO);
-				//m_TmpImg.Write(m_fp);
-				//fclose(m_fp);
-
-				std::ostringstream os;
-				os.write(reinterpret_cast<const char *>(&Config::g_GetParameter().m_szNetExposureSaveImagePath), sizeof(char)* 256);
-
-				if (!g_bIsSimulate)
-				{
-					string  szNet = m_hBaseFun.FormatIntToString(Config::g_GetParameter().m_nCurrentUIid) + m_hBaseFun.FormatIntToString(nOffset) + m_hBaseFun.FormatIntToString(m_TmpImg.nPitch) + m_hBaseFun.FormatIntToString(m_TmpImg.nHeight) + os.str();
-					if (Net::IsExistNetObj())
-					{
-						Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_SEND_REAL_TIME_IMAGE), int(szNet.size()), szNet.c_str());
-					}
-				}
-
-			}
-			*/
-
-			//static int nsaveindex = 0;
-
-			//char savepath[64];
-
-			//memset(savepath, 0, 64);
-
-			//sprintf_s(savepath, "d:\\%d.bmp", nsaveindex);
-
-			//m_hBaseFun.SaveBMPImage_h(savepath, m_CaptureQueue.GetRearElement().m_Image);
-
-			//nsaveindex++;
-
-
-			if (g_bdotcheckstatus)
+			if (g_bdotcheckstatus)//点检,也即拿数据图做首件
 			{
 				Json::Value sendresult;
 
-				sendresult["imagepath"] = Config::g_GetParameter().m_szNetExposureSaveImagePath;
+				sendresult["imagepath"] = Config::g_GetParameter().m_szNetDotCheckImgpath;
 
 				kxCImageBuf recimg;
 
 				recimg.SetImageBuf(m_CaptureQueue.GetRearElement().m_Image);
 
-				bool m_bOpenFileStatus = g_SaveImgQueBuildModel.OpenFile(Config::g_GetParameter().m_szNetExposureSaveImagePath,
+				bool m_bOpenFileStatus = g_SaveImgQueBuildModel.OpenFile(Config::g_GetParameter().m_szNetDotCheckImgpath,
 					recimg.nWidth, recimg.nHeight, recimg.nPitch, 30);
 
 				if (m_bOpenFileStatus)  //文件打开成功
@@ -287,7 +246,7 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 				else
 				{
 					char word[256];
-					sprintf_s(word, 256, "存图路径打开失败：%s", Config::g_GetParameter().m_szNetExposureSaveImagePath);
+					sprintf_s(word, 256, "存图路径打开失败：%s", Config::g_GetParameter().m_szNetDotCheckImgpath);
 					kxPrintf(KX_Err, word);
 				}
 
@@ -298,6 +257,49 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 					Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_DOT_CHECK_RESULT), int(sendstr.size()), sendstr.c_str());
 				}
 			
+			}
+			else// 检测的时候把图压缩发过去,让人看到实时图像
+			{
+				Json::Value sendresult;
+
+				sendresult["imagepath"] = Config::g_GetParameter().m_szNetExposureSaveImagePath;
+
+				kxCImageBuf recimg;
+
+				recimg.SetImageBuf(m_CaptureQueue.GetRearElement().m_Image, true);
+
+				kxCImageBuf resizeimg;
+
+				const int scalefactor = 10;
+
+				resizeimg.Init(recimg.nWidth / scalefactor, recimg.nHeight / scalefactor, recimg.nChannel);
+
+				m_hBaseFun.KxResizeImage(recimg, resizeimg);
+
+				bool m_bOpenFileStatus = g_SaveImgQueExposure.OpenFile(Config::g_GetParameter().m_szNetExposureSaveImagePath,
+					resizeimg.nWidth, resizeimg.nHeight, resizeimg.nPitch, 30);
+
+				if (m_bOpenFileStatus)  //文件打开成功
+				{
+					unsigned int nOffset;
+
+					g_SaveImgQueExposure.SaveImg(resizeimg, nOffset);
+					sendresult["startoffset"] = nOffset;
+					sendresult["imageoffsetlen"] = resizeimg.nHeight * resizeimg.nPitch + 5 * 4;//这个‘值’看g_SaveImgQue.SaveImg()，存储的数据偏移+5个int
+				}
+				else
+				{
+					char word[256];
+					sprintf_s(word, 256, "存图路径打开失败：%s", Config::g_GetParameter().m_szNetExposureSaveImagePath);
+					kxPrintf(KX_Err, word);
+				}
+
+				std::string sendstr = sendresult.toStyledString();
+
+				if (Net::IsExistNetObj())
+				{
+					Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_SHOW_IMG), int(sendstr.size()), sendstr.c_str());
+				}
 			}
 
 
@@ -334,113 +336,6 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 	return;
 }
 
-//void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int nPitch, int nChannel)
-//{
-//	m_nNowID++;
-//	if (!m_CaptureQueue.IsFull())
-//	{
-//		KxCallStatus hCall;
-//		hCall.Clear();
-//		m_CaptureQueue.GetRearElement().m_Image.SetImageBuf(buf, nWidth, nHeight, nPitch, nChannel, true, hCall);
-//		//m_CaptureQueue.GetRearElement().m_Image.Init(nWidth, nHeight, nChannel);
-//		IppiSize roiSize = { nWidth, nHeight };
-//		//if (_Type_G8 == nChannel)
-//		//{
-//		//	ippiCopy_8u_C1R(buf, nPitch, m_CaptureQueue.GetRearElement().m_Image.buf, m_CaptureQueue.GetRearElement().m_Image.nPitch, roiSize);
-//		//}
-//		//else
-//		//{
-//		//	ippiCopy_8u_C3R(buf, nPitch, m_CaptureQueue.GetRearElement().m_Image.buf, m_CaptureQueue.GetRearElement().m_Image.nPitch, roiSize);
-//		//}
-//		if (hCall.nCallStatus != ippStsNoErr)
-//		{
-//			kxPrintf(KX_INFO, "子站配置参数图宽高设置错误");
-//		}
-//
-//		if (Config::g_GetParameter().m_bChangeExpoureTimeStatus && (Config::g_GetParameter().m_nSendImageCount++ % 8))
-//		{
-//			ConvertBayer2Color(m_CaptureQueue.GetRearElement().m_Image, m_TmpImg);
-//
-//			unsigned int nOffset;
-//			if (g_SaveImgQueExposure.m_fp == NULL)
-//				g_SaveImgQueExposure.OpenFile(Config::g_GetParameter().m_szNetExposureSaveImagePath, m_TmpImg.nWidth, m_TmpImg.nHeight, m_TmpImg.nPitch, 10);
-//			g_SaveImgQueExposure.SaveImg(m_TmpImg, nOffset); 
-//			//auto m_fp = _fsopen("d:\\123.bmp", "wb", _SH_DENYNO);
-//			//m_TmpImg.Write(m_fp);
-//			//fclose(m_fp);
-//
-//			std::ostringstream os;
-//			os.write(reinterpret_cast<const char *>(&Config::g_GetParameter().m_szNetExposureSaveImagePath), sizeof(char)* 256);
-//
-//			if (!g_bIsSimulate)
-//			{
-//				string  szNet = m_hBaseFun.FormatIntToString(Config::g_GetParameter().m_nCurrentUIid) + m_hBaseFun.FormatIntToString(nOffset) + m_hBaseFun.FormatIntToString(m_TmpImg.nPitch) + m_hBaseFun.FormatIntToString(m_TmpImg.nHeight) + os.str();
-//				if (Net::IsExistNetObj())
-//				{
-//					Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_SEND_REAL_TIME_IMAGE), int(szNet.size()), szNet.c_str());
-//				}
-//			}
-//
-//		}
-//
-//		////yl 2020.09.08
-//		//if (Config::g_GetParameter().m_bChangeExpoureTimeStatus && !g_bIsSimulate)
-//		//{
-//		//	m_TmpImg = m_CaptureQueue.GetRearElement().m_Image;
-//
-//		//	unsigned int nOffset;
-//		//	if (g_SaveImgQueExposure.m_fp == NULL)
-//		//		g_SaveImgQueExposure.OpenFile(Config::g_GetParameter().m_szNetExposureSaveImagePath, m_TmpImg.nWidth, m_TmpImg.nHeight, m_TmpImg.nPitch, 10);
-//		//	g_SaveImgQueExposure.SaveImg(m_TmpImg, nOffset);
-//		//	//auto m_fp = _fsopen("d:\\123.bmp", "wb", _SH_DENYNO);
-//		//	//m_TmpImg.Write(m_fp);
-//		//	//fclose(m_fp);
-//
-//		//	std::ostringstream os;
-//		//	os.write(reinterpret_cast<const char *>(&Config::g_GetParameter().m_szNetExposureSaveImagePath), sizeof(char)* 256);
-//
-//		//	if (!g_bIsSimulate)
-//		//	{
-//		//		string  szNet = m_hBaseFun.FormatIntToString(Config::g_GetParameter().m_nCurrentUIid) + m_hBaseFun.FormatIntToString(nOffset) + m_hBaseFun.FormatIntToString(m_TmpImg.nPitch) + m_hBaseFun.FormatIntToString(m_TmpImg.nHeight) + os.str();
-//		//		if (Net::IsExistNetObj())
-//		//		{
-//		//			Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_SEND_REAL_TIME_IMAGE), int(szNet.size()), szNet.c_str());
-//		//		}
-//		//	}
-//		//}
-//
-//		else if (!Config::g_GetParameter().m_bChangeExpoureTimeStatus)
-//		{
-//			m_CaptureQueue.GetRearElement().m_ImageID = m_nNowID;
-//			m_CaptureQueue.GetRearElement().m_CardID = m_nNowID;
-//			m_CaptureQueue.GetRearElement().m_Type = nChannel;
-//			m_CaptureQueue.Push();
-//		}
-//
-//		//}
-//	}
-//	else
-//	{
-//		kxPrintf(KX_WARNING, "采集队列溢出");
-//		//-----------TODO 一下为测试部分，测试队列溢出卡住的图像是什么样---------------//
-//		CKxBaseFunction fun;
-//		char savedir[256];
-//		sprintf_s(savedir, sizeof(savedir), "d:\\wrong\\%d", Config::g_GetParameter().m_nNetStationId);
-//		if (_access("d:\\wrong\\", 0))
-//			_mkdir("d:\\wrong\\");
-//		if (_access(savedir, 0))
-//			_mkdir(savedir);
-//		char saveszname[256];
-//		sprintf_s(saveszname, sizeof(saveszname), "d:\\wrong\\%d\\%d.bmp", Config::g_GetParameter().m_nNetStationId, testnum++%100);
-//		fun.SaveBMPImage_h(saveszname, m_CaptureQueue.Top().m_Image);
-//
-//
-//	}
-//	
-//
-//
-//	return;
-//}
 
 int CkxGrabBuffer::ConvertBayer2Color(const kxCImageBuf& cardImg, kxCImageBuf& dstImg)
 {
