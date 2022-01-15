@@ -413,6 +413,7 @@ class ControlManager(object):
         return data
 
 
+
     def _rebackXY(self):
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_X)
@@ -426,6 +427,27 @@ class ControlManager(object):
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
 
         self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+
+    def _rebackZmiddle(self):
+        """
+        Z轴基准位置为中间，目前先固定，后续更改下逻辑
+        """
+        MSG_Z_POS = [0x01, 0x04, 0x03, 0x80, 0x00, 0x00, 0x00]
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Z)
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_XIANWEI)
+
+        self._sendhardwaremsg(MSG_Z_POS)
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_MOVE)
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_ARRIVE)
+
+
+
+
 
 
     def _rebackZERO(self):
@@ -453,6 +475,7 @@ class ControlManager(object):
         if self.b_checkstatus == False:
 
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_END_CHECK)
+
 
     def waitforstart(self, bisfirst):
         """
@@ -486,9 +509,11 @@ class ControlManager(object):
 
         self._rebackZERO()
 
+        self._rebackZmiddle()
+
         self.b_zerostatus = False
 
-        #self.MakeEveryposFuwei()
+
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIAJIN)
 
@@ -579,7 +604,7 @@ class ControlManager(object):
 
             if not self.b_checkstatus:  return
 
-            time.sleep(1)
+            time.sleep(1)#
 
             self.h_parent.closeCamera()
 
@@ -640,27 +665,27 @@ class ControlManager(object):
         self._rebackZERO()
 
         # 2. z轴抬升100mm #溧阳先注释
-        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Z)
+        #self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Z)
 
-        time.sleep(2)
+        #time.sleep(2)
 
-        diff_pulse = int(80 / StaticConfigParam.RATE)
+        # diff_pulse = int(80 / StaticConfigParam.RATE)
+        #
+        # basemovez = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_BASEMOVE
+        #
+        # high = int(diff_pulse / 256)
+        #
+        # low = int(diff_pulse % 256)
+        #
+        # basemovez[3] = high
+        #
+        # basemovez[4] = low
+        #
+        # self._sendhardwaremsg(basemovez)
+        #
+        # self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_MOVE)
 
-        basemovez = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_BASEMOVE
-
-        high = int(diff_pulse / 256)
-
-        low = int(diff_pulse % 256)
-
-        basemovez[3] = high
-
-        basemovez[4] = low
-
-        self._sendhardwaremsg(basemovez)
-
-        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_MOVE)
-
-        time.sleep(2)
+        # time.sleep(2)
 
         self._clear_hardware_recqueue()
         # 3. 移动到标定块位置
@@ -672,9 +697,8 @@ class ControlManager(object):
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
 
-        time.sleep(5)
 
-        #self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
 
         movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
 
@@ -688,6 +712,8 @@ class ControlManager(object):
 
         # 3.
         self.h_parent.callback2dotcheck()
+
+        time.sleep(2)#TODO：这里有个bug，硬件在y轴即将到位的时候控制所有光源的亮暗会失效且会答复00000000000
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_ALL_LIGHT)
 

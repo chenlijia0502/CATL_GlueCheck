@@ -116,7 +116,7 @@ private:
 
 	void checkEdge(const kxCImageBuf& SrcImg);
 
-	void GetGlueMask();//用特定方法提取掩膜
+	void GetGlueMask(const kxCImageBuf* RGB);//用特定方法提取掩膜
 
 	void CreateBaseModel(const kxCImageBuf& CheckImg);//创建基础模板，彩色高模板，彩色低模板
 
@@ -129,5 +129,7 @@ private:
 	void ParallelBlob(Json::Value &checkresult);//并行blob,把图切片进行blob
 
 	void SearchEdge(const kxCImageBuf& GrayImg, int ndir, int nThreshvalue, int& nedge1, int& nedge2);//根据搜索方向，由中间向两侧搜索，得到两个边
+
+	void ExtractGreen(const kxCImageBuf* RGB, kxRect<int> roi, kxCImageBuf& DstImg);
 
 };

@@ -409,17 +409,21 @@ class kxmainwindow(KXBaseMainWidget):
         ipc_tool.kxlog("主站", logging.INFO, "开始首件检测")
         self.serial_Reconnect()
         self.h_control.setserial(self.mySeria)
-        t = threading.Thread(target=self.h_control.control_calibrate, args = [self.dict_config['SHOUJIAN']['XPOS'],
-                                                                             self.dict_config['SHOUJIAN']['YPOS1'],
-                                                                             self.dict_config['SHOUJIAN']['YPOS2']])
+        self.h_control.setcheckstatus(True)
+        t = threading.Thread(target=self.h_control.control_calibrate, args = [int(self.dict_config['SHOUJIAN']['XPOS']),
+                                                                             int(self.dict_config['SHOUJIAN']['YPOS1']),
+                                                                             int(self.dict_config['SHOUJIAN']['YPOS2'])])
         t.start()
 
 
     def callback2dotcheck(self):
         self.sendmsg(0, imc_msg.MSG_DOT_CHECK_OPEN)
 
+
     def callback2stopdotcheck(self):
         self.sendmsg(0, imc_msg.MSG_DOT_CHECK_CLOSE)
+        self.h_control.setcheckstatus(False)
+
 
     def reccalibrateimg(self,tuple_data):
         import json
@@ -810,7 +814,7 @@ class CheckControlThread(threading.Thread):
                 if not self.b_runstaus: continue
 
                 #动作1, 监听设备上是否有小车
-                self.waitforagv()
+                #self.waitforagv()
 
                 if not self.b_runstaus: continue
 
