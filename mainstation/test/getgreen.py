@@ -56,6 +56,12 @@ def getgreen(src):
     #cv2.destroyAllWindows()
 
 
+# def project2getgreen(srcimg):
+#     img = srcimg[]
+
+
+
+
 for i in range(6):
     src = cv2.imdecode(np.fromfile("D:\\%d.bmp"%i, dtype=np.uint8), -1)
-    getgreen(src)
+    project2getgreen(src)

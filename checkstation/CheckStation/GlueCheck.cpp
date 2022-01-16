@@ -569,18 +569,20 @@ void CGlueCheck::GetGlueMask(const kxCImageBuf* RGB)
 	targetroi.setup(nleft, ntop, nright, nbottom);
 
 
+
+
 	//溧阳方案
-	//m_ImgGlueMask.Init(RGB[0].nWidth, RGB[0].nHeight, RGB[0].nChannel);
+	m_ImgGlueMask.Init(RGB[0].nWidth, RGB[0].nHeight, RGB[0].nChannel);
 
-	//ippsSet_8u(0, m_ImgGlueMask.buf, m_ImgGlueMask.nPitch * m_ImgGlueMask.nHeight);
+	ippsSet_8u(0, m_ImgGlueMask.buf, m_ImgGlueMask.nPitch * m_ImgGlueMask.nHeight);
 
-	//IppiSize copysize = { nright - nleft + 1, nbottom - ntop + 1 };
+	IppiSize copysize = { nright - nleft + 1, nbottom - ntop + 1 };
 
-	//ippiSet_8u_C1R(255, m_ImgGlueMask.buf + m_ImgGlueMask.nPitch * ntop + nleft, m_ImgGlueMask.nPitch, copysize);
+	ippiSet_8u_C1R(255, m_ImgGlueMask.buf + m_ImgGlueMask.nPitch * ntop + nleft, m_ImgGlueMask.nPitch, copysize);
 
 
 	//肇庆方案
-	ExtractGreen(RGB, targetroi, m_ImgGlueMask);
+	//ExtractGreen(RGB, targetroi, m_ImgGlueMask);
 
 
 
@@ -983,13 +985,13 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 
 
 
-	//static int nindex = 0;
+	static int nindex = 0;
 
-	//char savepath[64];
+	char savepath[64];
 
-	//sprintf_s(savepath, "d:\\%d.bmp", nindex++);
+	sprintf_s(savepath, "d:\\%d.bmp", nindex++);
 
-	//m_hFun.SaveBMPImage_h(savepath, m_ImgCheck);
+	m_hFun.SaveBMPImage_h(savepath, m_ImgCheck);
 
 
 
