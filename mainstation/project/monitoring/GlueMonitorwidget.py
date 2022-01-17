@@ -357,7 +357,18 @@ class DefectClass(object):
 
     def getbigimg(self):
         rotateimg = cv2.rotate(self.bigimg, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        ncurrow = self.ncol
+        ncurcol = self.nrow
 
+        h, w = rotateimg.shape[:2]
+        nsteph = int(h / ncurrow)
+        nstepw = int(w / ncurcol)
+
+        for i in range(ncurrow):
+            for j in range(ncurcol):
+                pos = (j * nstepw, i * nsteph + 300)
+                word = str((ncurrow - i - 1) * ncurcol + j)
+                rotateimg = cv2.putText(rotateimg, word, pos, cv2.FONT_HERSHEY_SIMPLEX, 6, (0, 255, 0), 10)
         return rotateimg
 
 
