@@ -8,12 +8,13 @@ import codecs
 from PyQt5.QtCore import Qt
 from kxpyqtgraph.kxItem.DoubleListParameterItem import *
 import csv
-import logging
 import tkinter
 import tkinter.messagebox #弹窗库
 import operator
 from library.common.usermanager.subuserwidget import subuserwidget
 import datetime
+from library.ipc.ipc_tool import kxlog
+import logging
 
 #管理用户界面
 class Adduserdialog(QtWidgets.QDialog):
@@ -24,7 +25,6 @@ class Adduserdialog(QtWidgets.QDialog):
     _CSV_SAVE_HEAD = ['ID','permission','time']
     def __init__(self, list_slevel:[]):
         super(Adduserdialog, self).__init__()
-        self.logger = logging.getLogger('UI.%s' % self.__class__.__name__)
         self.setWindowTitle("添加账号")
         self.ui = Ui_adduser()
         self.ui.setupUi(self)
@@ -81,7 +81,7 @@ class Adduserdialog(QtWidgets.QDialog):
                append_idem=self.decrypt(item[0])
                userlist.append([append_idem.decode('utf-8'),item[1],item[2]])
        except Exception as e:
-           self.logger.info('用户文件不存在,已初始化')
+           kxlog(self, logging.ERROR, '用户文件不存在,已初始化')
            s_all = ""
            for i in range(self.nlevelnum):
                s_all += "1"
@@ -122,8 +122,8 @@ class Adduserdialog(QtWidgets.QDialog):
                                      self._CSV_SAVE_HEAD[1]:self.userlist[i][1],
                                      self._CSV_SAVE_HEAD[2]:self.userlist[i][2]})
                 except Exception as e:
-                    self.logger.error(e, exc_info=True)
-            print("save: ", self.userlist)
+                    kxlog(self, logging.ERROR, str(e))
+            #print("save: ", self.userlist)
         # import win32api, win32con
         # win32api.SetFileAttributes(csvpath, win32con.FILE_ATTRIBUTE_HIDDEN)
 

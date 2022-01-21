@@ -36,6 +36,7 @@ class kxprivilege_management(QtWidgets.QDialog):
         self.ChangePasswordDialog = None
         self.ui.lineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.ui.lineEdit_2.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.list_slevel = list_slevel
         self.adduserdialog = Adduserdialog(list_slevel)
         self.inputdialog = InputDialog()
         self.__ininconnection()
@@ -143,6 +144,10 @@ class kxprivilege_management(QtWidgets.QDialog):
 
 
     def getpermissionlevel(self):
+        #补0， 目的是随着项目更新，权限会增加，可能出现新版本无法兼容旧的情况
+        if self.cur_account != None and len(self.cur_account[1]) < len(self.list_slevel):
+            for i in range(len(self.list_slevel) - len(self.cur_account[1])):
+                self.cur_account[1] += '0'
         return self.cur_account
 
     def clear(self):

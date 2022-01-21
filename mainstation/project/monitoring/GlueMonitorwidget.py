@@ -162,13 +162,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
                 self.imgitem.setImage(self.h_defectinfo.getbigimg())
 
-                self.widget_edgepos.setdata(self.h_defectinfo.list_narea, 4, "mm²")
-
-                #为肇庆添加
-                self.widget_edgepos.setdata([5.1, 5.2, 6.1, 6.2, 5.7, 5.9], 0, 'mm')
-                self.widget_edgepos.setdata([5.4, 5.2, 6.2, 5.2, 5.5, 5.4], 1, 'mm')
-                self.widget_edgepos.setdata([5.6, 5.5, 6.4, 6.4, 5.4, 5.6], 2, 'mm')
-                self.widget_edgepos.setdata([5.5, 5.2, 6.6, 5.2, 5.7, 5.9], 3, 'mm')
+                self.widget_edgepos.setdata(self.h_defectinfo.list_narea, 4)
 
                 for roi in self.h_defectinfo.list_roi:
 
@@ -178,7 +172,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
                     self.view.addItem(roi)
 
-                # TODO : 为循环检而加
+                self.h_parentwidget.callback2uploaddata(0)#都弹框，确认是否放行
                 #self.h_parentwidget.callback2autorun()
                 #self.h_parentwidget.showmeswidget()
 

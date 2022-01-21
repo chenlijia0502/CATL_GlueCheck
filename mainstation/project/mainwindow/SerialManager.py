@@ -14,14 +14,14 @@ class SerialManager(object):
         self.myserial = serial.Serial(port=port, baudrate=baudrate)
 
         # 通信日志独此一份log
-        # self.logger = logging.getLogger(__name__)
-        # self.logger.setLevel(level=logging.INFO)
-        # handler = logging.FileHandler("D:\\log\\HARDWARE%s.txt"%time.strftime("%Y-%m-%d"))
-        # handler.setLevel(logging.INFO)
-        # formatter = logging.Formatter('%(asctime)s - %(message)s')
-        # handler.setFormatter(formatter)
-        # self.logger.addHandler(handler)
-        self.logger = logging.getLogger('UI.%s' % self.__class__.__name__)
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(level=logging.INFO)
+        handler = logging.FileHandler("D:\\log\\HARDWARE%s.txt"%time.strftime("%Y-%m-%d"))
+        handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        #self.logger = logging.getLogger('UI.%s' % self.__class__.__name__)
 
 
         self.list_write = []
@@ -125,7 +125,7 @@ class SerialManager(object):
 
                     self.list_read.append(data)
 
-            time.sleep(0.5)
+            time.sleep(0.2)
 
 
     def _hex_to_str(self, list_data):
@@ -151,8 +151,4 @@ class SerialManager(object):
 
                 del self.list_write[0]
 
-                time.sleep(0.5)
-
-            else:
-
-                time.sleep(0.5)
+            time.sleep(0.2)

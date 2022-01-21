@@ -45,8 +45,9 @@ class subuserwidget(QtWidgets.QDialog):
 
             self.ui.tableWidget.setItem(nindex, 0, newItem)
             for col in range(len(self.list_slevel)):
-                item = QTableWidgetItem(self.userlist[nindex][1][col])
-                self.ui.tableWidget.setItem(nindex, col + 1, item)
+                if col < len(self.userlist[nindex][1]):#考虑后面可能会出现新增锁定项目的可能，所以做保护
+                    item = QTableWidgetItem(self.userlist[nindex][1][col])
+                    self.ui.tableWidget.setItem(nindex, col + 1, item)
 
 
             # newItem = QTableWidgetItem(dict[self.userlist[item][1]])

@@ -69,9 +69,9 @@ class WidgetEdgePos(QtWidgets.QWidget):
         self.setLayout(layout)
 
 
-    def setdata(self, list_data, rowindex, sendword):
+    def setdata(self, list_data, rowindex):
         for col, data in enumerate(list_data):
-            newItem = QtWidgets.QTableWidgetItem(str(round(data, 1)) + sendword)
+            newItem = QtWidgets.QTableWidgetItem(str(round(data, 1)) + "mm²")
             self.TableWidget.setItem(rowindex, col, newItem)
 
 

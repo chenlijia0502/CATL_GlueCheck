@@ -17,7 +17,10 @@ from project.other.globalparam import *
 from project.mainwindow.Calibrate import FindEdgeToCalibrate, ShowCalibrateWidget
 from project.mainwindow.CPCTSParam import WidgetCPCTSParam
 from library.common.globalfun import DriveFreeSpace, DriveTotalSize
-from project.mainwindow.MesParamTree import MesParamTreeWidget
+#from project.mainwindow.MesParamTree import MesParamTreeWidget
+from project.mes.MesParamWidget import CMesParamWidget
+from library.common.globalparam import LogInfo
+
 
 class kxmainwindow(KXBaseMainWidget):
     _BAUDRATE = 115200
@@ -29,11 +32,10 @@ class kxmainwindow(KXBaseMainWidget):
     def __init__(self, dict_config):
         super(kxmainwindow, self).__init__(dict_config)
         self.dict_config = dict_config
-        self.logger = logging.getLogger('UI.%s' % self.__class__.__name__)
         self.widget_Realtime = KxBaseMonitoringWidget.create(name=dict_config["mointoringwidget_classname"], h_parent=self)
         self.widget_Paramsetting = KxBaseParameterSetting(hparent=self, dict_config=dict_config)#参数设置
         self.widget_runlog = KxBaseRunLog(self)#日志
-        self.widget_permission = kxprivilege_management(list_slevel=["账号管理", "控制工具栏",  "配方选择", "参数修改", "CP/CTS参数修改"])#权限管理
+        self.widget_permission = kxprivilege_management(list_slevel=["账号管理", "控制工具栏",  "配方选择", "参数修改", "CP/CTS参数修改", "MES"])#权限管理
         self.widget_worklist = WorkListWidget(self)
 
         self.mySeria = SerialManager(h_parent=self, port=dict_config['hardwarecom'], baudrate=self._BAUDRATE, nreadbuffersize=self._HARDWARE_QUEUELEN)# 波特率比较固定，没必要配置
@@ -51,12 +53,19 @@ class kxmainwindow(KXBaseMainWidget):
         self.pushbutton_cpcts.setText("CP/CTS")
         self.ui.horizontalLayout_2.addWidget(self.pushbutton_cpcts)
 
-        self._initstackwidget([self.ui.pbt_realtime, self.ui.pbt_paramset, self.ui.pbt_logview, self.ui.pushButton_worklist, self.pushbutton_cpcts],
-                              [self.widget_Realtime, self.widget_Paramsetting, self.widget_runlog, self.widget_worklist, self.widget_cpcts])
+        self.pushbutton_mes = QtWidgets.QPushButton(self)
+        self.widget_mes = CMesParamWidget()
+        self.pushbutton_mes.setMinimumSize(QtCore.QSize(80, 90))
+        self.pushbutton_mes.setMaximumSize(QtCore.QSize(80, 90))
+        self.pushbutton_mes.setText("MES")
+        self.ui.horizontalLayout_2.addWidget(self.pushbutton_mes)
+
+        self._initstackwidget([self.ui.pbt_realtime, self.ui.pbt_paramset, self.ui.pbt_logview, self.ui.pushButton_worklist, self.pushbutton_cpcts, self.pushbutton_mes],
+                              [self.widget_Realtime, self.widget_Paramsetting, self.widget_runlog, self.widget_worklist, self.widget_cpcts, self.widget_mes])
         self._completeui()
         self._completeconnect()
         self.ui.label_2.setText("下箱体托盘检测")
-        self._setstatus("00000")
+        self._setstatus("000000")
         self.h_threadlock = threading.Thread(target=self._judegIsTime2Lock)
         self.h_threadlock.start()
         self.fp = None
@@ -67,9 +76,8 @@ class kxmainwindow(KXBaseMainWidget):
         self.timer.timeout.connect(self.__timeout2checkdiskcapacity)
         self.timer.start(self.ntimeout)
 
-        self.widget_mes = MesParamTreeWidget()
-        self._SIG_SHOWMES.connect(self.showmeswidget)
-        self.widget_mes.SIG_CHUZHAN.connect(self._control_out)
+        #self._SIG_SHOWMES.connect(self.showmeswidget)
+        #self.widget_mes.SIG_CHUZHAN.connect(self._control_out)
         self.spackid = str(int(time.time()))
 
         #self._SIG_AUTORUN.connect(self.__autorun)
@@ -77,11 +85,6 @@ class kxmainwindow(KXBaseMainWidget):
 
     def _control_out(self):
         self.h_checkcontrolthread.emitnext()
-
-
-    def showmeswidget(self, spackid):
-        self.widget_mes.setpackid(spackid)
-        self.widget_mes.show()
 
 
     def __timeout2checkdiskcapacity(self):
@@ -107,7 +110,7 @@ class kxmainwindow(KXBaseMainWidget):
         if (ffree / fall) < 0.1:
             QtWidgets.QMessageBox.warning(self, u"错误", "！！！" + drive + "剩余空间不足 10%，请及时清理！！！",
                                           QtWidgets.QMessageBox.Cancel)
-            self.logger.info(drive + "剩余空间不足 10%，请及时清理！！！")
+            ipc_tool.kxlog("kxmainwindow", logging.WARN, drive + "剩余空间不足 10%，请及时清理！！！")
             return 0
         else:
             return 1
@@ -181,8 +184,8 @@ class kxmainwindow(KXBaseMainWidget):
         t.start()
 
     def _emitshowmes(self):
-        self.widget_mes.show()
-
+        #self.widget_mes.show()
+        pass
         #self.h_checkcontrolthread.emits()
 
 
@@ -203,7 +206,7 @@ class kxmainwindow(KXBaseMainWidget):
     def _lockpermissiondialog(self):
         """定时切出"""
         self.ui.toolButton_userlevel.setStyleSheet(LOCK_STYLESHEET)
-        self._setstatus("00000")  # 锁住
+        self._setstatus("000000")  # 锁住
         self.widget_runlog.setid("NONE")
 
 
@@ -220,7 +223,7 @@ class kxmainwindow(KXBaseMainWidget):
             self._setstatus(account[1])
             self.widget_runlog.setid(account[0])
         else:
-            self._setstatus("00000")#锁住
+            self._setstatus("000000")#锁住
 
 
 
@@ -240,6 +243,11 @@ class kxmainwindow(KXBaseMainWidget):
             self.widget_cpcts.setEnabled(True)
         else:
             self.widget_cpcts.setEnabled(False)
+        if list_bstatus[5]:
+            self.widget_mes.setEnabled(True)
+        else:
+            self.widget_mes.setEnabled(False)
+
 
 
     def _settoolbuttonEnable(self, bstatus):
@@ -258,19 +266,21 @@ class kxmainwindow(KXBaseMainWidget):
             ipc_tool.kxlog("主站", logging.INFO, "开始全局拍摄建模")
             self.serial_Reconnect()
             self.h_control.setserial(self.mySeria)
-            #self.h_control.buildmodel(s_extdata)
+            self.h_control.setcheckstatus(True)
             t = threading.Thread(target=self.h_control.buildmodel, args =s_extdata)
             t.start()
         elif n_msgtype == imc_msg.MSG_BUILD_MODEL_SECOND:
             ipc_tool.kxlog("主站", logging.INFO, "开始二次建模拍摄")
             self.serial_Reconnect()
             self.h_control.setserial(self.mySeria)
+            self.h_control.setcheckstatus(True)
             t = threading.Thread(target=self.h_control.buildmodel_second, args=s_extdata)
             t.start()
         elif n_msgtype == imc_msg.MSG_GET_BASE_POINT_HIGH:
             ipc_tool.kxlog("主站", logging.INFO, "开始标定高度")
             self.serial_Reconnect()
             self.h_control.setserial(self.mySeria)
+            self.h_control.setcheckstatus(True)
             t = threading.Thread(target=self.h_control.buildmodel_getsensorhigh, args=s_extdata)
             t.start()
         elif n_msgtype == imc_msg.MSG_DOT_CHECK_RESULT:
@@ -463,9 +473,14 @@ class kxmainwindow(KXBaseMainWidget):
     def callback2showerror(self, info):
         self._SIG_ERRORINFO.emit(info)
 
+
     def _showerrorinfo(self, info):
+        """
+        除了要显示错误，还必须停止检测
+        """
         self.ui.toolbtn_onlinerun.setChecked(False)
         self._onlinerun()
+        self.h_control.ALARM()
         respond = QtWidgets.QMessageBox.warning(self, u"错误", info, QtWidgets.QMessageBox.Cancel)
 
 
@@ -508,6 +523,24 @@ class kxmainwindow(KXBaseMainWidget):
         self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2set_highsensor_point', list_param)
 
 
+    def callback2uploaddata(self, bresult):
+        """
+        一个pack检测完成后会调用这个函数，进行mes数据的上传
+        bresult 如果为1 ，则检测正常，直接上传数据； 如果为0则弹框确认是正常放行还是
+        """
+        if not bresult:
+            respond = QtWidgets.QMessageBox.warning(self, u"警告", u"当前检测为废品，请选择是否手动放行",
+                                         QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.No)
+            # respond = QtGui.QMessageBox
+            if respond == QtWidgets.QMessageBox.No:
+                self.widget_mes.senddata(self.spackid, 0)#不放行，叛废
+            else:
+                self.widget_mes.senddata(self.spackid, 1)#
+        else:
+            self.widget_mes.senddata(self.spackid, 1)
+
+
+
 
 class CheckControlThread(threading.Thread):
     _MAX_AGV_BUFFERLEN = 100  # 赌小车答复不会一次性答复这么长
@@ -519,14 +552,26 @@ class CheckControlThread(threading.Thread):
         self.list_info = []
         self.controlmanger = None
         self.b_emit = False
-        # self.tcp_agvclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.tcp_agvclient.connect((ip, int(port)))
-        # self.tcp_agvclient.settimeout(2)
+        self.tcp_agvclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.tcp_agvclient.connect((ip, int(port)))
+        self.tcp_agvclient.settimeout(2)
         self.nid1 = int(nid1)
         self.nid2 = int(nid2)
         self.nid3 = int(nid3)
         self.s_packid = str(int(time.time()))
         self.b_nextstatus = False #进入下一个站点
+        self.__initlog()
+
+
+    def __initlog(self):
+        self.s_time = time.strftime("%Y-%m-%d")
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(level=logging.INFO)
+        self.handler = logging.FileHandler(LogInfo.PATH_SAVE_LOG + 'AGV_%s.log' %  self.s_time)
+        self.handler.setLevel(logging.INFO)
+        self.formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
+        self.handler.setFormatter(self.formatter)
+        self.logger.addHandler(self.handler)
 
 
 
@@ -587,6 +632,7 @@ class CheckControlThread(threading.Thread):
         :param nagvstationid: 站点号
         :return: 1为当前站点有车，0为没有
         """
+        self.logger.log(logging.INFO, "获取 %d 站点状态以及pack号"%nagvstationid)
 
         MSG_AGV_GETINFO = imc_msg.AGVMSG.MSG_BASE_GET_STATION_STATUS
 
@@ -594,12 +640,11 @@ class CheckControlThread(threading.Thread):
 
         self.tcp_agvclient.send(bytes(MSG_AGV_GETINFO))
 
-        print('发送获取站点状态， 1： ', MSG_AGV_GETINFO)
+        self.logger.log(logging.INFO, "send: " + str(MSG_AGV_GETINFO))
 
         sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
 
-        print('发送获取站点状态， 2： ', sreaddata)
-
+        self.logger.log(logging.INFO, "recv: " + str(sreaddata))
 
         list_readdata = self.str_to_hex(sreaddata)
 
@@ -607,7 +652,7 @@ class CheckControlThread(threading.Thread):
 
             nagvid = list_readdata[7]
 
-            print('小车 ID：', nagvid)
+            self.logger.log(logging.INFO, "小车 ID: %d"%nagvid)
 
             MSG_GET_PACKID = imc_msg.AGVMSG.MSG_BASE_GET_PACK_ID
 
@@ -617,12 +662,11 @@ class CheckControlThread(threading.Thread):
 
                 self.tcp_agvclient.send(bytes(MSG_GET_PACKID))
 
-                print('发送获取站点状态， 3： ', MSG_GET_PACKID)
+                self.logger.log(logging.INFO, "send: " + str(MSG_GET_PACKID))
 
                 sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
 
-                print('发送获取站点状态， 4： ', MSG_GET_PACKID)
-
+                self.logger.log(logging.INFO, "recv: " + sreaddata)
 
                 list_readdata = self.str_to_hex(sreaddata)
 
@@ -630,13 +674,11 @@ class CheckControlThread(threading.Thread):
 
                     nidlen = list_readdata[3]
 
-                    logging.log(logging.WARNING, "AGV PACKID： " + sreaddata)
-
                     list_packid = list_readdata[6:6 + nidlen - 2]
 
                     self.s_packid = self.list_hex_to_str(list_packid)
 
-                    print('发送获取站点状态， 5： ', list_readdata, self.s_packid)
+                    self.logger.log(logging.INFO, "小车 ID:  " + self.s_packid)
 
                     return 1
 
@@ -660,6 +702,9 @@ class CheckControlThread(threading.Thread):
                 pass#清除缓存
 
             #2. 获取中间站点小车状态
+
+            self.logger.log(logging.INFO, "------- waitforagv -----------")
+
             if self._get_status_and_packid(self.nid2):
 
                 return# 站点2内有车直接返回，并开始
@@ -668,14 +713,13 @@ class CheckControlThread(threading.Thread):
                 # 3. 获取进站口站点状态
                 while not self._get_status_and_packid(self.nid1) and self.b_runstaus:
 
-                    time.sleep(1)
+                    time.sleep(2)
 
                 if not self.b_runstaus: return
 
-
-
+                self.logger.log(logging.INFO, "得到小车信息， 关闭光栅")
                 # 4. 关闭光栅放入小车
-                self.controlmanger.control_guangshan(0)
+                self.controlmanger.control_guangshan(1)
 
                 MSG_CONTROL_AGV = imc_msg.AGVMSG.MSG_BASE_CONTROL_STATION_STATUS
 
@@ -683,8 +727,9 @@ class CheckControlThread(threading.Thread):
 
                 self.tcp_agvclient.send(bytes(MSG_CONTROL_AGV))
 
-                print ('放入小车: ', MSG_CONTROL_AGV)
+                self.logger.log(logging.INFO, "send: " + str(MSG_CONTROL_AGV))
 
+                self.logger.log(logging.INFO, "等待小车进入中间工位 %d"%self.nid2)
                 # 5. 检测小车到位中间站点
                 while self.b_runstaus:
 
@@ -694,11 +739,11 @@ class CheckControlThread(threading.Thread):
 
                     self.tcp_agvclient.send(bytes(MSG_AGV_GETINFO))
 
-                    print('请求站点20状态: ', MSG_CONTROL_AGV)
+                    self.logger.log(logging.INFO, "send: " + str(MSG_AGV_GETINFO))
 
                     sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
 
-                    print('获取站点20状态: ', sreaddata)
+                    self.logger.log(logging.INFO, "rec: " + sreaddata)
 
                     list_readdata = self.str_to_hex(sreaddata)
 
@@ -709,7 +754,7 @@ class CheckControlThread(threading.Thread):
                     time.sleep(1)
 
                 # 6. 打开光栅
-                self.controlmanger.control_guangshan(1)
+                self.controlmanger.control_guangshan(0)
         except Exception as e:
             print('等待AGV错误', e)
 
@@ -717,48 +762,18 @@ class CheckControlThread(threading.Thread):
 
     def sendagv2next(self):
 
-        print('sendagv2next')
+        self.logger.log(logging.INFO, "sendagv2next")
 
-        while (not self.b_nextstatus) and self.b_runstaus:#等待外部将b_nextstatus置为True
-
-            time.sleep(1)
+        #2022.1.21 选择直接将车放出
+        # while (not self.b_nextstatus) and self.b_runstaus:#等待外部将b_nextstatus置为True
+        #
+        #     time.sleep(1)
 
         self.b_nextstatus = False
 
         if not self.b_runstaus: return
 
-        while self.b_runstaus :
-
-            MSG_AGV_GETINFO = imc_msg.AGVMSG.MSG_BASE_GET_STATION_STATUS
-
-            MSG_AGV_GETINFO[5] = self.nid3
-
-            self.tcp_agvclient.send(bytes(MSG_AGV_GETINFO))
-
-            print('发送获取出站状态， 1： ', MSG_AGV_GETINFO)
-
-            sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
-
-            print('发送获取出站状态， 2： ', sreaddata)
-
-            list_readdata = self.str_to_hex(sreaddata)
-
-            if len(list_readdata) > 8 and (list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_FREE or
-                                           list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_NONE) :
-
-                break
-
-        #关闭光栅
-        self.controlmanger.control_guangshan(0)
-
-        #送出小车
-        MSG_CONTROL_AGV = imc_msg.AGVMSG.MSG_BASE_CONTROL_STATION_STATUS
-
-        MSG_CONTROL_AGV[5] = self.nid2
-
-        self.tcp_agvclient.send(bytes(MSG_CONTROL_AGV))
-
-        #监听送出小车状态
+        self.logger.log(logging.INFO, "等待站点 %d 没有小车"%self.nid3)
 
         while self.b_runstaus:
 
@@ -768,11 +783,51 @@ class CheckControlThread(threading.Thread):
 
             self.tcp_agvclient.send(bytes(MSG_AGV_GETINFO))
 
-            print('发送获取出站状态， 1： ', MSG_AGV_GETINFO)
+            self.logger.log(logging.INFO, "send: " + str(MSG_AGV_GETINFO))
 
             sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
 
-            print('发送获取出站状态， 2： ', sreaddata)
+            self.logger.log(logging.INFO, "recv: " + sreaddata)
+
+            list_readdata = self.str_to_hex(sreaddata)
+
+            if len(list_readdata) > 8 and (list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_FREE or
+                                           list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_NONE):
+
+                break
+
+            time.sleep(5)
+
+        #关闭光栅
+        self.controlmanger.control_guangshan(2)
+
+        #送出小车
+        self.logger.log(logging.INFO, "将小车送出 %d 号站点"%self.nid2)
+
+        MSG_CONTROL_AGV = imc_msg.AGVMSG.MSG_BASE_CONTROL_STATION_STATUS
+
+        MSG_CONTROL_AGV[5] = self.nid2
+
+        self.tcp_agvclient.send(bytes(MSG_CONTROL_AGV))
+
+        self.logger.log(logging.INFO, "send: " + str(MSG_CONTROL_AGV))
+
+        #监听送出小车状态
+        self.logger.log(logging.INFO, "监听小车是否到达 %d 号站点"%self.nid3)
+
+        while self.b_runstaus:
+
+            MSG_AGV_GETINFO = imc_msg.AGVMSG.MSG_BASE_GET_STATION_STATUS
+
+            MSG_AGV_GETINFO[5] = self.nid3
+
+            self.tcp_agvclient.send(bytes(MSG_AGV_GETINFO))
+
+            self.logger.log(logging.INFO, "send: " + str(MSG_AGV_GETINFO))
+
+            sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
+
+            self.logger.log(logging.INFO, "recv: " + sreaddata)
 
             list_readdata = self.str_to_hex(sreaddata)
 
@@ -780,11 +835,12 @@ class CheckControlThread(threading.Thread):
 
                 break
 
-            time.sleep(1)
+            time.sleep(5)
 
-        print('车已到达下一站点')
+        self.logger.log(logging.INFO, "------------ 小车已到达 %d 号站点"%self.nid3 + ", 结束本次循环 -------------")
+
         #开启光栅
-        self.controlmanger.control_guangshan(1)
+        self.controlmanger.control_guangshan(0)
 
         #开启下个状态
         self.b_emit = True
@@ -814,7 +870,7 @@ class CheckControlThread(threading.Thread):
                 if not self.b_runstaus: continue
 
                 #动作1, 监听设备上是否有小车
-                #self.waitforagv()
+                self.waitforagv()
 
                 if not self.b_runstaus: continue
 
@@ -822,18 +878,14 @@ class CheckControlThread(threading.Thread):
                 self.h_parent.callbarck2sendnextpackid(self.s_packid)
 
                 #控制主流程
-                self.controlmanger.check_control(self.list_info)
+                if not self.controlmanger.check_control(self.list_info): continue
 
                 self.b_isfirstrun = False
 
                 if not self.b_runstaus: continue
 
-                # 触发mes上传，同时送出packid
-                self.h_parent._SIG_SHOWMES.emit(self.s_packid)
-
                 #小车出站
                 self.sendagv2next()
-
 
             else:
 

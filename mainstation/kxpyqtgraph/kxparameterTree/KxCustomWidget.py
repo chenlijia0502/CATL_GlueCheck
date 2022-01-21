@@ -460,7 +460,9 @@ class KxListParameterItem(WidgetParameterItem):
         return self.forward.get(key, None)
 
     def setValue(self, val):
-        val = int(val)
+        #TODO : 2022.1.21 修改这里只能输入数字的问题
+        if str(val).isdigit():
+            val = int(val)
         self.targetValue = val
         if val not in self.reverse[0]:
             self.widget.setCurrentIndex(0)
@@ -520,11 +522,14 @@ class KxListParameter(KxParameter):
         # self.clearlimits()
         KxParameter.setLimits(self, limits)
         # TODO:CHANGE BY HYH 2017/8/18
-        if self.value() is not None:
-            value = int(self.value())
+        if str(self.value()).isdigit():
+            if self.value() is not None:
+                value = int(self.value())
+            else:
+                # value = self.value()
+                value = 0
         else:
-            # value = self.value()
-            value = 0
+            value = self.value()
         if len(self.reverse[0]) > 0 and value not in self.reverse[0]:
             # self.setValue(self.reverse[0][0])
             self.setValue(value)

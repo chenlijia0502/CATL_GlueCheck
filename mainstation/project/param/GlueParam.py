@@ -38,6 +38,9 @@ class GuleParam(KxBaseParamWidget):
     _MAX_ROI_NUM = 32
     _MAX_SCAN_NUM = 6
     _BUILD_MODEL_SCALE_FACTOR = 4#建模的时候对图像进行压缩，不然会卡顿
+
+    _SIG_CAPTUREBIGIMG_DONE = QtCore.pyqtSignal()# 大图采集建模完成
+
     def __init__(self, h_parentwidget, n_uid, n_areanum, n_stationid):
         KxBaseParamWidget.__init__(self,n_uid, n_areanum, n_stationid)
         self.h_parent = h_parentwidget
@@ -57,6 +60,7 @@ class GuleParam(KxBaseParamWidget):
         self.threadWaitDialog = None
         self._connectlog()
         self.ui.h_pBtLoad.clicked.connect(self.loadimg)
+        self._SIG_CAPTUREBIGIMG_DONE.connect(self._closewaitdialog)
 
 
     def _initui(self):
@@ -252,11 +256,11 @@ class GuleParam(KxBaseParamWidget):
         全局队列将参数送到界面，控制第一次全局拍照参数
         :return:
         """
-        # self.threadWaitDialog = WaitDialogWithText('正在建模，请稍候...')
-        # self.threadWaitDialog.clear()
-        # self.threadWaitDialog.setProcessBarRange(0, 100)
-        # self.threadWaitDialog.show()
-        #QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+        self.threadWaitDialog = WaitDialogWithText('正在建模，请勿点击...')
+        self.threadWaitDialog.clear()
+        self.threadWaitDialog.setProcessBarRange(0, 100)
+        self.threadWaitDialog.show()
+        QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
         nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
         # ndisX = int(int(self.p.param('全局拍摄控制', '相机横向像素数').value()) *
         #             float(self.p.param('全局拍摄控制', '相机横向分辨率').value()))
@@ -297,10 +301,11 @@ class GuleParam(KxBaseParamWidget):
         第二次采集全局参数，根据roi框的位置进行拍摄
         :return:
         """
-        # self.threadWaitDialog.clear()
-        # self.threadWaitDialog.setProcessBarRange(0, 100)
-        # self.threadWaitDialog.show()
-        #QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+        self.threadWaitDialog = WaitDialogWithText('正在二次取图建模，请勿点击...')
+        self.threadWaitDialog.clear()
+        self.threadWaitDialog.setProcessBarRange(0, 100)
+        self.threadWaitDialog.show()
+        QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
 
         nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
@@ -355,8 +360,6 @@ class GuleParam(KxBaseParamWidget):
 
             self.p.param("扫描区域", "扫描区域%d图像数量"%nindex).setValue(n_build_imgnum)
 
-        print ("二次扫描图像数量: ", list_buildimgnum,list_y )
-
         self.h_mergelistobj.clear()
 
         self.h_mergelistobj.initinfo(list_buildimgnum, int(imgW / self._BUILD_MODEL_SCALE_FACTOR), list_bigimgH)
@@ -407,7 +410,21 @@ class GuleParam(KxBaseParamWidget):
 
             list_y[nindex] = ndisY
 
-        return [list_x, list_y]
+        # 记录判断防呆防错的点
+        list_z = []
+        nnum = int(self.p.param('防呆防错设置', '基准点数量').value())
+
+        if nnum > 0:
+            for nindex in range(nnum):
+                x = self.p.param('防呆防错设置', '防呆防错点%d' % nindex, 'X位置').value()
+
+                y = self.p.param('防呆防错设置', '防呆防错点%d' % nindex, 'Y位置').value()
+
+                z = self.p.param('防呆防错设置', '防呆防错点%d' % nindex, '基准值').value()
+
+                list_z.append([x, y, z])
+
+        return [list_x, list_y, list_z]
 
 
     def _calibrate_highsensor_point(self):
@@ -416,17 +433,23 @@ class GuleParam(KxBaseParamWidget):
         扫描之后记录点值回调 callback2set_highsensor_point 将测量点结果送回
         :return:
         """
+
         nnum = int(self.p.param('防呆防错设置', '基准点数量').value())
 
         if nnum > 0:
+            self.threadWaitDialog = WaitDialogWithText('正在标定基准高度，请勿点击...')
+            self.threadWaitDialog.clear()
+            self.threadWaitDialog.setProcessBarRange(0, 100)
+            self.threadWaitDialog.show()
+            QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
 
             list_pos = []
 
             for nindex in range(nnum):
 
-                x = int(self.p.param('防呆防错设置', '防呆防错点%d'%nindex, 'X位置').value())
+                x = min(int(self.p.param('防呆防错设置', '防呆防错点%d'%nindex, 'X位置').value()), StaticConfigParam.MAX_X_LEN)
 
-                y = int(self.p.param('防呆防错设置', '防呆防错点%d'%nindex, 'Y位置').value())
+                y = min(int(self.p.param('防呆防错设置', '防呆防错点%d'%nindex, 'Y位置').value()), StaticConfigParam.MAX_Y_LEN)
 
                 list_pos.append([x, y])
 
@@ -438,6 +461,8 @@ class GuleParam(KxBaseParamWidget):
         for nindex, data in enumerate(list_param):
 
             self.p.param('防呆防错设置', '防呆防错点%d' % nindex, '基准值').setValue(str(int(data)))
+
+        self._SIG_CAPTUREBIGIMG_DONE.emit()
 
 
 
@@ -541,10 +566,6 @@ class GuleParam(KxBaseParamWidget):
             list_obj.append(self.p.param('检测区域'+ str(i), '检测区域' ))
 
 
-
-
-
-
     def _saveMapColRow(self):
         """
         根据扫描列数以及检测框中属于当前列的数量，得到一张全地图应该是N*M的组成，并且取最大的ROI作为图像大小
@@ -582,6 +603,7 @@ class GuleParam(KxBaseParamWidget):
                 ncurid = 0
             self.p.param('检测区域' + str(i), '当前组ID').setValue(ncurid)
             ncurid += 1
+
 
     def _changeshowimg(self, *even):
         nindex = int(even[1])
@@ -661,7 +683,7 @@ class GuleParam(KxBaseParamWidget):
     def callback2changecol(self):
         self.h_mergeobj.IncreaseCol()
 
-        # self.threadWaitDialog.setProcessBarVal(20)
+        self.threadWaitDialog.setProcessBarVal(20)
 
 
 
@@ -676,12 +698,9 @@ class GuleParam(KxBaseParamWidget):
 
             self.p.param('扫描区域', '扫描区域' + str(n_i)).isShow(True)
 
-        #QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.AllEvents)
-        # print("self.threadWaitDialog.setProcessBarVal(60)")
-        #
-        # self.threadWaitDialog.setProcessBarVal(60)
-        #
-        # self.threadWaitDialog.close()
+        self._SIG_CAPTUREBIGIMG_DONE.emit()
+
+
 
 
     def callback2judgeisfull(self):
@@ -691,7 +710,7 @@ class GuleParam(KxBaseParamWidget):
     def callback2changecol_second(self):
         self.h_mergelistobj.IncreaseCol()
 
-        #self.threadWaitDialog.setProcessBarVal(20)
+        self.threadWaitDialog.setProcessBarVal(20)
 
 
     def callback2showbigimg_second(self):
@@ -703,9 +722,8 @@ class GuleParam(KxBaseParamWidget):
 
         self.p.param('扫描区域', "匹配位置0").isShow(True)
 
+        self._SIG_CAPTUREBIGIMG_DONE.emit()
 
-
-        #self.threadWaitDialog.close()
 
 
 
@@ -742,10 +760,12 @@ class GuleParam(KxBaseParamWidget):
                     = self.h_bigimage[:, list_offset_src[i]:list_offset_src[i] + list_w[i]]
             self.h_imgitem.setImage(newimg, autoLevels=False)
 
+
     def callback2getrowcol(self):
         nrow = self.p.param('拼图信息', '行数').value()
         ncol = self.p.param('拼图信息', '列数').value()
         return nrow, ncol
+
 
     def callback2getlisthead(self):
         nchecknum = int(self.p.param('检测区域数量').value())
@@ -759,6 +779,15 @@ class GuleParam(KxBaseParamWidget):
         return list_shead
 
 
+    def _closewaitdialog(self):
+        QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.AllEvents)
+
+        self.threadWaitDialog.setProcessBarVal(20)
+
+        self.threadWaitDialog.close()
+
+
+
 
     def loadimg(self):
         file_name = QtWidgets.QFileDialog.getOpenFileName(self, "open file dialog", "D://card",
@@ -766,6 +795,7 @@ class GuleParam(KxBaseParamWidget):
         print(file_name)
         image = cv2.imread(file_name[0], 1)
         self.h_imgitem.setImage(image, autoLevels=False)
+
 
 
 registerkxwidget(name='GuleParam', cls=GuleParam, override=True)

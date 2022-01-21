@@ -15,6 +15,8 @@ from library.common.globalparam import LogInfo
     关于logging， 可以输出多份日志（handle），这意味着它可以将结果根据设置的level，记录到不同的日志文件中
 """
 
+if not os.path.isdir(LogInfo.PATH_SAVE_LOG):
+    os.mkdir(LogInfo.PATH_SAVE_LOG)
 
 
 class KxBaseRunLog(QtWidgets.QWidget):
@@ -42,6 +44,15 @@ class KxBaseRunLog(QtWidgets.QWidget):
         super(KxBaseRunLog, self).__init__()
         self.ui = Ui_RunLog()
         self.ui.setupUi(self)
+        self.s_time = time.strftime("%Y-%m-%d")
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(level=logging.INFO)
+        self.handler = logging.FileHandler(LogInfo.PATH_SAVE_LOG + '%s.log' %  self.s_time)
+        self.handler.setLevel(logging.INFO)
+        self.formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
+        self.handler.setFormatter(self.formatter)
+        self.logger.addHandler(self.handler)
+
         self.h_parentwidget = h_parentwidget
         self.sig_kxlog.connect(self.reclogmsg)
         self.thread_refresh = _RefreshInterface_kxlog(self)
@@ -58,6 +69,23 @@ class KxBaseRunLog(QtWidgets.QWidget):
         self.s_lastbadlog = ""
         self.s_operatorid = "NONE"
 
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self._changelogfile)
+        self.timer.start(1000*60*5)
+
+
+    def _changelogfile(self):
+        """
+        日志需要按日更新
+        """
+        if time.strftime("%Y-%m-%d") != self.s_time:
+            self.s_time = time.strftime("%Y-%m-%d")
+            self.logger.removeHandler(self.handler)
+            self.handler = logging.FileHandler(LogInfo.PATH_SAVE_LOG + '%s.log' % self.s_time)
+            self.handler.setLevel(logging.INFO)
+            self.formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
+            self.handler.setFormatter(self.formatter)
+            self.logger.addHandler(self.handler)
 
         
     def addonelinelog(self, s_stationname, tuple_data):
@@ -137,7 +165,7 @@ class KxBaseRunLog(QtWidgets.QWidget):
         if self.s_lastbadlog != nstationname + " " + sdata:#对于重复出现的日志不保存
             self.s_lastbadlog = nstationname + " " + sdata
             savelog = self.s_operatorid + "  " + scurtime + " " + nstationname + " " + sdata
-            logging.log(level, savelog)
+            self.logger.log(level, savelog)
         if hasattr(self.h_parentwidget, "CallbackTip") and level != logging.INFO:
             self.h_parentwidget.CallbackTip(self.s_lastbadlog, self.dict_listcolor[level])
 

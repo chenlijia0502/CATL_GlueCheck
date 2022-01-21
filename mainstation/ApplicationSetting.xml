@@ -17,6 +17,7 @@
 	<mointoringwidget_classname>GlueMonitorWidget</mointoringwidget_classname>
 	<maxCameraPerStation>1</maxCameraPerStation>
 	<resolution>0.099</resolution>
+	<CAMERAZ_POS>40</CAMERAZ_POS>
 	<MES>
 		<username>SUP_LYA_PL17</username>
 		<password>CA@TLmespcpl17</password>

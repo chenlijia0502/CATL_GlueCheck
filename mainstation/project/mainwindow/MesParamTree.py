@@ -2,6 +2,7 @@ from library.common.readconfig import readXmlInfo
 from PyQt5.QtCore import Qt
 from suds.client import Client, HttpAuthenticated
 from library.common.readconfig import readconfig
+from PyQt5 import QtWidgets, QtGui, QtCore
 from kxpyqtgraph.kxItem.DoubleListParameterItem import *
 import os
 import csv
@@ -136,6 +137,7 @@ class MesParamTreeWidget(QtWidgets.QDialog):
                 dict_single = {'name': name, 'type': stype, 'visible': isvisible, 'readonly': ischangeable,
                                'values': value}
             params.append(dict_single)
+        print(params)
         self.p = KxParameter.create(name='params', type='group', children=params)
         self.h_parameterTree.setParameters(self.p, showTop=False)
 
@@ -329,6 +331,7 @@ class MesParamTreeWidget(QtWidgets.QDialog):
                 self.SIG_CHUZHAN.emit()
                 self.close()
             else:
+                self.SIG_CHUZHAN.emit()
                 errorwindow = QtWidgets.QMessageBox()
                 respond = errorwindow.warning(self, "警告，数据上传失败", result[1], QtWidgets.QMessageBox.Ok)
         except Exception as e:

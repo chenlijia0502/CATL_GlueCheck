@@ -301,6 +301,8 @@ void CTestAsioTcpClient::RecMsgToStartCheck(const unsigned char* pExtData)
 	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("载入模板完成"));
 	
 	Graber::g_GetCamera()->ReverseScanDirection(0);// 代表相机正着走触发
+	Graber::g_GetCamera()->OpenInternalTrigger(1);//外触发
+
 	g_Grabstatus.init();
 	g_Environment.StartCheck();
 	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("开始检测"));

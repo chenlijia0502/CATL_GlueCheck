@@ -67,15 +67,15 @@ class CExcelManager(object):
                 cases.append(case_data)
         return cases
 
+
     def writeExcel(self, list_list_data):
         ncurlinenum = self.sh.max_row
-        print ('cur, ', ncurlinenum)
         for row in range(0,len(list_list_data)):
             list_data = list_list_data[row]
             for col in range(0,len(list_data)):
-                print(list_data[col])
                 self.sh.cell(row + 1 + ncurlinenum, col + 1).value = str(list_data[col])  # 写文件
         self.wb.save(self.file_name)
+
 
 if __name__ == '__main__':
     r = CExcelManager('d:\\模组数据.xlsx','Sheet', ['PACK ID', '时间', '缺陷数量'])
