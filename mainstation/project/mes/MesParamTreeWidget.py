@@ -105,7 +105,7 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
             password = self.p.param("BASE", "password").value()
             url = self.p.param("BASE", "url").value()
             #print(username, password, url)
-            t = HttpAuthenticated(username=username, password=password)
+            t = HttpAuthenticated(username=username, password=password, timeout=2)
             self.client = Client(url, transport=t)
             self.machineIntegrationParametricData = []
         except Exception as e:
@@ -152,6 +152,7 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
 
             payloads = dict_senddata
             print(payloads)
+
             result = self.client.service.dataCollectForSfcEx(payloads)  # 出站api
 
             print('上传回复结果：', result)

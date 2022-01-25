@@ -90,6 +90,8 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
             readimagepath = dict_result['imagepath']
             startoffset = dict_result['startoffset']
             offsetlen = dict_result['imageoffsetlen']
+            if fp == self.fp:
+                print(startoffset, offsetlen)
         except AttributeError:
             return None
         if fp is None:
@@ -121,7 +123,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
             print ('resizeimg, ', resizeimg.shape)
 
-            nIsFull = int(dict_result['ISFULL'])
+            #nIsFull = int(dict_result['ISFULL'])
 
             ndefectnum = dict_result['defect num']
 
@@ -158,21 +160,23 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
                     self.list_defectwidgt.addOneDefectItemwithID(smallimg, self.h_defectinfo.size() - 1, sdefectid,
                                                                  pos[0:2], ndots * self.f_resolution * self.f_resolution)
 
-            if nIsFull == 1:# 当前pack已检完
+        elif n_msgtype == imc_msg.MSG_CHECK_RESULT_FINISH:
 
-                self.imgitem.setImage(self.h_defectinfo.getbigimg())
+            self.imgitem.setImage(self.h_defectinfo.getbigimg())
 
-                self.widget_edgepos.setdata(self.h_defectinfo.list_narea, 4)
+            self.widget_edgepos.setdata(self.h_defectinfo.list_narea, 4)
 
-                for roi in self.h_defectinfo.list_roi:
+            for roi in self.h_defectinfo.list_roi:
 
-                    roi.sigClicked.connect(self._roiclicked)
+                roi.sigClicked.connect(self._roiclicked)
 
-                    roi.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
+                roi.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
 
-                    self.view.addItem(roi)
+                self.view.addItem(roi)
 
-                self.h_parentwidget.callback2uploaddata(0)#都弹框，确认是否放行
+            self.h_parentwidget.callback2uploaddata(0)#都弹框，确认是否放行
+
+
                 #self.h_parentwidget.callback2autorun()
                 #self.h_parentwidget.showmeswidget()
 

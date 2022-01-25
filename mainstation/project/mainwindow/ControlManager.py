@@ -537,18 +537,19 @@ class ControlManager(object):
 
             MSG_Z_POS = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_BASEMOVE
 
+            print ('-------------- 移动z距离: ', self.z_camerapos)
+
             MSG_Z_POS[3:] = translatedis2hex(self.z_camerapos / StaticConfigParam.RATE_Z)
 
-            print ("Z 控制指令，先不发", MSG_Z_POS)
-            # self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Z)
-            #
-            # self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_XIANWEI)
-            #
-            # self._sendhardwaremsg(MSG_Z_POS)
-            #
-            # self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_MOVE)
-            #
-            # self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_ARRIVE)
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Z)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_XIANWEI)
+
+            self._sendhardwaremsg(MSG_Z_POS)
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_MOVE)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_ARRIVE)
             #
             self.b_zmovestatus = True
 

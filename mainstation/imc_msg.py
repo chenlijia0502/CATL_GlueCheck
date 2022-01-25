@@ -39,6 +39,8 @@ class GlobalMsgSend:
     
 MSG_CHECK_RESULT = 1 # 检测结果
 
+MSG_CHECK_RESULT_FINISH = 2 #当前pack检测完成
+
 MSG_SEND_REAL_TIME_IMAGE = 1015 #发送实时图像
 
 MSG_START_CHECK_IS_READY = 1021#开始检测初始化完成，包括加载参数等
@@ -85,7 +87,7 @@ MSG_PACK_ID = 701
 
 MSG_SHOW_IMG = 1100#检测时候拍的实时图像，用于实时显示界面显示
 
-list_monitoring_module = [MSG_CHECK_RESULT, MSG_A, MSG_SHOW_IMG]  # 实时显示界面
+list_monitoring_module = [MSG_CHECK_RESULT, MSG_A, MSG_SHOW_IMG, MSG_CHECK_RESULT_FINISH]  # 实时显示界面
 list_params_module = [MSG_SEND_REAL_TIME_IMAGE, MSG_LEARN_ONE_COMPLETED, MSG_BUILD_MODEL_IMG] #参数设置界面
 list_mainwindow_module = [MSG_START_CHECK_IS_READY, MSG_CAMERA_IS_READY, MSG_CHECK_RESULT, MSG_BUILD_MODEL,
                           MSG_BUILD_MODEL_SECOND, MSG_DOT_CHECK_RESULT, MSG_GET_BASE_POINT_HIGH]#主界面
@@ -194,7 +196,7 @@ class HARDWAREBASEMSG:
 
     MSG_MOTOR_Z_XIANWEI = [0x01, 0x02, 0x03, 0xDD, 0x00, 0x00, 0x00]
 
-    MSG_MOTOR_Z_ARRIVE = [0x01, 0x02, 0x03, 0x33, 0x00, 0x00, 0x00]
+    MSG_MOTOR_Z_ARRIVE = [0x01, 0x02, 0x03, 0xff, 0x00, 0x00, 0x00]
 
     # 光源
 

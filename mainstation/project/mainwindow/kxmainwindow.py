@@ -20,6 +20,7 @@ from library.common.globalfun import DriveFreeSpace, DriveTotalSize
 #from project.mainwindow.MesParamTree import MesParamTreeWidget
 from project.mes.MesParamWidget import CMesParamWidget
 from library.common.globalparam import LogInfo
+from project.mainwindow.UploadDialog import CUploadDialog
 
 
 class kxmainwindow(KXBaseMainWidget):
@@ -27,7 +28,7 @@ class kxmainwindow(KXBaseMainWidget):
     _HARDWARE_QUEUELEN = 7
     _SIG_SHOWLOCK = QtCore.pyqtSignal()
     _SIG_ERRORINFO = QtCore.pyqtSignal(str)
-    _SIG_SHOWMES  = QtCore.pyqtSignal(str)
+    _SIG_NEXTPACK  = QtCore.pyqtSignal()
     #_SIG_AUTORUN = QtCore.pyqtSignal()
     def __init__(self, dict_config):
         super(kxmainwindow, self).__init__(dict_config)
@@ -76,15 +77,8 @@ class kxmainwindow(KXBaseMainWidget):
         self.timer.timeout.connect(self.__timeout2checkdiskcapacity)
         self.timer.start(self.ntimeout)
 
-        #self._SIG_SHOWMES.connect(self.showmeswidget)
-        #self.widget_mes.SIG_CHUZHAN.connect(self._control_out)
+        self._SIG_NEXTPACK.connect(self.widget_Realtime.clear)
         self.spackid = str(int(time.time()))
-
-        #self._SIG_AUTORUN.connect(self.__autorun)
-
-
-    def _control_out(self):
-        self.h_checkcontrolthread.emitnext()
 
 
     def __timeout2checkdiskcapacity(self):
@@ -170,7 +164,6 @@ class kxmainwindow(KXBaseMainWidget):
     def _completeconnect(self):
         self.ui.toolButton_userlevel.clicked.connect(self.showpermissiondialog)
         self.toolbutton_move.clicked.connect(self._shoujian)
-        self.toolbutton_test.clicked.connect(self._emitshowmes)
         self._SIG_SHOWLOCK.connect(self._lockpermissiondialog)
         self._SIG_ERRORINFO.connect(self._showerrorinfo)
 
@@ -183,10 +176,6 @@ class kxmainwindow(KXBaseMainWidget):
         t = threading.Thread(target=self.h_control.control_adjust_z)
         t.start()
 
-    def _emitshowmes(self):
-        #self.widget_mes.show()
-        pass
-        #self.h_checkcontrolthread.emits()
 
 
     def _setlearnstatus(self):
@@ -481,6 +470,7 @@ class kxmainwindow(KXBaseMainWidget):
         self.ui.toolbtn_onlinerun.setChecked(False)
         self._onlinerun()
         self.h_control.ALARM()
+        ipc_tool.kxlog("main", logging.ERROR, info)
         respond = QtWidgets.QMessageBox.warning(self, u"错误", info, QtWidgets.QMessageBox.Cancel)
 
 
@@ -493,9 +483,17 @@ class kxmainwindow(KXBaseMainWidget):
 
 
     def callbarck2sendnextpackid(self, packid):
+        """
+        控制线程发送packid过来，并且触发界面清零
+        """
         self.spackid = packid
         data = json.dumps({'packid':str(packid)})
         self.sendmsg(0, imc_msg.MSG_PACK_ID, data)
+
+        self._SIG_NEXTPACK.emit()
+
+
+
 
 
     def callback2autorun(self):
@@ -525,19 +523,33 @@ class kxmainwindow(KXBaseMainWidget):
 
     def callback2uploaddata(self, bresult):
         """
-        一个pack检测完成后会调用这个函数，进行mes数据的上传
-        bresult 如果为1 ，则检测正常，直接上传数据； 如果为0则弹框确认是正常放行还是
+        一个pack检测完成后会调用这个函数，完成两个动作
+        1. 放行小车
+        2. 进行mes数据的上传； bresult 如果为1 ，则检测正常，直接上传数据； 如果为0则弹框确认是正常放行还是
         """
+        self.h_checkcontrolthread.emitnext()#检测完成都放小车走
+
+        ## TODO 测试直接不传MES
         if not bresult:
-            respond = QtWidgets.QMessageBox.warning(self, u"警告", u"当前检测为废品，请选择是否手动放行",
-                                         QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.No)
-            # respond = QtGui.QMessageBox
-            if respond == QtWidgets.QMessageBox.No:
-                self.widget_mes.senddata(self.spackid, 0)#不放行，叛废
+
+            self.dialog_upload = CUploadDialog()
+            self.dialog_upload.show()
+            self.dialog_upload.exec_()
+
+            nstatus, user = self.dialog_upload.getstatusAnduser()
+            if nstatus:
+                self.widget_mes.senddata(self.spackid, 1)  #放行
+                ipc_tool.kxlog("检测", logging.WARNING, "卡号 " + user + "对 PACKID：" + self.spackid + "进行放行操作")
             else:
-                self.widget_mes.senddata(self.spackid, 1)#
+                self.widget_mes.senddata(self.spackid, 0)  # 不放行，叛废
+                ipc_tool.kxlog("检测", logging.WARNING, "卡号 " + user + "对 PACKID：" + self.spackid + "进行判废操作")
+
         else:
             self.widget_mes.senddata(self.spackid, 1)
+
+
+
+
 
 
 
@@ -765,15 +777,15 @@ class CheckControlThread(threading.Thread):
         self.logger.log(logging.INFO, "sendagv2next")
 
         #2022.1.21 选择直接将车放出
-        # while (not self.b_nextstatus) and self.b_runstaus:#等待外部将b_nextstatus置为True
-        #
-        #     time.sleep(1)
+        while (not self.b_nextstatus) and self.b_runstaus:#等待外部将b_nextstatus置为True
+
+            time.sleep(1)
 
         self.b_nextstatus = False
 
         if not self.b_runstaus: return
 
-        self.logger.log(logging.INFO, "等待站点 %d 没有小车"%self.nid3)
+        self.logger.log(logging.INFO, "检测pack完成，进入等待站点 %d 没有小车状态"%self.nid3)
 
         while self.b_runstaus:
 
@@ -843,7 +855,7 @@ class CheckControlThread(threading.Thread):
         self.controlmanger.control_guangshan(0)
 
         #开启下个状态
-        self.b_emit = True
+        #self.b_emit = True
 
 
 
@@ -855,11 +867,8 @@ class CheckControlThread(threading.Thread):
         while (1):
 
             if self.b_runstaus and self.b_emit:
-            #if self.b_runstaus:
 
-                self.b_emit = False
-
-                #复位开始按钮按下，只对开始检测后第一次有用
+                #开始按钮按下，只对开始检测后第一次有用
                 self.controlmanger.waitforstart(self.b_isfirstrun)
 
                 if not self.b_runstaus: continue
@@ -869,7 +878,7 @@ class CheckControlThread(threading.Thread):
 
                 if not self.b_runstaus: continue
 
-                #动作1, 监听设备上是否有小车
+                #监听设备上是否有小车
                 self.waitforagv()
 
                 if not self.b_runstaus: continue
@@ -886,6 +895,7 @@ class CheckControlThread(threading.Thread):
 
                 #小车出站
                 self.sendagv2next()
+                #time.sleep(30)# TODO 做个测试，测试整个流程
 
             else:
 

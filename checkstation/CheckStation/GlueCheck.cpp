@@ -944,6 +944,22 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 	//nsaveindex++;
 
 	//m_hFun.SaveBMPImage_h(path, SrcImgB);
+
+
+	static int nindex = 0;
+
+	char savepath[64];
+
+	sprintf_s(savepath, "d:\\%d.bmp", nindex++);
+
+	m_hFun.SaveBMPImage_h(savepath, SrcImgA);
+
+	sprintf_s(savepath, "d:\\%d.bmp", nindex++);
+
+	m_hFun.SaveBMPImage_h(savepath, SrcImgB);
+
+
+
 	tick_count tbb_start, tbb_end;
 
 	checkresult["defect num"] = 0;
@@ -985,13 +1001,7 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 
 
 
-	static int nindex = 0;
 
-	char savepath[64];
-
-	sprintf_s(savepath, "d:\\%d.bmp", nindex++);
-
-	m_hFun.SaveBMPImage_h(savepath, m_ImgCheck);
 
 
 
