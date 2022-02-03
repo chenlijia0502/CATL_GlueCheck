@@ -564,9 +564,9 @@ class CheckControlThread(threading.Thread):
         self.list_info = []
         self.controlmanger = None
         self.b_emit = False
-        self.tcp_agvclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tcp_agvclient.connect((ip, int(port)))
-        self.tcp_agvclient.settimeout(2)
+        # self.tcp_agvclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # self.tcp_agvclient.connect((ip, int(port)))
+        # self.tcp_agvclient.settimeout(2)
         self.nid1 = int(nid1)
         self.nid2 = int(nid2)
         self.nid3 = int(nid3)

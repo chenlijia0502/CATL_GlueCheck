@@ -11,8 +11,11 @@ class SerialManager(object):
     def __init__(self, h_parent, port, baudrate, nreadbuffersize):
         super(SerialManager, self).__init__()
         self.h_parent = h_parent
-        self.myserial = serial.Serial(port=port, baudrate=baudrate)
 
+        try:
+            self.myserial = serial.Serial(port=port, baudrate=baudrate)
+        except Exception as E:
+            pass
         # 通信日志独此一份log
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(level=logging.INFO)
