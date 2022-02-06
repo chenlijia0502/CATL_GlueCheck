@@ -506,6 +506,84 @@ void CGlueCheck::SearchEdge(const kxCImageBuf& GrayImg, int ndir, int nThreshval
 }
 
 
+void CGlueCheck::GetEdgePoints(const kxCImageBuf& GrayImg, int nDir, int nthresh, kxPoint<int> * searchresult, int nnums)
+{
+
+	kxCImageBuf filterimg, blurimg;
+
+	filterimg.Init(GrayImg.nWidth, GrayImg.nHeight);
+
+	blurimg.Init(GrayImg.nWidth, GrayImg.nHeight);
+
+
+	if (nDir == 0)
+	{
+		Ipp16s pMasks[5] = {-1, 0, 0, 0, 1};
+
+		m_hFun.KxGeneralFilterImage8u(GrayImg, filterimg, 5, 1, pMasks);
+
+		m_hFun.KxParallelBoxFilterImage(filterimg, blurimg, 1, 7);
+
+		int nstep = blurimg.nHeight / nnums;
+
+		for (int i = 0; i < nnums; i++)
+		{
+			int y = i * nstep;
+
+			searchresult[i].x = 0;
+
+			searchresult[i].y = y;
+
+			for (int x = 0; x < blurimg.nWidth; x++)
+			{
+				if (blurimg.buf[y * blurimg.nPitch + x] > nthresh)
+				{
+					searchresult[i].x = x;
+
+					searchresult[i].y = y;
+
+					break;
+				}
+			}
+		}
+
+
+
+	}
+	else
+	{
+		Ipp16s pMasks[5] = { 1, 0, 0, 0, -1 };
+
+		m_hFun.KxGeneralFilterImage8u(GrayImg, filterimg, 5, 1, pMasks);
+
+		m_hFun.KxParallelBoxFilterImage(filterimg, blurimg, 1, 7);
+
+		int nstep = blurimg.nHeight / nnums;
+
+		for (int i = 0; i < nnums; i++)
+		{
+			int y = i * nstep;
+
+			searchresult[i].x = 0;
+
+			searchresult[i].y = y;
+
+			for (int x = blurimg.nWidth - 1; x >= 0; x--)
+			{
+				if (blurimg.buf[y * blurimg.nPitch + x] > nthresh)
+				{
+					searchresult[i].x = x;
+
+					searchresult[i].y = y;
+
+					break;
+				}
+			}
+		}
+	}
+
+}
+
 void CGlueCheck::GetGlueMask(const kxCImageBuf* RGB)
 {
 
@@ -540,9 +618,8 @@ void CGlueCheck::GetGlueMask(const kxCImageBuf* RGB)
 	*/
 	
 
-	/* 方案二   RGB 转HSV，S - V 的结果二值化取最大结果 */
 
-	//1. 提取边框, TODO, 先近似提取
+	//1. 提取亮度较高的边框, 根据灰度投影得出
 
 	int ntop, nright, nbottom, nleft;
 
@@ -550,17 +627,70 @@ void CGlueCheck::GetGlueMask(const kxCImageBuf* RGB)
 
 	SearchEdge(RGB[0], _Horizontal_Project_Dir, 150, ntop, nbottom);
 
-	int hoffset = 50;
+	
+	//2. 得到较高的边缘后，对左右两侧进行精定位
 
-	int woffset = 450;
+	//(1) 裁剪目标区域
+	kxCImageBuf edgeimg1, edgeimg2;
 
-	nleft = min(nleft + woffset, RGB[0].nWidth / 2);
+	const int noffset = 500;
 
-	nright = max(nright - woffset, RGB[0].nWidth / 2);
+	int edgeright = min(nleft + noffset, RGB[1].nWidth - 1);
+
+	int edgeleft = max(nright - noffset, 0);
+
+	IppiSize cutsize = {edgeright - nleft + 1, RGB[1].nHeight};
+
+	edgeimg1.Init(cutsize.width, cutsize.height);
+
+	ippiCopy_8u_C1R(RGB[1].buf + nleft, RGB[1].nPitch, edgeimg1.buf, edgeimg1.nPitch, cutsize);
+
+	cutsize = {nright - edgeleft + 1, RGB[1].nHeight };
+	
+	edgeimg2.Init(cutsize.width, cutsize.height);
+
+	ippiCopy_8u_C1R(RGB[1].buf + edgeleft, RGB[1].nPitch, edgeimg2.buf, edgeimg2.nPitch, cutsize);
+
+	// (2) 搜点
+	const int npointnum = 20;
+
+	kxPoint<int> leftpoint[npointnum];
+
+	kxPoint<int> rightpoint[npointnum];
+
+	GetEdgePoints(edgeimg1, 1, 10, leftpoint, npointnum);
+
+	GetEdgePoints(edgeimg2, 0, 10, rightpoint, npointnum);
+	 
+	// (3) 针对搜到的点进行拟合直线，然后取一个y的中间值得到x值是多少（目前这里直接取平均值）
+
+	int naverageleft = 0;
+
+	int naverageright = 0;
+	
+	for (int i = 0; i < npointnum; i++)
+	{
+		naverageleft += leftpoint[i].x;
+
+		naverageright += rightpoint[i].x;
+	}
+
+	naverageleft = naverageleft / npointnum;
+
+	naverageright = edgeimg2.nWidth - naverageright / npointnum;
+
+
+
+	int hoffset = 0;
+
+	nleft = min(nleft + naverageleft, RGB[0].nWidth / 2);
+
+	nright = max(nright - naverageright, RGB[0].nWidth / 2);
 
 	ntop = min(ntop + hoffset, RGB[0].nHeight / 2);
 
 	nbottom = max(nbottom - hoffset, RGB[0].nHeight / 2);
+
 
 
 	//2. 根据前一步骤提取的框内，进行绿色分割
@@ -946,17 +1076,7 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 	//m_hFun.SaveBMPImage_h(path, SrcImgB);
 
 
-	static int nindex = 0;
 
-	char savepath[64];
-
-	sprintf_s(savepath, "d:\\%d.bmp", nindex++);
-
-	m_hFun.SaveBMPImage_h(savepath, SrcImgA);
-
-	sprintf_s(savepath, "d:\\%d.bmp", nindex++);
-
-	m_hFun.SaveBMPImage_h(savepath, SrcImgB);
 
 
 
@@ -1000,6 +1120,14 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 	tbb_start = tick_count::now();
 
 
+
+	static int nindex = 0;
+
+	char savepath[64];
+
+	sprintf_s(savepath, "d:\\%d.bmp", nindex++);
+
+	m_hFun.SaveBMPImage_h(savepath, m_ImgCheck);
 
 
 

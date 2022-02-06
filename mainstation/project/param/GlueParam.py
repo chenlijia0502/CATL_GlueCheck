@@ -277,7 +277,7 @@ class GuleParam(KxBaseParamWidget):
 
         n_firstbuild_imgnum = int(ndisY * StaticConfigParam.DIS2PIXEL) / imgH + 1
 
-        ndisY = min(int((n_firstbuild_imgnum + 1) * imgH /  StaticConfigParam.DIS2PIXEL), StaticConfigParam.MAX_Y_LEN )#当取到最长的时候这个地方就起作用
+        ndisY = min(int((n_firstbuild_imgnum + 1) * imgH /  StaticConfigParam.DIS2PIXEL) + StaticConfigParam.RUN_MORE_DIS, StaticConfigParam.MAX_Y_LEN )#当取到最长的时候这个地方就起作用
 
         n_firstbuild_imgnum = int(ndisY * StaticConfigParam.DIS2PIXEL / imgH)
 

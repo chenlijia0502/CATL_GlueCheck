@@ -132,4 +132,10 @@ private:
 
 	void ExtractGreen(const kxCImageBuf* RGB, kxRect<int> roi, kxCImageBuf& DstImg);
 
+
+	// 2022.2.5
+
+	// 搜索边缘，nDir = 0是从左到右，且梯度算子是-1 0 1形式。1则反之 
+	void GetEdgePoints(const kxCImageBuf& GrayImg, int nDir, int nthresh, kxPoint<int> * searchresult, int nnums);
+
 };

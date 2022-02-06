@@ -376,15 +376,15 @@ class ModelManage(QtWidgets.QWidget):
             s_modelname = str(self.h_modellistmodel.item(n_index, 0).text()).strip()
 
             #self.choosepicture(self.s_dirpath + s_modelname)
-            for i in range(len(self.list_baseimagepath)):
-                s_baseimagepath = self.list_baseimagepath[i]
-                if os.path.isfile(s_baseimagepath):
-                    h_img = np.array(Image.open(s_baseimagepath))
-                    self.list_baseimg[i].setImage(h_img)
-                else:
-                    self.__list_view[i].removeItem(self.list_baseimg[i])
-                    self.list_baseimg[i] = pg.ImageItem()
-                    self.__list_view[i].addItem(self.list_baseimg[i])
+            # for i in range(len(self.list_baseimagepath)):
+            #     s_baseimagepath = self.list_baseimagepath[i]
+            #     if os.path.isfile(s_baseimagepath):
+            #         h_img = np.array(Image.open(s_baseimagepath))
+            #         self.list_baseimg[i].setImage(h_img)
+            #     else:
+            #         self.__list_view[i].removeItem(self.list_baseimg[i])
+            #         self.list_baseimg[i] = pg.ImageItem()
+            #         self.__list_view[i].addItem(self.list_baseimg[i])
 
     def choosepicture(self, s_templatepath):
         '''
