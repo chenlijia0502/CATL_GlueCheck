@@ -1,6 +1,7 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
 import xmltodict
 import logging
+import time
 import pyqtgraph as pg
 import numpy as np
 from suds.client import Client, HttpAuthenticated
@@ -10,6 +11,7 @@ from kxpyqtgraph.kxparameterTree.KxParameter import KxParameter
 from pyqtgraph.parametertree import ParameterTree
 from kxpyqtgraph.kxparameterTree.KxCustomWidget import *
 from library.ipc import  ipc_tool
+from project.other.ExcelManager import CExcelManager
 
 
 def writeXmlInfo(dict_data, path):
@@ -33,16 +35,39 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
     BASE 由：username、password、url组成，缺一不可
     PARAM 由各组需要上传的参数组成，可在xml中添加
 
-    TYPE代表当前mes是哪个接口，分为首件、进站、出站，接口不同，上传参数也不同
+    TYPE代表当前mes是哪个接口，分为首件（0）、进站（1）、出站（2），接口不同，上传参数也不同。
+
+    file_name, sheet_name, head
     """
-    def __init__(self, FILE_PATH, TYPE=0):
+    def __init__(self, FILE_PATH, exceldir_path, sheet_name, head, TYPE=0, ):
         super(CMesParamTreeWidget, self).__init__()
         self.file_path = FILE_PATH
         self.dict_param = readXmlInfo(FILE_PATH)
         self._initui()
         self._initparam()
         self._initmes()
+        self._setexcelinfo(exceldir_path, sheet_name, head)
         self.pushbutton_test.clicked.connect(self.click2senddata)
+
+    def _setexcelinfo(self, exceldir_path, sheet_name, head):
+        self.basedir = exceldir_path
+        self.basesheet_name = sheet_name
+        self.basehead = head
+        self.curpath = time.strftime('%Y-%m-%d', time.localtime(time.time())) + ".xlsx"
+
+        self.excel_log = CExcelManager(self.basedir + "\\" + self.curpath, self.basesheet_name, self.basehead)
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.__timeout2createnewexccel)
+        self.timer.start(1000 * 60 * 5)
+
+    def __timeout2createnewexccel(self):
+        """
+        定时器五分钟更新一次当前日期，如果日期更新则改变文件名
+        """
+        curpath = time.strftime('%Y-%m-%d', time.localtime(time.time())) + ".xlsx"
+        if curpath != self.curpath:
+            if not self.excel_log.b_iswriting:#只要不是正在写入
+                self.excel_log = CExcelManager(self.basedir + "\\" + self.curpath, self.basesheet_name, self.basehead)
 
 
     def _initui(self):
@@ -151,17 +176,24 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
             dict_senddata["parametricDataArray"] = self.machineIntegrationParametricData
 
             payloads = dict_senddata
-            print(payloads)
+
+            uploadtime = time.time()
+            strtime1 = time.strftime('%Y-%m-%d %X', time.localtime(uploadtime))
+            strtime1 = strtime1 + "." + str(uploadtime).split('.')[1][0:3]
 
             result = self.client.service.dataCollectForSfcEx(payloads)  # 出站api
 
-            print('上传回复结果：', result)
+            uploaddonetime = time.time()
+            strtime2 = time.strftime('%Y-%m-%d %X', time.localtime(uploaddonetime))
+            strtime2 = strtime2 + "." + str(uploaddonetime).split('.')[1][0:3]
+
+            ndiff = str(int((uploaddonetime - uploadtime) * 1000)) + " ms"
+            list_data = [sfc, strtime1, strtime2, ndiff, payloads, result[0], result[1], "自动"]
+            self.excel_log.writeExcel(list_data)# 写入log
+
             if result[0] == 0:
-                # warnwindows = QtWidgets.QMessageBox()
-                # respond = warnwindows.information(self, "上传成功", "数据已成功上传", QtWidgets.QMessageBox.Ok)
                 ipc_tool.kxlog("MES", logging.INFO, "MES 上传成功！")
             else:
-                #self.SIG_CHUZHAN.emit()
                 errorwindow = QtWidgets.QMessageBox()
                 respond = errorwindow.warning(self, "警告，数据上传失败", result[1], QtWidgets.QMessageBox.Ok)
                 ipc_tool.kxlog("MES", logging.ERROR, "！！！MES 上传失败！！！")

@@ -120,6 +120,9 @@
     <ClCompile Include="KxBlobAnalyse.cpp">
       <Filter>算法</Filter>
     </ClCompile>
+    <ClCompile Include="ZSFittingLine.cpp">
+      <Filter>算法</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CkxFileRead.h">
@@ -199,6 +202,9 @@
     </ClInclude>
     <ClInclude Include="CombineImg.h">
       <Filter>检测流程</Filter>
+    </ClInclude>
+    <ClInclude Include="ZSFittingLine.h">
+      <Filter>算法</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -24,7 +24,10 @@ class CMesParamWidget(QtWidgets.QWidget):
         self.verlayout = QtWidgets.QVBoxLayout(self)
         self.verlayout.addWidget(self.tabwidget)
 
-        self.widget1 = CMesParamTreeWidget(self.FILE_CHUZHAN)
+        self.widget1 = CMesParamTreeWidget(self.FILE_CHUZHAN, TYPE=2,
+                                           exceldir_path="D:\\MESLOG\\出站校验接口(dataCollectForSfcEx)\\",
+                                           sheet_name="Sheet", head= ['条码', '开始时间', '结束时间',
+                                                                       '耗时', '传参', 'Code', 'message', '出站模式'])
         self.widget2 = QtWidgets.QWidget()
         self.widget3 = QtWidgets.QWidget()
 

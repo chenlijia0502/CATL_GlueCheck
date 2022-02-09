@@ -113,6 +113,8 @@ private:
 	int							m_nCurPackIDimgindex;//当前pack id采集的第几张图
 	CheckStatus					m_echeckstatus;
 
+	CEmpiricaAlgorithm			m_hAlg;
+
 private:
 	//转Bayer图像为彩色图像或模拟数据转换
 	int TransferImage(const CKxCaptureImage& card);
@@ -135,6 +137,8 @@ private:
 	void SaveBadImg(const kxCImageBuf& SrcImg, Json::Value& sendresult);// 根据检测结果将数据保存到
 
 	void CopyImg2SplicImg(const kxCImageBuf& SrcImg, int nrow, int ncol);
+
+	void GetG_Template(kxCImageBuf& SrcDstImg);// 输入一张彩色图，得到一个单通道的二值化模板图
 	
 public:
 	//检查一张卡片的全流程,包括预处理，处理

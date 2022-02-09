@@ -419,17 +419,6 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 	ncolnum = m_param.m_nscantimes;//扫描次数即为列数
 	
 	nrownum = m_param.m_nmaxrownum;
-	//nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "拼图信息", "列数", szResult);
-	//if (!nSearchStatus)
-	//{
-	//	sprintf_s(ErrorInfo, 256, "列数");
-	//	return false;
-	//}
-	//nStatus = KxXmlFun2::FromStringToInt(szResult, ncolnum);
-	//if (!nStatus)
-	//{
-	//	return false;
-	//}
 
 	//初始缩略大图
 	int nsingleimgh = nmaxheight / _SPLICING_IMG_SCALEFACTOR;
@@ -496,11 +485,117 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 
 	m_hcombineimg.Init(nImgW, nImgH, m_param.m_nscantimes, nimgnum, rect);
 
+
+	// 2022.2.7 提取模板中的图作为标准模板，之后提取的再跟它进行滑动残差
+	
+	for (int i = 0; i < m_param.m_nscantimes; i++)
+	{
+		std::string readpath;
+
+		char imgpath[32];
+
+		memset(imgpath, 0, 32);
+
+		sprintf_s(imgpath, "底板路径%d", i);
+
+		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "主站设置", imgpath, readpath);
+
+		if (!nSearchStatus)
+		{
+			sprintf_s(ErrorInfo, 256, imgpath);
+
+			return false;
+		}
+
+		kxCImageBuf bigimg;
+
+		m_hBaseFun.LoadBMPImage_h(readpath.c_str(), bigimg);
+
+		for (int j = 0; j < m_param.m_nROINUM; j++)
+		{
+			if (m_param.params[j].m_nGrabTimes == i)
+			{
+				kxRect<int> roi = m_param.params[j].m_rcCheckROI;
+
+				roi.divC(m_param.m_nimgscalefactor);
+
+				// roi 向内缩，目的是测试涂胶整体缩小效果
+				const int nsuoxiao = 80;
+
+				roi.left += nsuoxiao;
+
+				roi.right -= nsuoxiao;
+
+				roi.top += nsuoxiao;
+
+				roi.bottom -= nsuoxiao;
+
+				//--------------------
+
+				m_param.params[j].m_ImgTemplate.Init(roi.Width(), roi.Height(), bigimg.nChannel);
+
+				m_hBaseFun.KxCopyImage(bigimg, m_param.params[j].m_ImgTemplate, roi);
+
+				GetG_Template(m_param.params[j].m_ImgTemplate);
+			}
+		}
+
+	}
+
+	//// 2022.2.7 这里做一下扩充，原因是建模的时候有意拉小了
+	//const int nextend = 500;
+
+	//for (int i = 0; i < m_param.m_nROINUM; i++)
+	//{
+	//	m_param.params[i].m_rcCheckROI.top -= nextend;
+
+	//	m_param.params[i].m_rcCheckROI.bottom += nextend;
+	//}
+
+
+
+
 	delete[] nimgnum;
 
 	delete[] rect;
 
 	return true;
+
+}
+
+void CKxCheck::GetG_Template(kxCImageBuf& SrcDstImg)
+{
+	//通过 2G - R - B的方法得到一张灰度图，再进行低阈值二值化
+
+	kxCImageBuf rgb[3];
+
+	m_hAlg.SplitRGB(SrcDstImg, rgb);
+
+	kxCImageBuf g_b, g_r;
+
+	g_b.Init(SrcDstImg.nWidth, SrcDstImg.nHeight);
+
+	g_r.Init(SrcDstImg.nWidth, SrcDstImg.nHeight);
+
+	IppiSize imgsize = { SrcDstImg.nWidth, SrcDstImg.nHeight };
+
+	ippiSub_8u_C1RSfs(rgb[0].buf, rgb[0].nPitch, rgb[1].buf, rgb[1].nPitch, g_r.buf, g_r.nPitch, imgsize, 0);
+
+	ippiSub_8u_C1RSfs(rgb[2].buf, rgb[2].nPitch, rgb[1].buf, rgb[1].nPitch, g_b.buf, g_b.nPitch, imgsize, 0);
+
+	kxCImageBuf addimg, threshimg;
+
+	addimg.Init(SrcDstImg.nWidth, SrcDstImg.nHeight);
+
+	threshimg.Init(SrcDstImg.nWidth, SrcDstImg.nHeight);
+
+	SrcDstImg.Init(g_b.nWidth, g_b.nHeight, 1);
+
+	ippiAdd_8u_C1RSfs(g_r.buf, g_r.nPitch, g_b.buf, g_b.nPitch, addimg.buf, addimg.nPitch, imgsize, 0);
+
+	m_hAlg.ThreshImg(addimg, threshimg, 10, CEmpiricaAlgorithm::_BINARY);
+
+	m_hBaseFun.KxCloseImage(threshimg, SrcDstImg, 5, 5);
 
 }
 
@@ -1097,16 +1192,18 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 
 					m_hcombineimg.GetImg(bigimgA, bigimgB, j);
 
-					kxCImageBuf checkimgA, checkimgB;
 
-					checkimgA.Init(m_TransferImage.nWidth, m_param.params[i].m_rcCheckROI.Height(), 3);
-
-					checkimgB.Init(m_TransferImage.nWidth, m_param.params[i].m_rcCheckROI.Height(), 3);
 
 					kxRect<int> copyrect;
 
 					copyrect.setup(0, m_param.params[i].m_rcCheckROI.top, m_TransferImage.nWidth - 1, m_param.params[i].m_rcCheckROI.bottom);
- 
+
+					kxCImageBuf checkimgA, checkimgB;
+
+					checkimgA.Init(m_TransferImage.nWidth, copyrect.Height(), 3);
+
+					checkimgB.Init(m_TransferImage.nWidth, copyrect.Height(), 3);
+
 					m_hBaseFun.KxCopyImage(bigimgA, checkimgA, copyrect);
 
 					//char savepath[32];
@@ -1125,7 +1222,7 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 
 					ippsSet_8u(0, m_ImgMaxSizeB.buf, m_ImgMaxSizeB.nPitch * m_ImgMaxSizeB.nHeight);
 
-					IppiSize copysize = { checkimgA.nWidth, m_param.params[i].m_rcCheckROI.Height()};
+					IppiSize copysize = { checkimgA.nWidth, copyrect.Height()};
 
 					ippiCopy_8u_C3R(checkimgA.buf, checkimgA.nPitch, m_ImgMaxSizeA.buf, m_ImgMaxSizeA.nPitch, copysize);
 

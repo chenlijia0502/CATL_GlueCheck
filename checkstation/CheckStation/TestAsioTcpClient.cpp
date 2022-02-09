@@ -285,9 +285,9 @@ void CTestAsioTcpClient::RecMsgToStartCheck(const unsigned char* pExtData)
 		//kxPrintf(KX_Err, "参数载入失败，无法开始正常检查");
 		char szInfo[1024];
 		sprintf_s(szInfo, 1024, Config::g_GetParameter().g_TranslatorChinese("参数载入失败，无法开始正常检查"));
+		kxPrintf(KX_Err, szInfo);
 		std::ostringstream os;
 		os.write(reinterpret_cast<const char *>(&nStatus), sizeof(int));
-		os.write(reinterpret_cast<const char *>(&szInfo), sizeof(szInfo));
 		std::string str = os.str();
 		if (Net::IsExistNetObj())
 		{
@@ -304,7 +304,22 @@ void CTestAsioTcpClient::RecMsgToStartCheck(const unsigned char* pExtData)
 	Graber::g_GetCamera()->OpenInternalTrigger(1);//外触发
 
 	g_Grabstatus.init();
-	g_Environment.StartCheck();
+	nStatus = g_Environment.StartCheck();
+	if (!nStatus)
+	{
+		char szInfo[1024];
+		sprintf_s(szInfo, 1024, Config::g_GetParameter().g_TranslatorChinese("相机启动失败，无法开始正常检查"));
+		kxPrintf(KX_Err, szInfo);
+		std::ostringstream os;
+		os.write(reinterpret_cast<const char *>(&nStatus), sizeof(int));
+		std::string str = os.str();
+		if (Net::IsExistNetObj())
+		{
+			Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_START_CHECK_IS_READY), int(str.size()), str.c_str());
+		}
+		return; //相机启动失败，不检查
+	}
+
 	kxPrintf(KX_INFO, Config::g_GetParameter().g_TranslatorChinese("开始检测"));
 	std::ostringstream os;
 	nStatus = 1;
@@ -383,10 +398,10 @@ void CTestAsioTcpClient::RecMsgToStartSimulate(const unsigned char* pExtData)
 
 	char szInfo[1024];
 	sprintf_s(szInfo, 1024, Config::g_GetParameter().g_TranslatorChinese("参数载入成功，可以正常检查"));
+	kxPrintf(KX_INFO, szInfo);
 	std::ostringstream os;
 	nStatus = 1;
 	os.write(reinterpret_cast<const char *>(&nStatus), sizeof(int));
-	os.write(reinterpret_cast<const char *>(&szInfo), sizeof(szInfo));
 	std::string str = os.str();
 	if (Net::IsExistNetObj())
 	{

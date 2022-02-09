@@ -52,20 +52,20 @@ int CkxEnvironment::LoadAllObjByXml(char* configPath)
 
 
 		char error[256];
-		if (!Check::g_GetCheckCardObj().GetCheckTools(i).ReadParamXml(strTemp.c_str(), error, modelpath.c_str()))
-		{
-			if (Config::g_GetParameter().m_nLanguageMode)
-			{
-				strcat_s(error, " 检测参数载入失败，请重新载入，请保存参数");
-				kxPrintf(KX_Err, error);
-			}
-			else
-			{
-				strcat_s(error, " Global Parameters load failure, please confirm it");
-				kxPrintf(KX_Err, error);
-			}
-			return 0;
-		}
+		//if (!Check::g_GetCheckCardObj().GetCheckTools(i).ReadParamXml(strTemp.c_str(), error, modelpath.c_str()))
+		//{
+		//	if (Config::g_GetParameter().m_nLanguageMode)
+		//	{
+		//		strcat_s(error, " 检测参数载入失败，请重新载入，请保存参数");
+		//		kxPrintf(KX_Err, error);
+		//	}
+		//	else
+		//	{
+		//		strcat_s(error, " Global Parameters load failure, please confirm it");
+		//		kxPrintf(KX_Err, error);
+		//	}
+		//	return 0;
+		//}
 
 		memset(error, 0, sizeof(error));
 		if (!Check::g_GetCheckCardObj().ReadParamXml(strTemp.c_str(), error))
@@ -80,6 +80,7 @@ int CkxEnvironment::LoadAllObjByXml(char* configPath)
 				strcat_s(error, " Global Parameters load failure, please confirm it");
 				kxPrintf(KX_Err, error);
 			}
+			return 0;
 		}
 
 	}
@@ -114,9 +115,9 @@ int CkxEnvironment::StartCheck()
 {
 	m_bIsSimulate = false;
 	Thread::g_GetThreadManage().startAllThread();
-	Graber::g_GetGrabPack().Start();
+	int startstatus  = Graber::g_GetGrabPack().Start();
 	
-	return 1;
+	return startstatus;
 }
 
 int CkxEnvironment::StopCheck()

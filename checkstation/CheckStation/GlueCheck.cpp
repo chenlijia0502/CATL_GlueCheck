@@ -692,16 +692,20 @@ void CGlueCheck::GetGlueMask(const kxCImageBuf* RGB)
 	nbottom = max(nbottom - hoffset, RGB[0].nHeight / 2);
 
 
-
 	//2. 根据前一步骤提取的框内，进行绿色分割
-	kxRect<int> targetroi;
+	m_recttarget.setup(nleft, ntop, nright, nbottom);
 
-	targetroi.setup(nleft, ntop, nright, nbottom);
+	//kxCImageBuf cutrgb[3];
+	//for (int i = 0; i < 3; i++)
+	//{
+	//	// 初始化，剪切，调用
+	//	cutrgb[i].Init(targetroi.Width(), targetroi.Height());
+	//	
+	//	m_hFun.KxCopyImage(RGB[i], cutrgb[i], targetroi);
+	//}
+	//SliderMatch(cutrgb, m_param.m_ImgTemplate);
+	//
 
-
-
-
-	//溧阳方案
 	m_ImgGlueMask.Init(RGB[0].nWidth, RGB[0].nHeight, RGB[0].nChannel);
 
 	ippsSet_8u(0, m_ImgGlueMask.buf, m_ImgGlueMask.nPitch * m_ImgGlueMask.nHeight);
@@ -713,10 +717,6 @@ void CGlueCheck::GetGlueMask(const kxCImageBuf* RGB)
 
 	//肇庆方案
 	//ExtractGreen(RGB, targetroi, m_ImgGlueMask);
-
-
-
-
 
 	/*
 	//2. 对边框内图案进行提取
@@ -1055,29 +1055,102 @@ void CGlueCheck::ExtractGreen(const kxCImageBuf* RGB, kxRect<int> roi, kxCImageB
 
 }
 
-int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg, Json::Value &checkresult)
+void CGlueCheck::SliderMatch(kxCImageBuf& SrcImg, kxCImageBuf& Templateimg)
 {
 
-	// 现在的问题是提取绿色不好提取，对于边缘部分不好搞。要想个办法用双阈值提取
+	//1. 通过 2G - R - B的方法得到一张灰度图，再进行低阈值二值化
 
-	//static int nsaveindex = 0;
+	int nwidth = SrcImg.nWidth;
 
-	//char path[64];
+	int nheight = SrcImg.nHeight;
 
-	//memset(path, 0, 64);
-	//sprintf_s(path, "d:\\%dbig.bmp", nsaveindex);
+	kxCImageBuf rgb[3];
 
-	//m_hFun.SaveBMPImage_h(path, SrcImgA);
-	//nsaveindex++;
-	//memset(path, 0, 64);
-	//sprintf_s(path, "d:\\%dbig.bmp", nsaveindex);
-	//nsaveindex++;
+	m_hAlg.SplitRGB(SrcImg, rgb);
 
-	//m_hFun.SaveBMPImage_h(path, SrcImgB);
+	kxCImageBuf g_b, g_r;
+
+	g_b.Init(nwidth, nheight);
+
+	g_r.Init(nwidth, nheight);
+
+	IppiSize imgsize = { nwidth, nheight };
+
+	ippiSub_8u_C1RSfs(rgb[0].buf, rgb[0].nPitch, rgb[1].buf, rgb[1].nPitch, g_r.buf, g_r.nPitch, imgsize, 0);
+
+	ippiSub_8u_C1RSfs(rgb[2].buf, rgb[2].nPitch, rgb[1].buf, rgb[1].nPitch, g_b.buf, g_b.nPitch, imgsize, 0);
+
+	kxCImageBuf addimg, threshimg, closeimg;
+
+	addimg.Init(nwidth, nheight);
+
+	threshimg.Init(nwidth, nheight);
+
+	closeimg.Init(nwidth, nheight);
+
+	ippiAdd_8u_C1RSfs(g_r.buf, g_r.nPitch, g_b.buf, g_b.nPitch, addimg.buf, addimg.nPitch, imgsize, 0);
+
+	m_hAlg.ThreshImg(addimg, threshimg, 10, CEmpiricaAlgorithm::_BINARY);
+
+	m_hFun.KxCloseImage(threshimg, closeimg, 5, 5);
+
+	// 2. 归一化图像
+	int basew = Templateimg.nWidth;
+
+	int baseh = Templateimg.nHeight;
+
+	kxCImageBuf resizesrc;
+
+	resizesrc.Init(basew, baseh);
+
+	m_hFun.KxResizeImage(closeimg, resizesrc);
+
+	// 3. 测试部分，先对模板图像进行腐蚀
+	kxCImageBuf erodetemplate;
+
+	erodetemplate.Init(Templateimg.nWidth, Templateimg.nHeight);
+
+	m_hAlg.ZSErodeImage(Templateimg, erodetemplate, 9, 5, NULL, ippBorderConst, 0);
+
+	for (int i = 0; i < 5; i++)
+	{
+		m_hAlg.ZSErodeImage(erodetemplate, erodetemplate, 9, 5, NULL, ippBorderConst, 0);
+	}
+
+	//kxCImageBuf subresult;
+
+	//subresult.Init(erodetemplate.nWidth, erodetemplate.nHeight);
+
+	//IppiSize imgsizeresize = { erodetemplate.nWidth, erodetemplate.nHeight };
+
+	//ippiSub_8u_C1RSfs(resizesrc.buf, resizesrc.nPitch, erodetemplate.buf, erodetemplate.nPitch, subresult.buf, subresult.nPitch, imgsizeresize, 0);
+
+	//4. 重点部分，对检测图进行N次分割成小图（单向分割）,再用这N张小图在模板图上进行滑动对减
+
+	const int nsplittimes = 16;
+
+	for (int i = 0; i < nsplittimes; i++)
+	{
+		kxCImageBuf smallimg;
+
+		kxRect<int> cutrect;
+
+		int nstep = erodetemplate.nHeight / nsplittimes;
+
+		cutrect.setup(0, nstep * i, erodetemplate.nWidth -1, nstep * (i + 1) - 1);
+
+		
+
+	}
 
 
 
 
+
+}
+
+int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg, Json::Value &checkresult)
+{
 
 
 	tick_count tbb_start, tbb_end;
@@ -1086,15 +1159,7 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 
 	m_hAlg.SplitRGB(SrcImgA, m_ImgRGB);
 
-	//cv::Mat hsv;
-	//cv::Mat src = cv::Mat(SrcImgA.nHeight, SrcImgA.nWidth, CV_8UC3, SrcImgA.buf);
-	//cv::cvtColor(src, hsv, cv::COLOR_RGB2HSV);
-	//kxCImageBuf phsv;
-	//phsv.SetImageBuf(hsv.data, hsv.cols, hsv.rows, hsv.step, hsv.channels(), true);
-	//m_hAlg.SplitRGB(phsv, m_ImgHSV);
-
 	tbb_start = tick_count::now();
-
 
 	GetGlueMask(m_ImgRGB);
 
@@ -1130,8 +1195,13 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 	m_hFun.SaveBMPImage_h(savepath, m_ImgCheck);
 
 
+	kxCImageBuf cutimg;
 
+	cutimg.Init(m_recttarget.Width(), m_recttarget.Height(), m_ImgCheck.nChannel);
 
+	m_hFun.KxCopyImage(m_ImgCheck, cutimg, m_recttarget);
+
+	SliderMatch(cutimg, m_param.m_ImgTemplate);
 
 
 

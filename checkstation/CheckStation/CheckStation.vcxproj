@@ -221,6 +221,7 @@
     <ClCompile Include="minidmp.cpp" />
     <ClCompile Include="zcudpclient.cpp" />
     <ClCompile Include="zsCameraLMI.cpp" />
+    <ClCompile Include="ZSFittingLine.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseCheckMethod.h" />
@@ -249,6 +250,7 @@
     <ClInclude Include="minidmp.h" />
     <ClInclude Include="zcudpclient.h" />
     <ClInclude Include="zsCameraLMI.h" />
+    <ClInclude Include="ZSFittingLine.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CheckStation.ini" />

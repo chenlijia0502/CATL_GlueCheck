@@ -121,8 +121,8 @@ int kxCGrabPack::Start()
 {
 	if(m_pCamera == NULL)
 		return 0;
-	m_pCamera->Start();
-	return 1;
+	return m_pCamera->Start();
+	
 }
 //yl 2020.09.05 增加关闭相机
 int kxCGrabPack::Close()

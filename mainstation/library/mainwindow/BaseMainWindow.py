@@ -554,6 +554,16 @@ class KXBaseMainWidget(QtWidgets.QWidget):
         if n_msgtype == imc_msg.MSG_CAMERA_IS_READY:
             nstatus = struct.unpack("i", s_extdata)[0]
             self._camerareadystatuschange(n_stationid, nstatus)
+        elif n_msgtype == imc_msg.MSG_START_CHECK_IS_READY:
+            nstatus = struct.unpack("i", s_extdata[:struct.calcsize('i')])[0]
+            if not nstatus:
+                if self.ui.toolbtn_onlinerun.isChecked():
+                    self.ui.toolbtn_onlinerun.setChecked(False)
+                    self._onlinerun()
+                elif self.ui.toolbtn_offlinerun.isChecked():
+                    self.ui.toolbtn_offlinerun.setChecked(False)
+                    self._offlinerun()
+
 
     def sethandle(self, list_handle):
         """初始化时启用各个子站，将各个子站权柄交于这里，方便关闭的时候调用关闭"""

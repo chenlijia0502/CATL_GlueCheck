@@ -43,6 +43,8 @@ public:
 		int				m_noffsethigh;//高灵敏度偏移，从主站读取结果直接乘以25，目的是统一到255的灰阶
 		int				m_noffsetlow;//低灵敏度偏移，从主站读取结果直接乘以25，目的是统一到255的灰阶
 
+		kxCImageBuf		m_ImgTemplate;
+
 	};
 
 	enum
@@ -104,7 +106,7 @@ private:
 
 	kxCImageBuf				 m_ImgZero2split;
 	int						 m_nID;//当前是第几个blob，用于存储缺陷图片信息
-
+	kxRect<int>				 m_recttarget;
 
 
 private:
@@ -137,5 +139,8 @@ private:
 
 	// 搜索边缘，nDir = 0是从左到右，且梯度算子是-1 0 1形式。1则反之 
 	void GetEdgePoints(const kxCImageBuf& GrayImg, int nDir, int nthresh, kxPoint<int> * searchresult, int nnums);
+
+	// 特殊方法滑动匹配。先归一化，后滑动对减，滑动对减的方式也有些不同
+	void SliderMatch(kxCImageBuf& SrcImg, kxCImageBuf& Templateimg);
 
 };

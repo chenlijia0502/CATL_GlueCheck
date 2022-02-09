@@ -117,6 +117,7 @@ int CCamera_HK::Stop()
 	int nRet = MV_CC_StopGrabbing(m_camerahandle);
 	if (MV_OK == nRet || MV_OK == MV_E_CALLORDER)//临时加个调用顺序错误
 	{
+		MV_CC_ClearImageBuffer(m_camerahandle);//2022.2.8 停止采集的时候顺便清除缓存
 		m_bStop = true;
 		printf("stop successed\n");
 	}
@@ -146,7 +147,7 @@ int CCamera_HK::Start()
 	{
 		printf("Start Grabbing fail! nRet [0x%x]\n", nRet);
 		m_bStop = true;
-
+		return 0;
 	}
 	else
 	{

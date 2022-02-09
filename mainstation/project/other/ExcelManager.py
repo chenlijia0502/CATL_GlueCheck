@@ -21,12 +21,27 @@ class CExcelManager(object):
         self.file_name = file_name
         # 选择表单
         self.sh = self.wb[sheet_name]
+        self.b_iswriting = False# 是否正在写的状态
 
 
     def __createfile(self, file_name, sheet_name, head):
-        if not os.path.isfile(file_name):
+        """
+        创建文件，包含创建文件夹
+        file_name: 文件名
+        sheet_name: 工作表名
+        head: 工作表第一行
+        """
+        list_dir = file_name.split("\\")
+        if not os.path.isfile(file_name):# 创建文件夹
+            if len(list_dir) > 2:
+                del list_dir[-1]
+                newpath = "\\".join(list_dir)
+                if not os.path.isdir(newpath):
+                     os.makedirs(newpath)
             wb = openpyxl.Workbook()
-            sh = wb.create_sheet(sheet_name)
+            #
+            if sheet_name not in wb:
+                sh = wb.create_sheet(sheet_name)
             sh = wb[sheet_name]
             for nindex, data in enumerate(head):
                 sh.cell(1, nindex + 1).value = str(data)  # 写文件
@@ -69,16 +84,20 @@ class CExcelManager(object):
 
 
     def writeExcel(self, list_list_data):
+        self.b_iswriting = True
         ncurlinenum = self.sh.max_row
         for row in range(0,len(list_list_data)):
             list_data = list_list_data[row]
             for col in range(0,len(list_data)):
                 self.sh.cell(row + 1 + ncurlinenum, col + 1).value = str(list_data[col])  # 写文件
         self.wb.save(self.file_name)
+        self.b_iswriting = False
 
 
 if __name__ == '__main__':
-    r = CExcelManager('d:\\模组数据.xlsx','Sheet', ['PACK ID', '时间', '缺陷数量'])
+    r = CExcelManager("D:\\MESLOG\\出站校验接口(dataCollectForSfcEx)\\2022-02-06.xlsx",'Sheet', ['条码', '开始时间', '结束时间',
+                                                                                           '耗时', '传参', 'Code', 'message', '出站模式'])
     list_list_data = [[1, 2, 3, 4], ['测试', '答复', 'ID', 6]]
     r.writeExcel(list_list_data)
     r.writeExcel(list_list_data)
+
