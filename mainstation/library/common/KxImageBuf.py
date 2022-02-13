@@ -69,6 +69,7 @@ class KxImageBuf(object):
         presize = struct.calcsize(fmt)
         
         self.nWidth, self.nHeight, self.nPitch, self.nChannel, nToken = struct.unpack(fmt, str[:presize])
+        print('kximagebuf upack result: ',self.nWidth, self.nHeight, self.nPitch, self.nChannel, nToken )
         fmt1 = ''
      
 

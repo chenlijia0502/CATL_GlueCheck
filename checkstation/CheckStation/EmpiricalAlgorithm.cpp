@@ -393,9 +393,9 @@ void CEmpiricaAlgorithm::MatchUseSSD(const kxCImageBuf& SrcImg, const kxCImageBu
 
 	Ipp64f nmin = 99999999999999999;
 
-	for (int i = 0; i < nsliderx; i++)
+	for (int i = 0; i <= nsliderx; i++)
 	{
-		for (int j = 0; j < nslidery; j++)
+		for (int j = 0; j <= nslidery; j++)
 		{
 			buf = SrcImg.buf + i * SrcImg.nChannel + j * SrcImg.nPitch;
 			if (ntype == 0)

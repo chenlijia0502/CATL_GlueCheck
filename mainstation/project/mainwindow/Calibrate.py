@@ -177,7 +177,7 @@ if __name__ == "__main__":
     w = ShowCalibrateWidget()
 
 
-    img1 = cv2.imread("d:\\test.bmp", 1)
+    img1 = cv2.imread("d:\\0.bmp", 1)
     print(img1.shape)
     # img2 = cv2.imread("d:\\2.bmp", 1)
     # img3 = cv2.imread("d:\\3.bmp", 1)

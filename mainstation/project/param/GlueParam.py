@@ -202,6 +202,7 @@ class GuleParam(KxBaseParamWidget):
                     {'name': u'扫描组号', 'type': 'list', 'values': {'组数一': 0, '组数二': 1, '组数三':2, '组数四':3,
                                                         '组数五':4, '组数六':5}},
                     {'name': u'当前组ID', 'type': 'int', 'value': 0, 'limits':[0, 6], 'readonly':True},
+                    {'name': '屏蔽当前检测区域', 'type': 'bool', 'value':False},
 
                 ]}
             )
@@ -518,6 +519,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def saveparameters(self):
+        self._disconnectlog()
         self._sortcheckpos()
         self._saveMapColRow()
         self._setbaseimgpath()
@@ -528,6 +530,8 @@ class GuleParam(KxBaseParamWidget):
                 szSaveDir = self.p.param("主站设置", "底板路径" + str(nindex)).value()
                 imagesave.save(szSaveDir)
         super(GuleParam, self).saveparameters()
+        self.sendcheckstatus()
+        self._connectlog()
 
 
     def _sortcheckpos(self):
@@ -785,6 +789,48 @@ class GuleParam(KxBaseParamWidget):
         self.threadWaitDialog.setProcessBarVal(20)
 
         self.threadWaitDialog.close()
+
+
+    def getcheckareastatus(self):
+        """
+        程序启动的时候，外部界面需要获取检测区域屏蔽状态，通过这个函数获取。也可提供类内函数调用
+        """
+
+        list_status = []
+
+        nchecknum = int(self.p.param('检测区域数量').value())
+
+        for i in range(nchecknum):
+
+            status = self.p.param('检测区域' + str(i), '屏蔽当前检测区域').value()
+
+            if status == 'True' or status == 'true' or status == True:
+
+                list_status.append(1)
+
+            else:
+
+                list_status.append(0)
+
+        return list_status
+
+
+    def callback2changecheckstatus(self, list_data):
+        """
+        屏蔽检测区域界面点击保存之后，会将结果设置到这个位置
+        """
+        for i, data in enumerate(list_data):
+
+            self.p.param('检测区域' + str(i), '屏蔽当前检测区域').setValue(bool(data))
+
+        self.saveparameters()
+
+
+    def sendcheckstatus(self):
+        """
+        点击保存的时候将检测是否需要屏蔽的结果发送给另外的界面
+        """
+        ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_SET_CHECK_MASK, self.getcheckareastatus()))
 
 
 

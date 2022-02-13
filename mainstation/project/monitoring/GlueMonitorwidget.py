@@ -91,14 +91,15 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
             startoffset = dict_result['startoffset']
             offsetlen = dict_result['imageoffsetlen']
             if fp == self.fp:
-                print(startoffset, offsetlen)
+                print("_getimage", startoffset, offsetlen)
         except AttributeError:
             return None
-        if fp is None:
-            try:
-                fp = open(readimagepath, "rb")
-            except IOError:
-                return None
+        #if fp is None: # 因为偶尔出现文件索取错误，怀疑某一次初始搞错了，所以这里改成每次都重新打开，看是否有问题
+        try:
+            fp = open(readimagepath, "rb")
+        except IOError:
+            return None
+
         fp.seek(startoffset)
         data = fp.read(offsetlen)
         Img = KxImageBuf()
@@ -121,7 +122,6 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
             resizeimg = cv2.resize(img, (neww, newh))
 
-            print ('resizeimg, ', resizeimg.shape)
 
             #nIsFull = int(dict_result['ISFULL'])
 
@@ -130,6 +130,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
             ncurrow = dict_result['currow']
 
             ncurcol = dict_result['curcol']
+
 
             self.h_defectinfo.append_blockinfo(resizeimg, int(dict_result['area']) * self.f_resolution * self.f_resolution, ncurrow,  ncurcol)
 

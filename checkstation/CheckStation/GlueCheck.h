@@ -36,6 +36,8 @@ public:
 		kxRect<int>		m_rcCheckROI;
 		int				m_nGrabTimes;//扫描列，设备移动扫描第几组,说明当前扫描图像属于第几组
 		int				m_nCurGrabID;// 当前扫描列第几个roi
+		int				m_nIsnotcheck;//是否屏蔽当前检测
+
 
 		int				m_ndefectthresh;
 		int				m_ndefectdots;//缺陷点数
@@ -142,5 +144,7 @@ private:
 
 	// 特殊方法滑动匹配。先归一化，后滑动对减，滑动对减的方式也有些不同
 	void SliderMatch(kxCImageBuf& SrcImg, kxCImageBuf& Templateimg);
+
+	void SliderSub(kxCImageBuf& SrcImg, kxCImageBuf& TemplateImg, kxCImageBuf& dstCCImg, int nscalefactor);
 
 };

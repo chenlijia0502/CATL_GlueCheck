@@ -1095,9 +1095,9 @@ void CGlueCheck::SliderMatch(kxCImageBuf& SrcImg, kxCImageBuf& Templateimg)
 	m_hFun.KxCloseImage(threshimg, closeimg, 5, 5);
 
 	// 2. 归一化图像
-	int basew = Templateimg.nWidth;
+	int basew = closeimg.nWidth / 4;
 
-	int baseh = Templateimg.nHeight;
+	int baseh = closeimg.nHeight / 4;
 
 	kxCImageBuf resizesrc;
 
@@ -1110,11 +1110,11 @@ void CGlueCheck::SliderMatch(kxCImageBuf& SrcImg, kxCImageBuf& Templateimg)
 
 	erodetemplate.Init(Templateimg.nWidth, Templateimg.nHeight);
 
-	m_hAlg.ZSErodeImage(Templateimg, erodetemplate, 9, 5, NULL, ippBorderConst, 0);
+	m_hAlg.ZSErodeImage(Templateimg, erodetemplate, 9, 9, NULL, ippBorderConst, 0);
 
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < 1; i++)
 	{
-		m_hAlg.ZSErodeImage(erodetemplate, erodetemplate, 9, 5, NULL, ippBorderConst, 0);
+		m_hAlg.ZSErodeImage(erodetemplate, erodetemplate, 9, 9, NULL, ippBorderConst, 0);
 	}
 
 	//kxCImageBuf subresult;
@@ -1125,26 +1125,211 @@ void CGlueCheck::SliderMatch(kxCImageBuf& SrcImg, kxCImageBuf& Templateimg)
 
 	//ippiSub_8u_C1RSfs(resizesrc.buf, resizesrc.nPitch, erodetemplate.buf, erodetemplate.nPitch, subresult.buf, subresult.nPitch, imgsizeresize, 0);
 
+
+	// 在模板图上、下边缘填充黑色
+	kxCImageBuf bigtemplate;
+
+	const int headbotextend = 100;
+
+	bigtemplate.Init(erodetemplate.nWidth, erodetemplate.nHeight + headbotextend * 2);
+
+	ippsSet_8u(0, bigtemplate.buf, bigtemplate.nPitch * bigtemplate.nHeight);
+
+	IppiSize templatesize = { erodetemplate.nWidth, erodetemplate.nHeight};
+
+	ippiCopy_8u_C1R(erodetemplate.buf, erodetemplate.nPitch, bigtemplate.buf + bigtemplate.nPitch * headbotextend, bigtemplate.nPitch, templatesize);
+	
 	//4. 重点部分，对检测图进行N次分割成小图（单向分割）,再用这N张小图在模板图上进行滑动对减
 
 	const int nsplittimes = 16;
 
+	kxCImageBuf bigCCImg;
+
+	bigCCImg.Init(resizesrc.nWidth, resizesrc.nHeight);
+
+	// 做一个测试
+	//IppiSize masksize = {200, 200};
+	//ippiSet_8u_C1R(0, resizesrc.buf + 290 + 624 * resizesrc.nPitch, resizesrc.nPitch, masksize);
+
+
 	for (int i = 0; i < nsplittimes; i++)
 	{
+		// (1) 裁剪检测图
 		kxCImageBuf smallimg;
 
 		kxRect<int> cutrect;
 
-		int nstep = erodetemplate.nHeight / nsplittimes;
+		int nstep = resizesrc.nHeight / nsplittimes;
 
-		cutrect.setup(0, nstep * i, erodetemplate.nWidth -1, nstep * (i + 1) - 1);
+		cutrect.setup(0, nstep * i, resizesrc.nWidth -1, nstep * (i + 1) - 1);
+
+		smallimg.Init(cutrect.Width(), cutrect.Height());
+
+		m_hFun.KxCopyImage(resizesrc, smallimg, cutrect);
+
+		// (2) 裁剪模板图，模板图进行了上下扩充
+
+		kxCImageBuf smalltemplate;
+
+		const int nextend = 100;
+
+		int ntemplatetop = gMax(0, nstep * i - nextend);
+
+		int ntemplatebottom = gMin(bigtemplate.nHeight - 1, nstep * (i + 1) - 1 + nextend);
+
+		cutrect.setup(0, ntemplatetop, bigtemplate.nWidth - 1, ntemplatebottom);
+
+		smalltemplate.Init(cutrect.Width(), cutrect.Height());
+
+		m_hFun.KxCopyImage(bigtemplate, smalltemplate, cutrect);
+
+		kxCImageBuf CCImg;
+
+		CCImg.Init(smallimg.nWidth, smallimg.nHeight);
+
+		SliderSub(smallimg, smalltemplate, CCImg, 5);
+
+		IppiSize cutsize = { CCImg.nWidth, CCImg.nHeight};
+
+		ippiCopy_8u_C1R(CCImg.buf, CCImg.nPitch, bigCCImg.buf + bigCCImg.nPitch * nstep * i, bigCCImg.nPitch, cutsize);
+
+	}
+
+
+}
+
+void CGlueCheck::SliderSub(kxCImageBuf& SrcImg, kxCImageBuf& TemplateImg, kxCImageBuf& dstCCImg, int nscalefactor)
+{
+
+	/*
+		经过特殊编辑的滑动残差。 
+		（1）首先是 TemplateImg的高度 > SrcImg的高度
+		（2）目标是TemplateImg - SrcImg
+		（3）并且是在TemplateImg上截取一部分 - SrcImg
+		（4）但是TemplateImg的宽度很可能 < SrcImg的宽度
+		
+		综上，必须先对TemplateImg的高度进行保护扩充，宽度进行滑动范围扩充，保证补 0 之后的 TemplateImg 尺寸大于SrcImg
+
 
 		
+	*/
+	//1 .扩充图像
+
+	if (SrcImg.nHeight > TemplateImg.nHeight || SrcImg.nWidth < TemplateImg.nWidth)
+	{
+		std::cout << "原图尺寸不符合要求，无法进行滑动残差" << std::endl;
+
+		return;//先暴力的把不符合要求的直接返回
+	}
+
+	int nexpand = (SrcImg.nWidth - TemplateImg.nWidth) / 2 + 40;// 20是暂定的数字, 单侧扩展大小
+
+	kxCImageBuf bigtemplateimg;
+
+	bigtemplateimg.Init(nexpand * 2 + TemplateImg.nWidth, TemplateImg.nHeight);
+
+	ippsSet_8u(0, bigtemplateimg.buf, bigtemplateimg.nPitch * bigtemplateimg.nHeight);
+
+	IppiSize templatesize = { TemplateImg.nWidth, TemplateImg.nHeight };
+
+	ippiCopy_8u_C1R(TemplateImg.buf, TemplateImg.nPitch, bigtemplateimg.buf + nexpand, bigtemplateimg.nPitch, templatesize);
+
+
+
+	//1. 压缩图像
+	kxCImageBuf resize1, resize2;
+
+	resize1.Init(SrcImg.nWidth / nscalefactor, SrcImg.nHeight / nscalefactor);
+
+	resize2.Init(bigtemplateimg.nWidth / nscalefactor, bigtemplateimg.nHeight / nscalefactor);
+
+	m_hFun.KxResizeImage(SrcImg, resize1);
+
+	m_hFun.KxResizeImage(bigtemplateimg, resize2);
+
+
+	
+	int nxtimes = gMax(0, resize2.nWidth - resize1.nWidth);
+
+	int nytimes = gMax(0, resize2.nHeight - resize1.nHeight);
+
+	unsigned char *buf;
+
+	Ipp64f nmin = 99999999999999999;
+
+	kxCImageBuf subresult, minsubresult;
+
+	subresult.Init(resize1.nWidth, resize1.nHeight);
+
+	IppiSize size = { resize1.nWidth, resize1.nHeight };
+
+	IppiPoint minpos = { 0, 0 };
+
+	bool zerostatus = false;
+
+	for (int i = 0; i <= nxtimes; i++)
+	{
+		if (zerostatus)
+		{
+			break;
+		}
+		for (int j = 0; j <= nytimes; j++)
+		{
+			buf = resize2.buf + i * resize2.nChannel + j * resize2.nPitch;
+
+			ippiSet_8u_C1R(0, subresult.buf, subresult.nPitch, size);
+			
+			ippiSub_8u_C1RSfs(resize1.buf, resize1.nPitch, buf, resize2.nPitch, subresult.buf, subresult.nPitch, size, 0);
+
+			Ipp64f sum;
+
+			ippiSum_8u_C1R(subresult.buf, subresult.nWidth, size, &sum);
+			
+			if (sum < nmin)
+			{
+				nmin = sum;
+
+				minpos.x = i;
+				
+				minpos.y = j;
+
+				minsubresult.SetImageBuf(subresult, true);
+
+				if (abs(nmin - 0) < 1e-6)
+				{
+					zerostatus = true;
+					break;
+				}
+			}
+		}
+	}
+
+
+	dstCCImg.Init(SrcImg.nWidth, SrcImg.nHeight);
+
+	if (zerostatus)// 全零则 对结果直接赋0
+	{
+		ippsSet_8u(0, dstCCImg.buf, dstCCImg.nPitch * dstCCImg.nHeight);
+	}
+	else
+	{
+		minpos.x *= nscalefactor;
+
+		minpos.y *= nscalefactor;
+
+		buf = bigtemplateimg.buf + minpos.x + minpos.y * bigtemplateimg.nPitch;
+
+		IppiSize orisize = { SrcImg.nWidth, SrcImg.nHeight };
+
+		ippiSub_8u_C1RSfs(SrcImg.buf, SrcImg.nPitch, buf, bigtemplateimg.nPitch, dstCCImg.buf, dstCCImg.nPitch, orisize, 0);
 
 	}
 
 
 
+
+
+	
 
 
 }
@@ -1185,24 +1370,24 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 	tbb_start = tick_count::now();
 
 
+	//static int nindex = 0;
 
-	static int nindex = 0;
+	//char savepath[64];
 
-	char savepath[64];
+	//sprintf_s(savepath, "d:\\%d.bmp", nindex++);
 
-	sprintf_s(savepath, "d:\\%d.bmp", nindex++);
-
-	m_hFun.SaveBMPImage_h(savepath, m_ImgCheck);
+	//m_hFun.SaveBMPImage_h(savepath, m_ImgCheck);
 
 
-	kxCImageBuf cutimg;
+	// 检测涂胶的。
+	//kxCImageBuf cutimg;
 
-	cutimg.Init(m_recttarget.Width(), m_recttarget.Height(), m_ImgCheck.nChannel);
+	//cutimg.Init(m_recttarget.Width(), m_recttarget.Height(), m_ImgCheck.nChannel);
 
-	m_hFun.KxCopyImage(m_ImgCheck, cutimg, m_recttarget);
+	//m_hFun.KxCopyImage(m_ImgCheck, cutimg, m_recttarget);
 
-	SliderMatch(cutimg, m_param.m_ImgTemplate);
-
+	//SliderMatch(cutimg, m_param.m_ImgTemplate);
+	
 
 
 	checkyiwu(m_ImgCheck, checkresult);

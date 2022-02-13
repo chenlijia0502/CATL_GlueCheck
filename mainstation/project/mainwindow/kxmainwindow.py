@@ -20,7 +20,9 @@ from library.common.globalfun import DriveFreeSpace, DriveTotalSize
 #from project.mainwindow.MesParamTree import MesParamTreeWidget
 from project.mes.MesParamWidget import CMesParamWidget
 from library.common.globalparam import LogInfo
-from project.mainwindow.UploadDialog import CUploadDialog
+from project.mainwindow.WidgetMaskCheckArea import CWidgetMaskCheckArea
+
+from project.mainwindow.CheckControlThread import CheckControlThread
 
 
 class kxmainwindow(KXBaseMainWidget):
@@ -29,6 +31,7 @@ class kxmainwindow(KXBaseMainWidget):
     _SIG_SHOWLOCK = QtCore.pyqtSignal()
     _SIG_ERRORINFO = QtCore.pyqtSignal(str)
     _SIG_NEXTPACK  = QtCore.pyqtSignal()
+    _SIG_ISMASKSELECT = QtCore.pyqtSignal()
     #_SIG_AUTORUN = QtCore.pyqtSignal()
     def __init__(self, dict_config):
         super(kxmainwindow, self).__init__(dict_config)
@@ -36,8 +39,10 @@ class kxmainwindow(KXBaseMainWidget):
         self.widget_Realtime = KxBaseMonitoringWidget.create(name=dict_config["mointoringwidget_classname"], h_parent=self)
         self.widget_Paramsetting = KxBaseParameterSetting(hparent=self, dict_config=dict_config)#参数设置
         self.widget_runlog = KxBaseRunLog(self)#日志
-        self.widget_permission = kxprivilege_management(list_slevel=["账号管理", "控制工具栏",  "配方选择", "参数修改", "CP/CTS参数修改", "MES"])#权限管理
+        self.widget_permission = kxprivilege_management(list_slevel=["账号管理", "控制工具栏",  "配方选择", "参数修改",
+                                                                     "CP/CTS参数修改", "MES", "屏蔽检测区域"])#权限管理
         self.widget_worklist = WorkListWidget(self)
+
 
         self.mySeria = SerialManager(h_parent=self, port=dict_config['hardwarecom'], baudrate=self._BAUDRATE, nreadbuffersize=self._HARDWARE_QUEUELEN)# 波特率比较固定，没必要配置
         self.h_control = ControlManager(self)
@@ -47,10 +52,15 @@ class kxmainwindow(KXBaseMainWidget):
                                                        dict_config['AGV']['STATION3ID'])
         self.h_checkcontrolthread.start()
 
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(16)
+
         self.pushbutton_cpcts = QtWidgets.QPushButton(self)
         self.widget_cpcts = WidgetCPCTSParam()
         self.pushbutton_cpcts.setMinimumSize(QtCore.QSize(80, 90))
         self.pushbutton_cpcts.setMaximumSize(QtCore.QSize(80, 90))
+        self.pushbutton_cpcts.setFont(font)
         self.pushbutton_cpcts.setText("CP/CTS")
         self.ui.horizontalLayout_2.addWidget(self.pushbutton_cpcts)
 
@@ -58,15 +68,28 @@ class kxmainwindow(KXBaseMainWidget):
         self.widget_mes = CMesParamWidget()
         self.pushbutton_mes.setMinimumSize(QtCore.QSize(80, 90))
         self.pushbutton_mes.setMaximumSize(QtCore.QSize(80, 90))
+        self.pushbutton_mes.setFont(font)
         self.pushbutton_mes.setText("MES")
         self.ui.horizontalLayout_2.addWidget(self.pushbutton_mes)
 
-        self._initstackwidget([self.ui.pbt_realtime, self.ui.pbt_paramset, self.ui.pbt_logview, self.ui.pushButton_worklist, self.pushbutton_cpcts, self.pushbutton_mes],
-                              [self.widget_Realtime, self.widget_Paramsetting, self.widget_runlog, self.widget_worklist, self.widget_cpcts, self.widget_mes])
+        self.pushbutton_mask = QtWidgets.QPushButton(self)
+        list_stautus = self.widget_Paramsetting.str2paramitemfun(0, 1, "getcheckareastatus")
+        self.widget_maskcheckarea = CWidgetMaskCheckArea(self, list_stautus)
+        self.pushbutton_mask.setMinimumSize(QtCore.QSize(80, 90))
+        self.pushbutton_mask.setMaximumSize(QtCore.QSize(80, 90))
+        self.pushbutton_mask.setFont(font)
+        self.pushbutton_mask.setText("屏蔽检\n测区域")
+        self.ui.horizontalLayout_2.addWidget(self.pushbutton_mask)
+
+
+        self._initstackwidget([self.ui.pbt_realtime, self.ui.pbt_paramset, self.ui.pbt_logview, self.ui.pushButton_worklist,
+                               self.pushbutton_cpcts, self.pushbutton_mes, self.pushbutton_mask],
+                              [self.widget_Realtime, self.widget_Paramsetting, self.widget_runlog, self.widget_worklist,
+                               self.widget_cpcts, self.widget_mes, self.widget_maskcheckarea])
         self._completeui()
         self._completeconnect()
         self.ui.label_2.setText("下箱体托盘检测")
-        self._setstatus("000000")
+        self._setstatus("0000000")
         self.h_threadlock = threading.Thread(target=self._judegIsTime2Lock)
         self.h_threadlock.start()
         self.fp = None
@@ -79,6 +102,8 @@ class kxmainwindow(KXBaseMainWidget):
 
         self._SIG_NEXTPACK.connect(self.widget_Realtime.clear)
         self.spackid = str(int(time.time()))
+
+        self._SIG_ISMASKSELECT.connect(self._slot_ensureismaskselected)
 
 
     def __timeout2checkdiskcapacity(self):
@@ -195,7 +220,7 @@ class kxmainwindow(KXBaseMainWidget):
     def _lockpermissiondialog(self):
         """定时切出"""
         self.ui.toolButton_userlevel.setStyleSheet(LOCK_STYLESHEET)
-        self._setstatus("000000")  # 锁住
+        self._setstatus("0000000")  # 锁住
         self.widget_runlog.setid("NONE")
 
 
@@ -212,7 +237,7 @@ class kxmainwindow(KXBaseMainWidget):
             self._setstatus(account[1])
             self.widget_runlog.setid(account[0])
         else:
-            self._setstatus("000000")#锁住
+            self._setstatus("0000000")#锁住
 
 
 
@@ -228,14 +253,13 @@ class kxmainwindow(KXBaseMainWidget):
             self.widget_Paramsetting.unlock()
         else:
             self.widget_Paramsetting.lock()
-        if list_bstatus[4]:
-            self.widget_cpcts.setEnabled(True)
-        else:
-            self.widget_cpcts.setEnabled(False)
-        if list_bstatus[5]:
-            self.widget_mes.setEnabled(True)
-        else:
-            self.widget_mes.setEnabled(False)
+
+        self.widget_cpcts.setEnabled(bool(list_bstatus[4]))
+
+        self.widget_mes.setEnabled(bool(list_bstatus[5]))
+
+        self.widget_maskcheckarea.setEnabled(bool(list_bstatus[6]))
+
 
 
 
@@ -274,6 +298,8 @@ class kxmainwindow(KXBaseMainWidget):
             t.start()
         elif n_msgtype == imc_msg.MSG_DOT_CHECK_RESULT:
             self.reccalibrateimg(s_extdata)
+        elif n_msgtype == imc_msg.MSG_SET_CHECK_MASK:
+            self.widget_maskcheckarea.setcheckarea(s_extdata)
 
 
 
@@ -386,7 +412,7 @@ class kxmainwindow(KXBaseMainWidget):
 
             self.h_checkcontrolthread.setstatus(True)
 
-            self.h_checkcontrolthread.emits()
+            #self.h_checkcontrolthread.emits()
 
 
         else:
@@ -527,6 +553,8 @@ class kxmainwindow(KXBaseMainWidget):
         1. 放行小车
         2. 进行mes数据的上传； bresult 如果为1 ，则检测正常，直接上传数据； 如果为0则弹框确认是正常放行还是
         """
+        if not self.ui.toolbtn_onlinerun.isChecked():
+            return #只有在线检测状态才执行如下
         self.h_checkcontrolthread.emitnext()#检测完成都放小车走
 
         ## TODO 测试直接不传MES
@@ -548,355 +576,34 @@ class kxmainwindow(KXBaseMainWidget):
             self.widget_mes.senddata(self.spackid, 1)
 
 
+    def callback2changecheckstatus(self, list_data):
 
+        self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2changecheckstatus', list_data)
 
-
-
-
-
-class CheckControlThread(threading.Thread):
-    _MAX_AGV_BUFFERLEN = 100  # 赌小车答复不会一次性答复这么长
-    def __init__(self, hparent, ip, port, nid1, nid2, nid3):
-        super(CheckControlThread, self).__init__()
-        self.h_parent = hparent
-        self.b_runstaus = False
-        self.b_isfirstrun = True# 是否为第一次触发，第一次触发需要人为按下开始按钮
-        self.list_info = []
-        self.controlmanger = None
-        self.b_emit = False
-        # self.tcp_agvclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.tcp_agvclient.connect((ip, int(port)))
-        # self.tcp_agvclient.settimeout(2)
-        self.nid1 = int(nid1)
-        self.nid2 = int(nid2)
-        self.nid3 = int(nid3)
-        self.s_packid = str(int(time.time()))
-        self.b_nextstatus = False #进入下一个站点
-        self.__initlog()
-
-
-    def __initlog(self):
-        self.s_time = time.strftime("%Y-%m-%d")
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(level=logging.INFO)
-        self.handler = logging.FileHandler(LogInfo.PATH_SAVE_LOG + 'AGV_%s.log' %  self.s_time)
-        self.handler.setLevel(logging.INFO)
-        self.formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
-        self.handler.setFormatter(self.formatter)
-        self.logger.addHandler(self.handler)
-
-
-
-    def setstatus(self, bstatus):
+    def callback2ensure_all_checkarea_selected(self):
         """
-        设置运行状态，开始检测为True，停止检测为False
-        :param bstatus:
-        :return:
+        控制线程回调，触发信号判断是否有屏蔽框，有屏蔽框则弹框提示，让人进行选择
         """
-        self.b_runstaus = bstatus
-        if bstatus:
-            self.b_isfirstrun = True
-
-            self.b_nextstatus = False
+        self._SIG_ISMASKSELECT.emit()
 
 
-    def setinfo(self, list_info):
+    def _slot_ensureismaskselected(self):
         """
-        设置运动路径
-        :param  list_info:  [list_x, list_y]
-        :return:
+        判断是否存在屏蔽检测区域的情况，有则弹框等待确认。如果不继续检测则停止检测.
+        注意：不管如何都会触发线程的函数，目的是不让线程卡死
         """
-        self.list_info = list_info
+        list_data = self.widget_maskcheckarea.getcheckarea()
 
+        if sum(list_data) > 0:
 
-    def setControlmanger(self, serials:ControlManager):
+            respond = QtWidgets.QMessageBox.warning(self, u"警告", u"存在屏蔽检测区域的情况，是否继续检测？",
+                                         QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+            if respond == QtWidgets.QMessageBox.CanCel:
 
-        self.controlmanger = serials
+                self.ui.toolbtn_onlinerun.setChecked(False)
 
+                self._onlinerun()
 
-    def emits(self):
-        self.b_emit = True
 
-    def emitnext(self):
-        self.b_nextstatus = True
+        self.h_checkcontrolthread.emitselected()
 
-
-    def str_to_hex(self, data):
-        list_hex = []
-        for i in range(0, len(data), 2):
-            list_hex.append(int(data[i:i + 2], 16))
-        return list_hex
-
-
-    def list_hex_to_str(self, list_data):
-        sword = ''
-
-        for data in list_data:
-
-            sword += chr(data)
-
-        return sword
-
-
-    def _get_status_and_packid(self, nagvstationid):
-        """
-        获取站点状态以及pack号
-        :param nagvstationid: 站点号
-        :return: 1为当前站点有车，0为没有
-        """
-        self.logger.log(logging.INFO, "获取 %d 站点状态以及pack号"%nagvstationid)
-
-        MSG_AGV_GETINFO = imc_msg.AGVMSG.MSG_BASE_GET_STATION_STATUS
-
-        MSG_AGV_GETINFO[5] = nagvstationid
-
-        self.tcp_agvclient.send(bytes(MSG_AGV_GETINFO))
-
-        self.logger.log(logging.INFO, "send: " + str(MSG_AGV_GETINFO))
-
-        sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
-
-        self.logger.log(logging.INFO, "recv: " + str(sreaddata))
-
-        list_readdata = self.str_to_hex(sreaddata)
-
-        if len(list_readdata) > 8 and list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_ONSTATION:
-
-            nagvid = list_readdata[7]
-
-            self.logger.log(logging.INFO, "小车 ID: %d"%nagvid)
-
-            MSG_GET_PACKID = imc_msg.AGVMSG.MSG_BASE_GET_PACK_ID
-
-            MSG_GET_PACKID[5] = nagvid
-
-            while self.b_runstaus:
-
-                self.tcp_agvclient.send(bytes(MSG_GET_PACKID))
-
-                self.logger.log(logging.INFO, "send: " + str(MSG_GET_PACKID))
-
-                sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
-
-                self.logger.log(logging.INFO, "recv: " + sreaddata)
-
-                list_readdata = self.str_to_hex(sreaddata)
-
-                if len(list_readdata) > 5 and list_readdata[4] == 0xB1:
-
-                    nidlen = list_readdata[3]
-
-                    list_packid = list_readdata[6:6 + nidlen - 2]
-
-                    self.s_packid = self.list_hex_to_str(list_packid)
-
-                    self.logger.log(logging.INFO, "小车 ID:  " + self.s_packid)
-
-                    return 1
-
-                time.sleep(1)
-
-        else:
-
-            return 0
-
-
-    def waitforagv(self):
-        """
-        等待agv小车的到来
-        :return:
-        """
-        #1. 清楚接收缓存
-        try:
-            try:
-                self.tcp_agvclient.recv(1000)
-            except Exception as e:
-                pass#清除缓存
-
-            #2. 获取中间站点小车状态
-
-            self.logger.log(logging.INFO, "------- waitforagv -----------")
-
-            if self._get_status_and_packid(self.nid2):
-
-                return# 站点2内有车直接返回，并开始
-
-            else:
-                # 3. 获取进站口站点状态
-                while not self._get_status_and_packid(self.nid1) and self.b_runstaus:
-
-                    time.sleep(2)
-
-                if not self.b_runstaus: return
-
-                self.logger.log(logging.INFO, "得到小车信息， 关闭光栅")
-                # 4. 关闭光栅放入小车
-                self.controlmanger.control_guangshan(1)
-
-                MSG_CONTROL_AGV = imc_msg.AGVMSG.MSG_BASE_CONTROL_STATION_STATUS
-
-                MSG_CONTROL_AGV[5] = self.nid1
-
-                self.tcp_agvclient.send(bytes(MSG_CONTROL_AGV))
-
-                self.logger.log(logging.INFO, "send: " + str(MSG_CONTROL_AGV))
-
-                self.logger.log(logging.INFO, "等待小车进入中间工位 %d"%self.nid2)
-                # 5. 检测小车到位中间站点
-                while self.b_runstaus:
-
-                    MSG_AGV_GETINFO = imc_msg.AGVMSG.MSG_BASE_GET_STATION_STATUS
-
-                    MSG_AGV_GETINFO[5] = self.nid2
-
-                    self.tcp_agvclient.send(bytes(MSG_AGV_GETINFO))
-
-                    self.logger.log(logging.INFO, "send: " + str(MSG_AGV_GETINFO))
-
-                    sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
-
-                    self.logger.log(logging.INFO, "rec: " + sreaddata)
-
-                    list_readdata = self.str_to_hex(sreaddata)
-
-                    if len(list_readdata) > 8 and list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_ONSTATION:
-
-                        break
-
-                    time.sleep(1)
-
-                # 6. 打开光栅
-                self.controlmanger.control_guangshan(0)
-        except Exception as e:
-            print('等待AGV错误', e)
-
-
-
-    def sendagv2next(self):
-
-        self.logger.log(logging.INFO, "sendagv2next")
-
-        #2022.1.21 选择直接将车放出
-        while (not self.b_nextstatus) and self.b_runstaus:#等待外部将b_nextstatus置为True
-
-            time.sleep(1)
-
-        self.b_nextstatus = False
-
-        if not self.b_runstaus: return
-
-        self.logger.log(logging.INFO, "检测pack完成，进入等待站点 %d 没有小车状态"%self.nid3)
-
-        while self.b_runstaus:
-
-            MSG_AGV_GETINFO = imc_msg.AGVMSG.MSG_BASE_GET_STATION_STATUS
-
-            MSG_AGV_GETINFO[5] = self.nid3
-
-            self.tcp_agvclient.send(bytes(MSG_AGV_GETINFO))
-
-            self.logger.log(logging.INFO, "send: " + str(MSG_AGV_GETINFO))
-
-            sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
-
-            self.logger.log(logging.INFO, "recv: " + sreaddata)
-
-            list_readdata = self.str_to_hex(sreaddata)
-
-            if len(list_readdata) > 8 and (list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_FREE or
-                                           list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_NONE):
-
-                break
-
-            time.sleep(5)
-
-        #关闭光栅
-        self.controlmanger.control_guangshan(2)
-
-        #送出小车
-        self.logger.log(logging.INFO, "将小车送出 %d 号站点"%self.nid2)
-
-        MSG_CONTROL_AGV = imc_msg.AGVMSG.MSG_BASE_CONTROL_STATION_STATUS
-
-        MSG_CONTROL_AGV[5] = self.nid2
-
-        self.tcp_agvclient.send(bytes(MSG_CONTROL_AGV))
-
-        self.logger.log(logging.INFO, "send: " + str(MSG_CONTROL_AGV))
-
-        #监听送出小车状态
-        self.logger.log(logging.INFO, "监听小车是否到达 %d 号站点"%self.nid3)
-
-        while self.b_runstaus:
-
-            MSG_AGV_GETINFO = imc_msg.AGVMSG.MSG_BASE_GET_STATION_STATUS
-
-            MSG_AGV_GETINFO[5] = self.nid3
-
-            self.tcp_agvclient.send(bytes(MSG_AGV_GETINFO))
-
-            self.logger.log(logging.INFO, "send: " + str(MSG_AGV_GETINFO))
-
-            sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
-
-            self.logger.log(logging.INFO, "recv: " + sreaddata)
-
-            list_readdata = self.str_to_hex(sreaddata)
-
-            if len(list_readdata) > 8 and (list_readdata[8] == imc_msg.AGVMSG.AGVSTATUS_ONSTATION):
-
-                break
-
-            time.sleep(5)
-
-        self.logger.log(logging.INFO, "------------ 小车已到达 %d 号站点"%self.nid3 + ", 结束本次循环 -------------")
-
-        #开启光栅
-        self.controlmanger.control_guangshan(0)
-
-        #开启下个状态
-        #self.b_emit = True
-
-
-
-    def run(self):
-        """
-        执行检测需要的动作
-        :return:
-        """
-        while (1):
-
-            if self.b_runstaus and self.b_emit:
-
-                #开始按钮按下，只对开始检测后第一次有用
-                self.controlmanger.waitforstart(self.b_isfirstrun)
-
-                if not self.b_runstaus: continue
-
-                #初始化所有气缸状态
-                self.controlmanger.MakeEveryposFuwei()
-
-                if not self.b_runstaus: continue
-
-                #监听设备上是否有小车
-                self.waitforagv()
-
-                if not self.b_runstaus: continue
-
-                #发送packdi
-                self.h_parent.callbarck2sendnextpackid(self.s_packid)
-
-                #控制主流程
-                if not self.controlmanger.check_control(self.list_info): continue
-
-                self.b_isfirstrun = False
-
-                if not self.b_runstaus: continue
-
-                #小车出站
-                self.sendagv2next()
-                #time.sleep(30)# TODO 做个测试，测试整个流程
-
-            else:
-
-                time.sleep(0.5)

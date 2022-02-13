@@ -761,7 +761,7 @@ class ControlManager(object):
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_JIAJIN)
 
         nreadstatus = self._recmsgwithruntimeerror(
-            [imc_msg.HARDWAREBASEMSG.MSG_LEFT_JIAJIN_DAOWEI, imc_msg.HARDWAREBASEMSG.MSG_RIGHT_JIAJIN_DAOWEI], 4)
+            [imc_msg.HARDWAREBASEMSG.MSG_LEFT_JIAJIN_DAOWEI, imc_msg.HARDWAREBASEMSG.MSG_RIGHT_JIAJIN_DAOWEI], 6)
 
         if not nreadstatus:
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CONTROL_ALARM)
@@ -773,7 +773,7 @@ class ControlManager(object):
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_SHENG)
 
         nreadstatus = self._recmsgwithruntimeerror(
-            [imc_msg.HARDWAREBASEMSG.MSG_LEFT_DINGSHENG_DAOWEI, imc_msg.HARDWAREBASEMSG.MSG_RIGHT_DINGSHENG_DAOWEI], 4)
+            [imc_msg.HARDWAREBASEMSG.MSG_LEFT_DINGSHENG_DAOWEI, imc_msg.HARDWAREBASEMSG.MSG_RIGHT_DINGSHENG_DAOWEI], 6)
 
         if not nreadstatus:
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CONTROL_ALARM)
@@ -785,7 +785,7 @@ class ControlManager(object):
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_DUIWEI_JIANG)
 
         nreadstatus = self._recmsgwithruntimeerror([imc_msg.HARDWAREBASEMSG.MSG_LEFT_DUIWEI_JIANG_DAOWEI,
-                                                    imc_msg.HARDWAREBASEMSG.MSG_RIGHT_DUIWEI_JIANG_DAOWEI], 4)
+                                                    imc_msg.HARDWAREBASEMSG.MSG_RIGHT_DUIWEI_JIANG_DAOWEI], 6)
 
         if not nreadstatus:
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CONTROL_ALARM)

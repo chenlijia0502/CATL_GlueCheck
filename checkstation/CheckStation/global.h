@@ -53,6 +53,8 @@ enum MessageType
 	/*—确认有用—*/
 	MSG_HANDSHAKE_SEND = 3001, // 子主连接确认
 	MSG_CHECK_RESULT = 1,	     //检测结果
+	MSG_CHECK_RESULT_FINISH = 2, //当前pack检测完成
+
 
 	MSG_START_CHECK = 1001,	//开始检测
 	MSG_STOP_CHECK = 1002,	//停止检测

@@ -94,7 +94,7 @@ bool CSaveQue::SaveImg(kxCImageBuf& Img, unsigned int& nOffset)
 		ippiSwapChannels_8u_C3IR(Img.buf, Img.nPitch, Roi, nDstOder);
 
 	}
-	Img.Write(m_fp);
+	Img.Write(m_fp);// 2022.2.13把库里的东西放进来，这里在图像发生变化的时候，主站同个队列的解析有异常，异常在于图像大小的解析上。
 	fflush(m_fp);
 
 	m_nOffset = m_nOffset+m_nBlockSize;

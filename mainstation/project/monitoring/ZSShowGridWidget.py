@@ -224,6 +224,9 @@ class ZSImgListDetectWidget(QtWidgets.QWidget):
             self.logger.error('', exc_info=True)
 
     def addOneDefectItemwithID(self, defectImage, ndefectid, s_defectword, pos, farea):
+        """
+        显示小图
+        """
         try:
             text1 = s_defectword
             text2 = str(round(farea, 2)) + " mm²"

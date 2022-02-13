@@ -26,6 +26,11 @@ def writeXmlInfo(dict_data, path):
 		return None
 	return True
 
+class MESTYPE:
+    SHOUJIAN = 0
+    JINZHAN = 1
+    CHUZHAN = 2
+
 
 
 class CMesParamTreeWidget(QtWidgets.QWidget):
@@ -43,6 +48,7 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
         super(CMesParamTreeWidget, self).__init__()
         self.file_path = FILE_PATH
         self.dict_param = readXmlInfo(FILE_PATH)
+        self.type = TYPE
         self._initui()
         self._initparam()
         self._initmes()
@@ -54,11 +60,11 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
         self.basesheet_name = sheet_name
         self.basehead = head
         self.curpath = time.strftime('%Y-%m-%d', time.localtime(time.time())) + ".xlsx"
-
         self.excel_log = CExcelManager(self.basedir + "\\" + self.curpath, self.basesheet_name, self.basehead)
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.__timeout2createnewexccel)
         self.timer.start(1000 * 60 * 5)
+
 
     def __timeout2createnewexccel(self):
         """
@@ -151,57 +157,99 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
             ipc_tool.kxlog("MES", logging.ERROR, " MES error " + str(e))
             return None
 
+
     def click2senddata(self):
         self.senddata()
 
-    def senddata(self, sfc=None, data=None):
+
+    def senddata(self, sfc=None, data=1):
         try:
-            if sfc != None:
+            if self.type == MESTYPE.CHUZHAN:
+                if sfc != None:
+                    self.p.param('PARAM', 'sfc').setValue(sfc)
+                # 旧版本
+                # self.machineIntegrationParametricData = []
+                # self.machineIntegrationParametricData.append(
+                #     self.client.factory.create('tns:machineIntegrationParametricData'))
+                # self.machineIntegrationParametricData[0].name = "JSGJJCJG"
+                # self.machineIntegrationParametricData[0].value = data#
+                # self.machineIntegrationParametricData[0].dataType = "NUMBER"
 
-                self.p.param('PARAM', 'sfc').setValue(sfc)
-            if data == None:
-                data = 1
-            # TODO 下面几句话传输结果，将结果按照格式放入self.machineIntegrationParametricData
-            self.machineIntegrationParametricData = []
-            self.machineIntegrationParametricData.append(
-                self.client.factory.create('tns:machineIntegrationParametricData'))
-            self.machineIntegrationParametricData[0].name = "JSGJJCJG"
-            self.machineIntegrationParametricData[0].value = data#
-            self.machineIntegrationParametricData[0].dataType = "NUMBER"
+                # 新版本
+                self.machineIntegrationParametricData = []
+                self.machineIntegrationParametricData.append({'name':'JSGJJCJG', 'value':data, 'dataType': "NUMBER"})
 
-            dict_senddata = {}
-            for key in self.dict_param['PARAM']:
-                value = self.p.param('PARAM', key).value()
-                dict_senddata[key] = value
-            dict_senddata["parametricDataArray"] = self.machineIntegrationParametricData
+                dict_senddata = {}
+                for key in self.dict_param['PARAM']:
+                    value = self.p.param('PARAM', key).value()
+                    dict_senddata[key] = value
+                dict_senddata["parametricDataArray"] = self.machineIntegrationParametricData
 
-            payloads = dict_senddata
+                payloads = dict_senddata
 
-            uploadtime = time.time()
-            strtime1 = time.strftime('%Y-%m-%d %X', time.localtime(uploadtime))
-            strtime1 = strtime1 + "." + str(uploadtime).split('.')[1][0:3]
+                uploadtime = time.time()
+                strtime1 = time.strftime('%Y-%m-%d %X', time.localtime(uploadtime))
+                strtime1 = strtime1 + "." + str(uploadtime).split('.')[1][0:3]
 
-            result = self.client.service.dataCollectForSfcEx(payloads)  # 出站api
+                result = self.client.service.dataCollectForSfcEx(payloads)  # 出站api
 
-            uploaddonetime = time.time()
-            strtime2 = time.strftime('%Y-%m-%d %X', time.localtime(uploaddonetime))
-            strtime2 = strtime2 + "." + str(uploaddonetime).split('.')[1][0:3]
+                uploaddonetime = time.time()
+                strtime2 = time.strftime('%Y-%m-%d %X', time.localtime(uploaddonetime))
+                strtime2 = strtime2 + "." + str(uploaddonetime).split('.')[1][0:3]
+                ndiff = str(int((uploaddonetime - uploadtime) * 1000)) + " ms"
+                list_data = [self.p.param('PARAM', 'sfc').value(), strtime1, strtime2, ndiff, payloads, result[0], result[1], "自动"]
+                self.excel_log.writeExcel([list_data])# 写入log
+                if result[0] == 0:
+                    ipc_tool.kxlog("MES", logging.INFO, "MES出站 上传成功！")
+                else:
+                    errorwindow = QtWidgets.QMessageBox()
+                    respond = errorwindow.warning(self, "警告，数据上传失败", str(result[0]) + " " + result[1], QtWidgets.QMessageBox.Ok)
+                    ipc_tool.kxlog("MES", logging.ERROR, "！！！MES出站 上传失败！！！")
 
-            ndiff = str(int((uploaddonetime - uploadtime) * 1000)) + " ms"
-            list_data = [sfc, strtime1, strtime2, ndiff, payloads, result[0], result[1], "自动"]
-            self.excel_log.writeExcel(list_data)# 写入log
+            elif self.type == MESTYPE.SHOUJIAN:
 
-            if result[0] == 0:
-                ipc_tool.kxlog("MES", logging.INFO, "MES 上传成功！")
-            else:
-                errorwindow = QtWidgets.QMessageBox()
-                respond = errorwindow.warning(self, "警告，数据上传失败", result[1], QtWidgets.QMessageBox.Ok)
-                ipc_tool.kxlog("MES", logging.ERROR, "！！！MES 上传失败！！！")
+                # 版本 1
+                # self.machineIntegrationParametricData = []
+                # self.machineIntegrationParametricData.append(
+                #     self.client.factory.create('tns:machineIntegrationParametricData'))
+                # self.machineIntegrationParametricData[0].name = "JSGJJCJG"
+                # self.machineIntegrationParametricData[0].value = data  #
+                # self.machineIntegrationParametricData[0].dataType = "NUMBER"
+
+                #版本2 待测试
+                self.machineIntegrationParametricData = []
+                self.machineIntegrationParametricData.append({'name':'JSGJJCJG', 'value':data, 'dataType': "NUMBER"})
+
+                dict_senddata = {}
+                for key in self.dict_param['PARAM']:
+                    value = self.p.param('PARAM', key).value()
+                    dict_senddata[key] = value
+                dict_senddata["parametricDataArray"] = self.machineIntegrationParametricData
+
+                uploadtime = time.time()
+                strtime1 = time.strftime('%Y-%m-%d %X', time.localtime(uploadtime))
+                strtime1 = strtime1 + "." + str(uploadtime).split('.')[1][0:3]
+
+                result = self.client.service.dataCollectForResourceFAI(dict_senddata)  # 出站api
+
+                uploaddonetime = time.time()
+                strtime2 = time.strftime('%Y-%m-%d %X', time.localtime(uploaddonetime))
+                strtime2 = strtime2 + "." + str(uploaddonetime).split('.')[1][0:3]
+                ndiff = str(int((uploaddonetime - uploadtime) * 1000)) + " ms"
+                list_data = [strtime1, strtime2, ndiff, dict_senddata, result[0], result[1]]
+                self.excel_log.writeExcel([list_data])# 写入log
+
+                if result[0] == 0:
+                    ipc_tool.kxlog("MES", logging.INFO, "MES首件 上传成功！")
+                else:
+                    errorwindow = QtWidgets.QMessageBox()
+                    respond = errorwindow.warning(self, "警告，数据上传失败", str(result[0]) + " " + result[1], QtWidgets.QMessageBox.Ok)
+                    ipc_tool.kxlog("MES", logging.ERROR, "！！！MES首件 上传失败！！！")
 
         except Exception as e:
             ipc_tool.kxlog("MES", logging.ERROR, " MES SEND ERROR " + str(e))
 
-
+#
 
 if __name__ == "__main__":
     a = QtWidgets.QApplication([])

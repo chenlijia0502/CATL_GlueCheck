@@ -29,7 +29,10 @@ class CMesParamWidget(QtWidgets.QWidget):
                                            sheet_name="Sheet", head= ['条码', '开始时间', '结束时间',
                                                                        '耗时', '传参', 'Code', 'message', '出站模式'])
         self.widget2 = QtWidgets.QWidget()
-        self.widget3 = QtWidgets.QWidget()
+        self.widget3 = CMesParamTreeWidget(self.FILE_SHOUJIAN, TYPE=0,
+                                           exceldir_path="D:\\MESLOG\\首件接口(dataCollectForSfcEx)\\",
+                                           sheet_name="Sheet", head= ['开始时间', '结束时间',
+                                                                       '耗时', '传参', 'Code', 'message'])
 
         self.tabwidget.addTab(self.widget1, "出站")
         self.tabwidget.addTab(self.widget2, "进站")

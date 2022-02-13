@@ -336,7 +336,19 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 			return false;
 		}
 
-		
+		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "屏蔽当前检测区域", szResult);
+
+		if (!nSearchStatus)
+		{
+			sprintf_s(ErrorInfo, 256, "屏蔽当前检测区域");
+			return false;
+		}
+
+		nStatus = KxXmlFun2::FromStringToBool(szResult, m_param.params[nindex].m_nIsnotcheck);
+		if (!nStatus)
+		{
+			return false;
+		}
 
 	}
 
@@ -398,7 +410,7 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 		return false;
 	}
 
-
+	std::cout << "maxheight: " << nmaxheight << std::endl;
 	m_ImgMaxSizeA.Init(nImgW, nmaxheight, 3);
 
 	m_ImgMaxSizeB.Init(nImgW, nmaxheight, 3);
@@ -520,15 +532,17 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 				roi.divC(m_param.m_nimgscalefactor);
 
 				// roi 向内缩，目的是测试涂胶整体缩小效果
-				const int nsuoxiao = 80;
+				const int nsuoxiaohor = 200;
 
-				roi.left += nsuoxiao;
+				const int nsuoxiaover = 100;
 
-				roi.right -= nsuoxiao;
+				roi.left += nsuoxiaohor;
 
-				roi.top += nsuoxiao;
+				roi.right -= nsuoxiaohor;
 
-				roi.bottom -= nsuoxiao;
+				roi.top += nsuoxiaover;
+
+				roi.bottom -= nsuoxiaover;
 
 				//--------------------
 
@@ -1180,7 +1194,7 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 			for (int i = 0; i < m_param.m_nROINUM; i++)
 			{
 				// 判断roi是否是这个扫描组里的，是的话裁剪进行检测   2021.12.14
-				if (m_param.params[i].m_nGrabTimes == j)
+				if ((m_param.params[i].m_nGrabTimes == j) && (m_param.params[i].m_nIsnotcheck != 1))
 				{
 					m_hCheckResult[0].clear();
 
@@ -1270,6 +1284,13 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	if (m_hcombineimg.IsAllFull())
 	{
 		m_hcombineimg.Clear();
+
+		std::string sendstr = "1";
+		if (Net::IsExistNetObj())
+		{
+			Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_CHECK_RESULT_FINISH), int(sendstr.size()), sendstr.c_str());
+		}
+
 
 		if (m_echeckstatus == _ONLINE_RUN)
 		{
