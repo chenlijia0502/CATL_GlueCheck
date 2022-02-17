@@ -95,8 +95,14 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
 
         params1 = self.__getparam(self.dict_param['BASE'])
         params2 = self.__getparam(self.dict_param['PARAM'])
-        params = [{'name': 'BASE', 'type': 'group', 'children': params1},
-                  {'name': 'PARAM', 'type': 'group', 'children': params2}]
+        if 'UPLOAD' in self.dict_param:
+            params3 = self.__getparam(self.dict_param['UPLOAD'])
+            params = [{'name': 'BASE', 'type': 'group', 'children': params1},
+                      {'name': 'PARAM', 'type': 'group', 'children': params2},
+                      {'name': 'UPLOAD', 'type': 'group', 'children': params3}]
+        else:
+            params = [{'name': 'BASE', 'type': 'group', 'children': params1},
+                      {'name': 'PARAM', 'type': 'group', 'children': params2},]
         self.p = KxParameter.create(name='params', type='group', children=params)
         self.h_parameterTree.setParameters(self.p, showTop=False)
 
@@ -151,6 +157,10 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
             for key in self.dict_param['PARAM']:
                 value = self.p.param('PARAM', key).value()
                 self.dict_param['PARAM'][key]['value'] = value
+            if 'UPLOAD' in self.dict_param:
+                for key in self.dict_param['UPLOAD']:
+                    value = self.p.param('UPLOAD', key).value()
+                    self.dict_param['UPLOAD'][key]['value'] = value
             self._initmes()# 这是考虑mes如果发生改变，所以全部重新来一遍
             return writeXmlInfo(self.dict_param, self.file_path)
         except Exception as e:
@@ -177,7 +187,9 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
 
                 # 新版本
                 self.machineIntegrationParametricData = []
-                self.machineIntegrationParametricData.append({'name':'JSGJJCJG', 'value':data, 'dataType': "NUMBER"})
+
+                name = self.p.param('UPLOAD', 'name').value()
+                self.machineIntegrationParametricData.append({'name':name, 'value':data, 'dataType': "NUMBER"})
 
                 dict_senddata = {}
                 for key in self.dict_param['PARAM']:
