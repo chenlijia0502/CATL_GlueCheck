@@ -23,6 +23,8 @@ public:
 	//根据主站发回的偏移值读取图像
 	int ReadImgFromFileByOffset(unsigned int nOffset, kxCImageBuf& DstImg);
 
+	void closefp();
+
 public:
 	FILE*	m_fp;
 	int     m_nChangeable;
@@ -31,7 +33,7 @@ public:
 	int		m_nImgWidth;
 	int		m_nImgHeight;
 	int     m_nImgPitch;
-	unsigned int		m_nOffset;
+	unsigned int	m_nOffset;
 	unsigned int		m_nTotalLen;
 	kxCImageBuf  m_TmpImg[3];
 	kxCImageBuf  m_InvertImg;

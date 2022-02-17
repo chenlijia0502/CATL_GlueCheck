@@ -23,4 +23,8 @@ def str_to_hex(data):
         list_hex.append(int(data[i:i + 2], 16))
     return list_hex
 
-print(str_to_hex('4a545805d10b00000066fa'))
+
+
+print(translatedis2hex(40 / (1 / 800)))
+
+#0x01, 0x04, 0x03,  0x7d , 0, 0, 0

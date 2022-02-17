@@ -18,6 +18,13 @@ CSaveQue::~CSaveQue(void)
 		m_Variablefp.close();
 }
 
+void CSaveQue::closefp()
+{
+	if (m_fp != NULL)
+		fclose(m_fp);
+}
+
+
 bool CSaveQue::OpenFile(const char* lpszFile, int nImgWidth, int nImgHeight, int nImgPitch, int nQueSize)
 {
 	if (nImgWidth == m_nImgWidth && nImgHeight == m_nImgHeight && nImgPitch == m_nImgPitch)
@@ -29,6 +36,8 @@ bool CSaveQue::OpenFile(const char* lpszFile, int nImgWidth, int nImgHeight, int
 		if (m_fp == NULL)
 		{
 			m_fp = _fsopen(lpszFile, "wb", _SH_DENYNO);
+
+			
 		}
 		if (m_fp == NULL)
 		{
@@ -44,6 +53,7 @@ bool CSaveQue::OpenFile(const char* lpszFile, int nImgWidth, int nImgHeight, int
 		m_nTotalLen = __int64(m_nBlockSize)*m_nQueSize;
 		m_nOffset = 0;
 		m_nChangeable = 0;
+		_fseeki64(m_fp, m_nOffset, SEEK_SET);
 	}
 
 
@@ -94,9 +104,17 @@ bool CSaveQue::SaveImg(kxCImageBuf& Img, unsigned int& nOffset)
 		ippiSwapChannels_8u_C3IR(Img.buf, Img.nPitch, Roi, nDstOder);
 
 	}
-	Img.Write(m_fp);// 2022.2.13把库里的东西放进来，这里在图像发生变化的时候，主站同个队列的解析有异常，异常在于图像大小的解析上。
-	fflush(m_fp);
+	bool status = Img.Write(m_fp);// 2022.2.13把库里的东西放进来，这里在图像发生变化的时候，主站同个队列的解析有异常，异常在于图像大小的解析上。
+	int nstatus = fflush(m_fp);
 
+
+	kxCImageBuf readimg;
+
+	ReadImgFromFileByOffset(m_nOffset, readimg);
+
+	//readimg.Read(m_fp);
+
+	//std::cout << "写入流状态: " << status << " " << nstatus << std::endl;
 	m_nOffset = m_nOffset+m_nBlockSize;
 
 	return true;

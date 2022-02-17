@@ -52,7 +52,7 @@ class Adduserdialog(QtWidgets.QDialog):
         """
         self.list_checkbox = [self.ui.checkBox_1, self.ui.checkBox_2,self.ui.checkBox_3,
                               self.ui.checkBox_4,self.ui.checkBox_5,self.ui.checkBox_6,
-                              self.ui.checkBox_7,self.ui.checkBox_8]
+                              self.ui.checkBox_7,self.ui.checkBox_8, self.ui.checkBox_9, self.ui.checkBox_10]
 
         self.nlevelnum = min(len(list_slevel), len(self.list_checkbox))
 
@@ -63,6 +63,7 @@ class Adduserdialog(QtWidgets.QDialog):
         for nindex in range(self.nlevelnum, len(self.list_checkbox)):
 
             self.list_checkbox[nindex].hide()
+
 
     def keyPressEvent(self, a0: QtGui.QKeyEvent):
         pass#目的是避免回车输入直接确认账号，还没选权限

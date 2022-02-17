@@ -18,6 +18,7 @@ class CheckControlThread(threading.Thread):
         self.controlmanger = None
         self.b_emit = False
         self.b_allselected = False
+        self.b_rootmode = False#设置调试模式，调试模式不需要与小车交互
         # self.tcp_agvclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # self.tcp_agvclient.connect((ip, int(port)))
         # self.tcp_agvclient.settimeout(2)
@@ -28,6 +29,12 @@ class CheckControlThread(threading.Thread):
         self.b_nextstatus = False #进入下一个站点
         self.__initlog()
 
+
+    def setrootmode(self, status):
+        """
+        设置调试模式
+        """
+        self.b_rootmode = status
 
     def __initlog(self):
         self.s_time = time.strftime("%Y-%m-%d")
@@ -184,11 +191,17 @@ class CheckControlThread(threading.Thread):
 
             self.logger.log(logging.INFO, "------- waitforagv -----------")
 
+            self.logger.log(logging.INFO, "判断设备内部工位是否有小车")
+
             if self._get_status_and_packid(self.nid2):
+
+                self.logger.log(logging.INFO, "设备内部存在小车，直接开始检测")
 
                 return 1# 站点2内有车直接返回，并开始
 
             else:
+                self.logger.log(logging.INFO, "设备内部并无小车，等待进站工位是否有小车")
+
                 # 3. 获取进站口站点状态
                 while not self._get_status_and_packid(self.nid1) and self.b_runstaus:
 
@@ -247,7 +260,7 @@ class CheckControlThread(threading.Thread):
 
     def sendagv2next(self):
         try:
-            self.logger.log(logging.INFO, "sendagv2next")
+            self.logger.log(logging.INFO, "sendagv2next， 等待结果，准备将小车送出站")
 
             #2022.1.21 选择直接将车放出
             while (not self.b_nextstatus) and self.b_runstaus:#等待外部将b_nextstatus置为True
@@ -258,7 +271,7 @@ class CheckControlThread(threading.Thread):
 
             if not self.b_runstaus: return
 
-            self.logger.log(logging.INFO, "检测pack完成，进入等待站点 %d 没有小车状态"%self.nid3)
+            self.logger.log(logging.INFO, "检测结果已出，等待站点 %d 没有小车状态"%self.nid3)
 
             while self.b_runstaus:
 
@@ -282,6 +295,8 @@ class CheckControlThread(threading.Thread):
                     break
 
                 time.sleep(5)
+
+            self.logger.log(logging.INFO, "出站口没有小车，关闭出站光栅，将小车送出")
 
             #关闭光栅
             self.controlmanger.control_guangshan(2)
@@ -324,6 +339,7 @@ class CheckControlThread(threading.Thread):
 
             self.logger.log(logging.INFO, "------------ 小车已到达 %d 号站点"%self.nid3 + ", 结束本次循环 -------------")
 
+
             #开启光栅
             self.controlmanger.control_guangshan(0)
 
@@ -346,9 +362,9 @@ class CheckControlThread(threading.Thread):
         """
         self.logger.log(logging.INFO, "waitfor_checkmaskallselect， 进入等待检测是否有屏蔽框状态")
 
-        self.h_parent.callback2ensure_all_checkarea_selected()
-
         self.b_allselected = False
+
+        self.h_parent.callback2ensure_all_checkarea_selected()
 
         while (not self.b_allselected) and self.b_runstaus:
 
@@ -362,8 +378,9 @@ class CheckControlThread(threading.Thread):
         """
         while (1):
 
-            #if self.b_runstaus and self.b_emit:
-            if self.b_runstaus:
+            if self.b_runstaus and self.b_emit:
+            #if self.b_runstaus:
+                self.b_emit = False
 
                 #开始按钮按下，只对开始检测后第一次有用
                 self.controlmanger.waitforstart(self.b_isfirstrun)
@@ -381,12 +398,14 @@ class CheckControlThread(threading.Thread):
                 if not self.b_runstaus: continue
 
                 #监听设备上是否有小车
-                self.waitforagv()
+                if not self.b_rootmode:
+
+                    self.waitforagv()
 
                 if not self.b_runstaus: continue
 
                 #发送packdi
-                self.h_parent.callbarck2sendnextpackid(self.s_packid)
+                self.h_parent._SIG_PACKID.emit(self.s_packid)
 
                 #控制主流程
                 if not self.controlmanger.check_control(self.list_info): continue
@@ -394,7 +413,9 @@ class CheckControlThread(threading.Thread):
                 if not self.b_runstaus: continue
 
                 #小车出站
-                self.sendagv2next()
+                if not self.b_rootmode:
+
+                    self.sendagv2next()
 
             else:
 

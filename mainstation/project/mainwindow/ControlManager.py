@@ -539,7 +539,7 @@ class ControlManager(object):
 
             print ('-------------- 移动z距离: ', self.z_camerapos)
 
-            MSG_Z_POS[3:] = translatedis2hex(self.z_camerapos / StaticConfigParam.RATE_Z)
+            MSG_Z_POS[3:] = translatedis2hex(int(self.z_camerapos / StaticConfigParam.RATE_Z))
 
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Z)
 
@@ -579,6 +579,8 @@ class ControlManager(object):
 
     def setcheckstatus(self, bstatus):
         self.b_checkstatus = bstatus
+
+        self.control_doorstatus(bstatus)
 
         if self.b_checkstatus == False:
 
@@ -700,43 +702,6 @@ class ControlManager(object):
                 return nreadz
 
         return None
-
-    # def control_adjust_z(self):
-    #
-    #     self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Z)
-    #
-    #     time.sleep(3)
-    #
-    #     self._clear_hardware_recqueue()
-    #
-    #     self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_GET_Z_POS)
-    #
-    #     self._waitfor_hardware_queue_result()
-    #
-    #     list_recdata = self._waitfor_hardware_queue_result()
-    #
-    #     # 松下 hgc1400 高度传感器换算公式
-    #     nreadz =  (int(list_recdata[3]) * 256 + int(list_recdata[4])) * 0.112 - 198.2
-    #
-    #     print ("du dao shuzhi :", nreadz)
-    #     #
-    #     # diff_pulse = int((nreadz - _BASE_Z) / _RATE)
-    #     #
-    #     # basemovez = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_BASEMOVE
-    #     #
-    #     # high = int(diff_pulse / 256)
-    #     #
-    #     # low = int(diff_pulse % 256)
-    #     #
-    #     # basemovez[3] = high
-    #     #
-    #     # basemovez[4] = low
-    #     #
-    #     # self._sendhardwaremsg(basemovez)
-    #     #
-    #     # self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_MOVE)
-
-
 
 
     def MakeEveryposFuwei(self):
@@ -869,3 +834,15 @@ class ControlManager(object):
 
     def ALARM(self):
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CONTROL_ALARM)
+
+
+    def control_doorstatus(self, bstatus):
+        """
+        控制门控状态
+        bstatus == True 为开始检测状态，夹紧门控
+        bstatus == False 为停止检测状态，松开门控
+        """
+        if bstatus:
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MENKONG_JIAJIN)
+        else:
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MENKONG_SONGKAI)

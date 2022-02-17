@@ -6,6 +6,7 @@ import pyqtgraph as pg
 from library.common.KxImageBuf import KxImageBuf
 from project.monitoring.WidgePos import WidgetEdgePos
 from library.common.readconfig import readconfig
+from project.monitoring.WidgetShowResultSFC import CWidgetShowResultSFC
 import imc_msg
 import json
 import numpy as np
@@ -57,9 +58,14 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
         self.widget_edgepos = WidgetEdgePos()
         self.list_defectwidgt = ZSImgListDetectWidget(self)
+
+        self.widget_showresultsfc = CWidgetShowResultSFC()
+
+
         self.widget_right = QtWidgets.QWidget(self)
         self.verticallayout1 = QtWidgets.QVBoxLayout(self.widget_right)
-        self.verticallayout1.addWidget(self.widget_edgepos, 2)
+        self.verticallayout1.addWidget(self.widget_showresultsfc, 1)
+        self.verticallayout1.addWidget(self.widget_edgepos, 1)
         self.verticallayout1.addWidget(self.list_defectwidgt, 3)
         self.list_defectwidgt.setMaxGridNum(1000)
         self.list_defectwidgt.SigSelectDefect.connect(self._slotCellClick)
@@ -90,15 +96,14 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
             readimagepath = dict_result['imagepath']
             startoffset = dict_result['startoffset']
             offsetlen = dict_result['imageoffsetlen']
-            if fp == self.fp:
-                print("_getimage", startoffset, offsetlen)
+            print("_getimage", startoffset, offsetlen)
         except AttributeError:
             return None
-        #if fp is None: # 因为偶尔出现文件索取错误，怀疑某一次初始搞错了，所以这里改成每次都重新打开，看是否有问题
-        try:
-            fp = open(readimagepath, "rb")
-        except IOError:
-            return None
+        if fp is None:
+            try:
+                fp = open(readimagepath, "rb")
+            except IOError:
+                return None
 
         fp.seek(startoffset)
         data = fp.read(offsetlen)
@@ -254,6 +259,8 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         smallimg = bigimg[y:yend, x:xend, :]
         return smallimg, [x, y ,xend - x + 1, yend - y + 1]
 
+    def setsfc(self, sfc):
+        self.widget_showresultsfc.setsfc(sfc)
 
     def clear(self):
         self.n_curid = 0
@@ -268,6 +275,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         list_shead = self.h_parentwidget.callback2getlisthead()
         self.widget_edgepos.sethead(list_shead)
         self.imgitem_small.clear()
+        self.widget_showresultsfc.clear()
         #self.view.autoRange()
         #self.view_small.autoRange()
 

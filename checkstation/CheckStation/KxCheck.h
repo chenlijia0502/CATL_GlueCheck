@@ -162,15 +162,8 @@ public:
 
 	void SetSaveStatus(SaveImgStatus status, char* savepath=NULL);//HYH 2020.02.15 设置存图状态，也即存取什么图。
 
-	void SetPackID(std::string packid)//收到pack id后会初始化所有参数
-	{
-		m_sPackID = packid;
-
-		m_hcombineimg.Clear();
-
-		m_nCurPackIDimgindex = 0;
-
-	}
+	void SetPackID(std::string packid);//收到pack id后会初始化所有参数
+	
 
 	void SetCheckStatua(int nstatus)
 	{

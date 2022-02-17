@@ -21,8 +21,9 @@ from library.common.globalfun import DriveFreeSpace, DriveTotalSize
 from project.mes.MesParamWidget import CMesParamWidget
 from library.common.globalparam import LogInfo
 from project.mainwindow.WidgetMaskCheckArea import CWidgetMaskCheckArea
-
+from project.mainwindow.UploadDialog import CUploadDialog
 from project.mainwindow.CheckControlThread import CheckControlThread
+from project.mainwindow.InputDialog import CInputDialog
 
 
 class kxmainwindow(KXBaseMainWidget):
@@ -32,6 +33,7 @@ class kxmainwindow(KXBaseMainWidget):
     _SIG_ERRORINFO = QtCore.pyqtSignal(str)
     _SIG_NEXTPACK  = QtCore.pyqtSignal()
     _SIG_ISMASKSELECT = QtCore.pyqtSignal()
+    _SIG_PACKID = QtCore.pyqtSignal(str)
     #_SIG_AUTORUN = QtCore.pyqtSignal()
     def __init__(self, dict_config):
         super(kxmainwindow, self).__init__(dict_config)
@@ -104,6 +106,10 @@ class kxmainwindow(KXBaseMainWidget):
         self.spackid = str(int(time.time()))
 
         self._SIG_ISMASKSELECT.connect(self._slot_ensureismaskselected)
+        self._SIG_PACKID.connect(self.callback2sendnextpackid)
+
+        #调试模式
+        self.mode_root = False# 调试模式
 
 
     def __timeout2checkdiskcapacity(self):
@@ -168,6 +174,7 @@ class kxmainwindow(KXBaseMainWidget):
         self.toolbutton_test.setStyleSheet('color:white;border:none;')
         self.toolbutton_test.setIconSize(QtCore.QSize(100, 90))
         self.toolbutton_test.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
+        self.toolbutton_test.setCheckable(True)
         self.ui.verticalLayout_2.addWidget(self.toolbutton_test)
 
         self.QPixmap_disMES = QtGui.QPixmap('res\\MES.png')
@@ -189,6 +196,7 @@ class kxmainwindow(KXBaseMainWidget):
     def _completeconnect(self):
         self.ui.toolButton_userlevel.clicked.connect(self.showpermissiondialog)
         self.toolbutton_move.clicked.connect(self._shoujian)
+        self.toolbutton_test.clicked.connect(self._ROOT)
         self._SIG_SHOWLOCK.connect(self._lockpermissiondialog)
         self._SIG_ERRORINFO.connect(self._showerrorinfo)
 
@@ -211,7 +219,7 @@ class kxmainwindow(KXBaseMainWidget):
 
     def _offlinerun(self):
         if self.ui.toolbtn_offlinerun.isChecked():  # 只要点击就发送
-            self.callbarck2sendnextpackid(int(time.time()))
+            self.callback2sendnextpackid(str(int(time.time())))
         super(kxmainwindow, self)._offlinerun()
         if self.ui.toolbtn_offlinerun.isChecked():  # 开始离线跑
             self.widget_Realtime.clear()
@@ -396,6 +404,7 @@ class kxmainwindow(KXBaseMainWidget):
 
 
     def _onlinerun(self):
+
         super(kxmainwindow, self)._onlinerun()
 
         if self.ui.toolbtn_onlinerun.isChecked():  # 开始检测
@@ -412,8 +421,7 @@ class kxmainwindow(KXBaseMainWidget):
 
             self.h_checkcontrolthread.setstatus(True)
 
-            #self.h_checkcontrolthread.emits()
-
+            self.h_checkcontrolthread.emits()
 
         else:
 
@@ -508,15 +516,15 @@ class kxmainwindow(KXBaseMainWidget):
 
 
 
-    def callbarck2sendnextpackid(self, packid):
+    def callback2sendnextpackid(self, packid):
         """
         控制线程发送packid过来，并且触发界面清零
         """
         self.spackid = packid
         data = json.dumps({'packid':str(packid)})
         self.sendmsg(0, imc_msg.MSG_PACK_ID, data)
-
         self._SIG_NEXTPACK.emit()
+        self.widget_Realtime.setsfc(self.spackid)
 
 
 
@@ -555,11 +563,10 @@ class kxmainwindow(KXBaseMainWidget):
         """
         if not self.ui.toolbtn_onlinerun.isChecked():
             return #只有在线检测状态才执行如下
+
         self.h_checkcontrolthread.emitnext()#检测完成都放小车走
 
-        ## TODO 测试直接不传MES
-        if not bresult:
-
+        if (not self.mode_root) and (not bresult): # 调试模式以及结果为1都不进入下面循环
             self.dialog_upload = CUploadDialog()
             self.dialog_upload.show()
             self.dialog_upload.exec_()
@@ -574,6 +581,8 @@ class kxmainwindow(KXBaseMainWidget):
 
         else:
             self.widget_mes.senddata(self.spackid, 1)
+
+        self.h_checkcontrolthread.emits()# 判断结果后触发下次逻辑
 
 
     def callback2changecheckstatus(self, list_data):
@@ -598,7 +607,7 @@ class kxmainwindow(KXBaseMainWidget):
 
             respond = QtWidgets.QMessageBox.warning(self, u"警告", u"存在屏蔽检测区域的情况，是否继续检测？",
                                          QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
-            if respond == QtWidgets.QMessageBox.CanCel:
+            if respond == QtWidgets.QMessageBox.Cancel:
 
                 self.ui.toolbtn_onlinerun.setChecked(False)
 
@@ -606,4 +615,35 @@ class kxmainwindow(KXBaseMainWidget):
 
 
         self.h_checkcontrolthread.emitselected()
+
+
+    def _ROOT(self):
+        """
+        程序进入调试模式
+        """
+        if self.toolbutton_test.isChecked():
+
+            self.inputdialog = CInputDialog()
+            self.inputdialog.show()
+            self.inputdialog.exec_()
+
+            if self.inputdialog.gettext() == "zs20210401":
+                self.h_checkcontrolthread.setrootmode(self.mode_root)
+                self.mode_root = True
+                self.toolbutton_test.setIcon(QtGui.QIcon(''))
+                font = QtGui.QFont()
+                font.setPointSizeF(30)
+                font.setBold(True)
+                self.toolbutton_test.setFont(font)
+                self.toolbutton_test.setText("调试\n模式")
+                self.toolbutton_test.setStyleSheet("""color: rgb(255, 0, 0)""")
+            else:
+                self.toolbutton_test.setChecked(False)
+                self.toolbutton_test.setText("")
+                self.toolbutton_test.setIcon(QtGui.QIcon('res/设备自启测试.png'))
+
+        else:
+            self.toolbutton_test.setChecked(False)
+            self.toolbutton_test.setText("")
+            self.toolbutton_test.setIcon(QtGui.QIcon('res/设备自启测试.png'))
 

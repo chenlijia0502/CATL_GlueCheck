@@ -558,11 +558,9 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 
 	//// 2022.2.7 这里做一下扩充，原因是建模的时候有意拉小了
 	//const int nextend = 500;
-
 	//for (int i = 0; i < m_param.m_nROINUM; i++)
 	//{
 	//	m_param.params[i].m_rcCheckROI.top -= nextend;
-
 	//	m_param.params[i].m_rcCheckROI.bottom += nextend;
 	//}
 
@@ -573,7 +571,63 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 
 	delete[] rect;
 
+
+	//g_SaveImgQue.closefp();//每次重新载入都关闭fp
+
 	return true;
+
+}
+
+void CKxCheck::SetPackID(std::string packid)//收到pack id后会初始化所有参数
+{
+	// 1. 判断是否存在此文件夹，存在则增加命名
+
+	char basepath[256];
+
+	memset(basepath, 0, sizeof(basepath));
+
+	time_t now = time(0);
+
+	tm *ltm = localtime(&now);
+
+	sprintf_s(basepath, "F:\\%d-%d-%d\\%s", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, packid.c_str());
+
+	if (_access(basepath, 0))//文件夹不存在则为首发
+	{
+		m_sPackID = packid;
+	}
+	else
+	{
+		int nindex = 1;
+
+		while (1)
+		{
+			sprintf_s(basepath, "F:\\%d-%d-%d\\%s-%d", 1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday, packid.c_str(), nindex);
+
+			if (_access(basepath, 0))//文件夹不存在则为可以储存的位置
+			{
+				char pathname[64];
+
+				memset(pathname, 0, sizeof(pathname));
+
+				sprintf_s(pathname, "%s-%d", packid.c_str(), nindex);
+
+				m_sPackID = pathname;
+
+				break;
+			}
+
+			nindex++;
+		}
+
+
+	}
+
+	// 2. 对一些信息进行初始化处理
+
+	m_hcombineimg.Clear();
+
+	m_nCurPackIDimgindex = 0;
 
 }
 

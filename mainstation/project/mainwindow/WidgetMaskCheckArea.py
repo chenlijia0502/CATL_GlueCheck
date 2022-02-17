@@ -60,6 +60,7 @@ class CWidgetMaskCheckArea(QtWidgets.QWidget):
         self.push_button.setText("保存")
         self.verlayout.addWidget(self.push_button)
 
+
     def getcheckarea(self):
         list_data = []
 
