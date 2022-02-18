@@ -96,7 +96,6 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
             readimagepath = dict_result['imagepath']
             startoffset = dict_result['startoffset']
             offsetlen = dict_result['imageoffsetlen']
-            print("_getimage", startoffset, offsetlen)
         except AttributeError:
             return None
         if fp is None:
@@ -363,6 +362,8 @@ class DefectClass(object):
 
 
     def getbigimg(self):
+        if self.bigimg is None:
+            return np.zeros((100, 100, 3), np.uint8)
         rotateimg = cv2.rotate(self.bigimg, cv2.ROTATE_90_COUNTERCLOCKWISE)
         ncurrow = self.ncol
         ncurcol = self.nrow

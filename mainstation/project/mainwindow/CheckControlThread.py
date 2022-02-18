@@ -5,6 +5,7 @@ import  logging
 from project.mainwindow.ControlManager import ControlManager
 from library.common.globalparam import LogInfo
 import imc_msg
+from library.ipc import ipc_tool
 
 
 class CheckControlThread(threading.Thread):
@@ -19,9 +20,12 @@ class CheckControlThread(threading.Thread):
         self.b_emit = False
         self.b_allselected = False
         self.b_rootmode = False#设置调试模式，调试模式不需要与小车交互
-        # self.tcp_agvclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.tcp_agvclient.connect((ip, int(port)))
-        # self.tcp_agvclient.settimeout(2)
+        try:
+            self.tcp_agvclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.tcp_agvclient.connect((ip, int(port)))
+            self.tcp_agvclient.settimeout(2)
+        except Exception as e:
+            ipc_tool.kxlog("CheckControlThread", logging.ERROR, "AGV 启动失败")
         self.nid1 = int(nid1)
         self.nid2 = int(nid2)
         self.nid3 = int(nid3)
@@ -382,40 +386,44 @@ class CheckControlThread(threading.Thread):
             #if self.b_runstaus:
                 self.b_emit = False
 
-                #开始按钮按下，只对开始检测后第一次有用
+                ipc_tool.kxlog("checkcontrolthread", logging.INFO, "第一步，等待按下开始按钮，只对开始检测后第一次有用")
                 self.controlmanger.waitforstart(self.b_isfirstrun)
 
                 self.b_isfirstrun = False
 
                 if not self.b_runstaus: continue
 
-                # 确认主界面检测区域是否全部开启，如未全部开启的话需要弹窗并等待确认
+                ipc_tool.kxlog("checkcontrolthread", logging.INFO, "第二步，确认主界面检测区域是否全部开启，如未全部开启的话需要弹窗并等待确认")
                 self.waitfor_checkmaskallselect()
 
-                #初始化所有气缸状态
+                ipc_tool.kxlog("checkcontrolthread", logging.INFO, "第三步，初始化所有气缸状态")
                 self.controlmanger.MakeEveryposFuwei()
 
                 if not self.b_runstaus: continue
 
-                #监听设备上是否有小车
+                ipc_tool.kxlog("checkcontrolthread", logging.INFO, "第四步，监听设备小车，先监听工位内，再监听进站口")
                 if not self.b_rootmode:
 
                     self.waitforagv()
 
                 if not self.b_runstaus: continue
 
-                #发送packdi
+                ipc_tool.kxlog("checkcontrolthread", logging.INFO, "第五步，成功获取packid，并发送到主界面 %s"%self.s_packid)
                 self.h_parent._SIG_PACKID.emit(self.s_packid)
 
                 #控制主流程
+                ipc_tool.kxlog("checkcontrolthread", logging.INFO, "第六步，进入下位机控制流程")
                 if not self.controlmanger.check_control(self.list_info): continue
 
                 if not self.b_runstaus: continue
 
                 #小车出站
+                ipc_tool.kxlog("checkcontrolthread", logging.INFO, "第六步，结束下位机控制，小车准备出站")
                 if not self.b_rootmode:
 
                     self.sendagv2next()
+
+                ipc_tool.kxlog("checkcontrolthread", logging.INFO, "第七步，小车已出，逻辑结束！")
 
             else:
 

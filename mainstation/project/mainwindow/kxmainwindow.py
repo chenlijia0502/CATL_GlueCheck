@@ -242,7 +242,7 @@ class kxmainwindow(KXBaseMainWidget):
         account = self.widget_permission.getpermissionlevel()
         if account is not None:
             self.ui.toolButton_userlevel.setStyleSheet(UNLOCK_STYLESHEET)
-            self._setstatus(account[1])
+            self._setstatus(account[2])
             self.widget_runlog.setid(account[0])
         else:
             self._setstatus("0000000")#锁住
@@ -628,8 +628,8 @@ class kxmainwindow(KXBaseMainWidget):
             self.inputdialog.exec_()
 
             if self.inputdialog.gettext() == "zs20210401":
-                self.h_checkcontrolthread.setrootmode(self.mode_root)
                 self.mode_root = True
+                self.h_checkcontrolthread.setrootmode(self.mode_root)
                 self.toolbutton_test.setIcon(QtGui.QIcon(''))
                 font = QtGui.QFont()
                 font.setPointSizeF(30)
@@ -638,11 +638,15 @@ class kxmainwindow(KXBaseMainWidget):
                 self.toolbutton_test.setText("调试\n模式")
                 self.toolbutton_test.setStyleSheet("""color: rgb(255, 0, 0)""")
             else:
+                self.mode_root = False
+                self.h_checkcontrolthread.setrootmode(self.mode_root)
                 self.toolbutton_test.setChecked(False)
                 self.toolbutton_test.setText("")
                 self.toolbutton_test.setIcon(QtGui.QIcon('res/设备自启测试.png'))
 
         else:
+            self.mode_root = False
+            self.h_checkcontrolthread.setrootmode(self.mode_root)
             self.toolbutton_test.setChecked(False)
             self.toolbutton_test.setText("")
             self.toolbutton_test.setIcon(QtGui.QIcon('res/设备自启测试.png'))

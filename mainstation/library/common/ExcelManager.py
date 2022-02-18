@@ -18,6 +18,7 @@ class CExcelManager(object):
         # 打开文件
         self.__createfile(file_name, sheet_name, head)
         self.wb = openpyxl.load_workbook(file_name)
+
         self.file_name = file_name
         # 选择表单
         self.sh = self.wb[sheet_name]
@@ -51,39 +52,23 @@ class CExcelManager(object):
 
     def read_data_line(self):
         #按行读取数据转化为列表
-        print(self.sh.max_row, self.sh.max_column)
         rows_data = list(self.sh.rows)
         if rows_data == []:
-            return
-        print (rows_data)
-        # print(rows_data)
-        # 获取表单的表头信息
-        titles = []
-        for title in rows_data[0]:
-            titles.append(title.value)
-        # print(titles)
-        #定义一个空列表用来存储测试用例
-        cases = []
-        for case in rows_data[1:]:
-            # print(case)
-            data = []
-            for cell in case: #获取一条测试用例数据
-                # print(cell.value)
-                data.append(cell.value)
-                # print(data)
-                #判断该单元格是否为字符串，如果是字符串类型则需要使用eval();如果不是字符串类型则不需要使用eval()
-                if isinstance(cell.value,str):
-                    data.append(eval(cell.value))
-                else:
-                    data.append(cell.value)
-                #将该条数据存放至cases中
-            # print(dict(list(zip(titles,data))))
-                case_data = dict(list(zip(titles,data)))
-                cases.append(case_data)
-        return cases
+            return []
+        list_list_data = []
+        for currows_data in rows_data:
+            list_data = []
+            for data in currows_data:
+                list_data.append(data.value)
+            list_list_data.append(list_data)
+        return list_list_data
+
 
 
     def writeExcel(self, list_list_data):
+        """
+        写入excel，叠加写入
+        """
         self.b_iswriting = True
         ncurlinenum = self.sh.max_row
         for row in range(0,len(list_list_data)):
@@ -94,10 +79,56 @@ class CExcelManager(object):
         self.b_iswriting = False
 
 
+    def writeExcelinOverwrite(self, list_list_data, sheetname):
+        """覆盖式写入, 且sheetname不存在会创建"""
+        if sheetname not in self.wb:
+            sh = self.wb.create_sheet(sheetname)
+        else:
+            self.clearsheet(sheetname)
+            sh = self.wb[sheetname]
+        self.b_iswriting = True
+        for row in range(0,len(list_list_data)):
+            list_data = list_list_data[row]
+            for col in range(0,len(list_data)):
+                sh.cell(row + 1, col + 1).value = str(list_data[col])  # 写文件
+        self.wb.save(self.file_name)
+        self.b_iswriting = False
+
+
+    def read_data_line_for_sheet(self, sheet_name):
+        #根据表格， 按行读取数据转化为列表
+        if sheet_name in self.wb:
+            sh = self.wb[sheet_name]
+            rows_data = list(sh.rows)
+            if rows_data == []:
+                return []
+            list_list_data = []
+            for currows_data in rows_data:
+                list_data = []
+                for data in currows_data:
+                    list_data.append(data.value)
+                list_list_data.append(list_data)
+            return list_list_data
+        else:
+            return []
+
+    def clearsheet(self, sheetname):
+        if sheetname in self.wb:
+            rows_data = list(self.wb[sheetname].rows)
+            if rows_data == []:
+                return
+            for row, currowsdata in enumerate(rows_data):
+                self.wb[sheetname].delete_rows(1)
+            # for row, currows_data in enumerate(rows_data):
+            #     for col, data in enumerate(currows_data):
+            #         self.wb[sheetname].cell(row + 1, col + 1).value = ''
+
+
 if __name__ == '__main__':
     r = CExcelManager("D:\\MESLOG\\出站校验接口(dataCollectForSfcEx)\\2022-02-06.xlsx",'Sheet', ['条码', '开始时间', '结束时间',
                                                                                            '耗时', '传参', 'Code', 'message', '出站模式'])
-    list_list_data = [[1, 2, 3, 4], ['测试', '答复', 'ID', 6]]
-    r.writeExcel(list_list_data)
-    r.writeExcel(list_list_data)
+    # list_list_data = [[1, 2, 3, 4], ['测试', '答复', 'ID', 6]]
+    # r.writeExcel(list_list_data)
+    # r.writeExcel(list_list_data)
+    print(r.read_data_line())
 

@@ -9,7 +9,7 @@ from UI.ui_changepassworddialog import Ui_PasswordDialog
 from globalparam import ChineseWord
 from globalparam import PermissionLevel
 import struct
-from library.common.usermanager.adduserdialog import Adduserdialog
+from library.common.usermanager.AddUserDialogNew import CAddUserDialogNew
 import time
 
 """
@@ -37,7 +37,7 @@ class kxprivilege_management(QtWidgets.QDialog):
         self.ui.lineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.ui.lineEdit_2.setEchoMode(QtWidgets.QLineEdit.Password)
         self.list_slevel = list_slevel
-        self.adduserdialog = Adduserdialog(list_slevel)
+        self.adduserdialog = CAddUserDialogNew(list_slevel)
         self.inputdialog = InputDialog()
         self.__ininconnection()
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)#全屏
@@ -91,7 +91,7 @@ class kxprivilege_management(QtWidgets.QDialog):
             list_list_account = self.adduserdialog.getUserlist()
             b_status = False
             for account in list_list_account:
-                if account[0] == word:
+                if account[1] == word:
                     b_status = True
                     self.cur_account = account
                     break
@@ -124,7 +124,7 @@ class kxprivilege_management(QtWidgets.QDialog):
 
         for account in list_list_account:
 
-            if id == account[0] and account[1][0] == "1":
+            if id == account[1] and account[2][0] == "1":
 
                 bstatus = True
 
@@ -144,10 +144,10 @@ class kxprivilege_management(QtWidgets.QDialog):
 
 
     def getpermissionlevel(self):
-        #补0， 目的是随着项目更新，权限会增加，可能出现新版本无法兼容旧的情况
-        if self.cur_account != None and len(self.cur_account[1]) < len(self.list_slevel):
-            for i in range(len(self.list_slevel) - len(self.cur_account[1])):
-                self.cur_account[1] += '0'
+        ###补0， 目的是随着项目更新，权限会增加，可能出现新版本无法兼容旧的情况
+        # if self.cur_account != None and len(self.cur_account[1]) < len(self.list_slevel):
+        #     for i in range(len(self.list_slevel) - len(self.cur_account[1])):
+        #         self.cur_account[1] += '0'
         return self.cur_account
 
     def clear(self):

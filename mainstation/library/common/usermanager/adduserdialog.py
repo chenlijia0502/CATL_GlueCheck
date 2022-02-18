@@ -43,8 +43,6 @@ class Adduserdialog(QtWidgets.QDialog):
 
 
 
-
-
     def _initPermissionChoice(self, list_slevel:[]):
         """
         初始化权限选择
@@ -68,6 +66,7 @@ class Adduserdialog(QtWidgets.QDialog):
     def keyPressEvent(self, a0: QtGui.QKeyEvent):
         pass#目的是避免回车输入直接确认账号，还没选权限
 
+
     #获得用户列表
     def getUserlist(self):
        userlist = []
@@ -89,8 +88,6 @@ class Adduserdialog(QtWidgets.QDialog):
            self.userlist = [['zs20210401', s_all, '2021-04-01 08:30:00']]
            self.saveUserlist()
            return self.userlist
-
-
        return userlist
 
 
@@ -138,9 +135,10 @@ class Adduserdialog(QtWidgets.QDialog):
                 s_all += "0"
         return s_all
 
+
     def adduser(self):
         idex = [self.ui.userlineEdit.text(), self._getcurlevel(), self.now()]
-        print ('add before: ', self.userlist)
+        #print ('add before: ', self.userlist)
         for i in range(len(self.userlist)):
             if self.userlist[i][0] == idex[0]:
                 root = tkinter.Tk()
@@ -188,6 +186,7 @@ class Adduserdialog(QtWidgets.QDialog):
         # 必须加这句
         self.subwidght.setWindowModality(Qt.ApplicationModal)
         self.subwidght.exec_()
+
 
 
 if __name__ == "__main__":

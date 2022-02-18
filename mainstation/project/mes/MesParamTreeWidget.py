@@ -11,7 +11,7 @@ from kxpyqtgraph.kxparameterTree.KxParameter import KxParameter
 from pyqtgraph.parametertree import ParameterTree
 from kxpyqtgraph.kxparameterTree.KxCustomWidget import *
 from library.ipc import  ipc_tool
-from project.other.ExcelManager import CExcelManager
+from library.common.ExcelManager import CExcelManager
 
 
 def writeXmlInfo(dict_data, path):
@@ -135,6 +135,7 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
                                'values': valuedata, 'value':value}
             params.append(dict_single)
         return params
+
 
     def _initmes(self):
         try:
