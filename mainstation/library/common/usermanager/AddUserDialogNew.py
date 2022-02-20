@@ -23,11 +23,13 @@ class CAddUserDialogNew(QtWidgets.QDialog):
         super(CAddUserDialogNew, self).__init__()
         self.ui = Ui_addusernew()
         self.ui.setupUi(self)
-        self.list_level = list_levelname
+        self.list_level = list_modulename
         self.__initui(list_levelname)
         self.excel_ssh = CExcelManager(self.STR_PASSWORDSAVE_PATH, 'Sheet', self._CSV_SAVE_HEAD)
         self.h_levelmanager = CmanageLevelTool(list_modulename, list_levelname)
         self._initinfo()
+        #self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)#全屏
+
         ###### 绑定按钮事件
         self.ui.pushButton_confirm.clicked.connect(self.adduser)
         self.ui.pushButton_cancel.clicked.connect(self.close)
@@ -40,6 +42,7 @@ class CAddUserDialogNew(QtWidgets.QDialog):
         self.ui.comboBox.setStyleSheet("font: 13pt \"Arial\";")
         for name in list_levelname:
             self.ui.comboBox.addItem(name)
+
 
     def _initinfo(self):
         list_list_status = self.excel_ssh.read_data_line_for_sheet(self.MODULE_SHEET_NAME)

@@ -90,6 +90,7 @@ class kxprivilege_management(QtWidgets.QDialog):
         if len(word) > 0:
             list_list_account = self.adduserdialog.getUserlist()
             b_status = False
+
             for account in list_list_account:
                 if account[1] == word:
                     b_status = True
