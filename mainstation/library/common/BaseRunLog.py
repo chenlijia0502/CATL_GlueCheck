@@ -58,10 +58,11 @@ class KxBaseRunLog(QtWidgets.QWidget):
         self.thread_refresh = _RefreshInterface_kxlog(self)
         self.thread_refresh.start()
 
-        self.ui.h_tableWidget.horizontalHeader().setStretchLastSection(True)  #不留空后
+        #self.ui.h_tableWidget.horizontalHeader().setStretchLastSection(True)  #不留空后
         self.ui.h_tableWidget.setAlternatingRowColors(True)  #颜色交替
         self.ui.h_tableWidget.setSortingEnabled(False)
-        self.ui.h_tableWidget.resizeColumnsToContents()
+
+
         self.dict_errlevel = {logging.INFO:self.tr(u'Normal message'), logging.WARN:self.tr(u'Warn'),
                               logging.ERROR:self.tr(u'Severe exception')}
         self.n_currentrow = 0
@@ -103,20 +104,15 @@ class KxBaseRunLog(QtWidgets.QWidget):
         time = tuple_data[1]
         exceptionInf = tuple_data[2]
         tuple_showdata = [(self.dict_errlevel[n_errlevel], s_stationname, time, exceptionInf)]
-        #self.list_showdata.append(tuple_showdata)
-        data = np.array(tuple_showdata, dtype=[(str(self.tr(u'Message level')), object), (str(self.tr(u'Exception object')), object), (str(self.tr(u'time')), object), (str(self.tr(u'information')), object)])        
-#         self.ui.h_tableWidget.setData(data)        
+        data = np.array(tuple_showdata, dtype=[(str(self.tr(u'Message level')), object), (str(self.tr(u'Exception object')), object), (str(self.tr(u'time')), object), (str(self.tr(u'information')), object)])
         self.setrowdata(self.n_currentrow%self.MAX_ROW_NUM, data)
         if n_errlevel in [imc_msg.LOGLEVEL.WARN, imc_msg.LOGLEVEL.ERR]:
             item = self.ui.h_tableWidget.item(self.n_currentrow%self.MAX_ROW_NUM, 0)#QtGui.QTableWidgetItem()
             item.setBackground(self.dict_colour[n_errlevel])
-        self.ui.h_tableWidget.resizeColumnsToContents()
         self.ui.h_tableWidget.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.ui.h_tableWidget.selectRow(self.n_currentrow%self.MAX_ROW_NUM)
         self.ui.h_tableWidget.horizontalHeader().setStretchLastSection(True)  #不留空后
         self.n_currentrow += 1
-        # self.savebadlog(n_errlevel, tuple_showdata[0])
-        # self.savelog(tuple_showdata[0])
 
 
     def setrowdata(self, row, data):
@@ -137,18 +133,19 @@ class KxBaseRunLog(QtWidgets.QWidget):
         
         firstVals = [x for x in fn1(first)]
         self.ui.h_tableWidget.setColumnCount(len(firstVals))
-        
-        if not self.ui.h_tableWidget.verticalHeadersSet and header0 is not None:
-            labels = [self.ui.h_tableWidget.verticalHeaderItem(i).text() for i in range(self.ui.h_tableWidget.rowCount())]
-            self.ui.h_tableWidget.setRowCount(startRow + len(header0))
-            self.ui.h_tableWidget.setVerticalHeaderLabels(labels + header0)
-            self.ui.h_tableWidget.verticalHeadersSet = True
+
+        # 设置表头，只进入一次。放在这个位置是因为表头只有设置好行列数量之后才生效
         if not self.ui.h_tableWidget.horizontalHeadersSet and header1 is not None:
             self.ui.h_tableWidget.setHorizontalHeaderLabels(header1)
             self.ui.h_tableWidget.horizontalHeadersSet = True
-        
+            self.ui.h_tableWidget.setColumnWidth(0, 200)
+            self.ui.h_tableWidget.setColumnWidth(1, 200)
+            self.ui.h_tableWidget.setColumnWidth(2, 300)
+
+
         i = startRow
         self.ui.h_tableWidget.setRow(i, firstVals)
+
         for row in it0:
             i += 1
             self.ui.h_tableWidget.setRow(i, [x for x in fn1(row)])
@@ -160,7 +157,8 @@ class KxBaseRunLog(QtWidgets.QWidget):
         """
         信号槽，当线程中公共队列收到数据则传到这里，避免重复保存，但状态栏需要保证实时状态
         """
-        scurtime = time.strftime('%X', time.localtime(time.time()))
+        scurtime = time.strftime('%Y-%m-%d %X', time.localtime(time.time()))
+        #scurtime = time.strftime('%X', time.localtime(time.time()))
         self.addonelinelog(nstationname, (level, scurtime, sdata))
         if self.s_lastbadlog != nstationname + " " + sdata:#对于重复出现的日志不保存
             self.s_lastbadlog = nstationname + " " + sdata

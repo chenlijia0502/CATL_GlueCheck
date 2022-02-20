@@ -230,9 +230,9 @@ int CkxEnvironment::ReadSystemParam()
 	Net::SetAsioTcpClient(Config::g_GetParameter().m_nNetStationId, szNetIp, nNetPort);
 
 	//Â·¾¶²ÎÊý
-	kxGetPrivateProfileString("Path", "NetWorkSaveImagePath", "Z:\\ColorSaveQue.dat", Config::g_GetParameter().m_szNetSaveImagePath, sizeof(Config::g_GetParameter().m_szNetSaveImagePath), iniPath);
-	kxGetPrivateProfileString("Path", "NetWorkExposureSaveImagePath", "Z:\\ColorExposureSaveQue.dat", Config::g_GetParameter().m_szNetExposureSaveImagePath, sizeof(Config::g_GetParameter().m_szNetExposureSaveImagePath), iniPath);
-	kxGetPrivateProfileString("Path", "NetBuildModelSaveImagePath", "Z:\\NetBuildModelSaveImagePath.dat", Config::g_GetParameter().m_szNetBuildModelSaveImagePath, sizeof(Config::g_GetParameter().m_szNetBuildModelSaveImagePath), iniPath);
+	kxGetPrivateProfileString("Path", "NetWorkSaveImagePath", "D:\\ColorSaveQue.dat", Config::g_GetParameter().m_szNetSaveImagePath, sizeof(Config::g_GetParameter().m_szNetSaveImagePath), iniPath);
+	kxGetPrivateProfileString("Path", "NetWorkExposureSaveImagePath", "D:\\ColorExposureSaveQue.dat", Config::g_GetParameter().m_szNetExposureSaveImagePath, sizeof(Config::g_GetParameter().m_szNetExposureSaveImagePath), iniPath);
+	kxGetPrivateProfileString("Path", "NetBuildModelSaveImagePath", "D:\\NetBuildModelSaveImagePath.dat", Config::g_GetParameter().m_szNetBuildModelSaveImagePath, sizeof(Config::g_GetParameter().m_szNetBuildModelSaveImagePath), iniPath);
 	kxGetPrivateProfileString("Path", "NetDotCheckImgpath", "D:\\NetDotCheckImgpath.dat", Config::g_GetParameter().m_szNetDotCheckImgpath, sizeof(Config::g_GetParameter().m_szNetDotCheckImgpath), iniPath);
 
 

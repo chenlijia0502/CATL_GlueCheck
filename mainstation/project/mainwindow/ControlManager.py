@@ -3,6 +3,7 @@ import time
 import imc_msg
 from project.other.globalparam import StaticConfigParam
 from project.mainwindow.SerialManager import SerialManager
+from library.ipc import ipc_tool
 import logging
 import numpy as np
 from library.common.readconfig import readconfig, MAINSTATION_CONFIG
@@ -130,22 +131,6 @@ class ControlManager(object):
         return data
 
 
-    def _rebackXY(self):
-        """控制坐标"""
-
-        if not self.b_xyrestartstatus:
-
-            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_X)
-
-            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
-
-            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
-
-            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
-
-            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
-
-            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
 
 
     def _rebackZ_Base(self):
@@ -173,18 +158,36 @@ class ControlManager(object):
             self.b_zmovestatus = True
 
 
-    def _rebackZERO(self):
+    def _rebackXY(self):
         """
-        返回模组的原点，模组会回到传感器并自我标定。这是因为设备有可能运动过程中丢失原点
-        :return:
+            复位到模组的原点，模组会回到传感器并自我标定。这是因为设备有可能运动过程中丢失原点
+            :return:
         """
-        if not self.b_zerostatus or self.b_xyrestartstatus:# 两种情况进入，第一种是设备未返回过原点。第二种是设备刚启动必须回原点
+        if not self.b_zerostatus or self.b_xyrestartstatus:  # 两种情况进入，第一种是设备未返回过原点。第二种是设备刚启动必须回原点
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ZERO)
             self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ZERO)
             self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
             self.b_zerostatus = True
             self.b_xyrestartstatus = False
+
+
+    def _rebackZERO(self):
+        """控制电机返回0点， 注意0点是漂的，所以程序刚启动不能控制返回0点，而应该控制返回原点"""
+        if not self.b_xyrestartstatus:
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_X)
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
 
 
     def _sendhardwaremsg(self, info):
@@ -400,20 +403,27 @@ class ControlManager(object):
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MENKONG_SONGKAI)
 
 
+
+
+
     def control_calibrate(self, *list_data):
         """
         :param list_data: [x, y1, y2] [起拍X位置， 起拍Y位置， 拍摄结束位置Y]
         :return:
         """
+        self.logger.log(logging.INFO, "--------------- 开始做首件检测 ---------------")
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "开始做首件")
 
         self._clear_hardware_recqueue()
 
         self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_REC_START)
 
         # 1. 复位
-        self._rebackXY()
 
         self._rebackZERO()
+
+        self._rebackXY()
 
         self._rebackZ_Base()
 
@@ -464,116 +474,22 @@ class ControlManager(object):
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
 
 
-    def buildmodel_second(self, *list_info):
-        """
-        二次建模控制
-        :param list_info: [[list_x, list_y]]
-        :return:
-        """
-
-        self.logger.log(logging.INFO, "开始二次取图建模")
-
-        self._clear_hardware_recqueue()
-
-        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_REC_START)
-
-        if not self.MakeEveryposInstatus(): return
-
-        self.h_parent.closeCamera()
-
-        self._rebackXY()
-
-        self._rebackZERO()
-
-        self._rebackZ_Base()
-
-        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_ALL_LIGHT)
-
-        self._waitfor_hardware_queue_result()
-
-        movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
-
-        movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
-
-        # nlastmovex = 0
-
-
-        for i in range(len(list_info[0])):
-
-            x = list_info[0][i]
-
-            y = list_info[1][i]
-
-            # x_realmove = x - nlastmovex #让电机移动在上次的基础上移动
-            #
-            # nlastmovex = x
-
-            movemsgx[3:] = translatedis2hex(x / self._DIS2PULSE)
-
-            self._sendhardwaremsg(movemsgx)
-
-            self._waitfor_hardware_queue_result()
-
-            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
-
-            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
-
-            self.h_parent.openCamera()
-
-            movemsgy[3:] = translatedis2hex(y / self._DIS2PULSE)
-
-            self._sendhardwaremsg(movemsgy)
-
-            self._waitfor_hardware_queue_result()
-
-            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
-
-            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
-
-            while not self.h_parent.callback2judgeisfull_second() and self.b_checkstatus:
-
-                time.sleep(0.5)
-
-            self.h_parent.closeCamera()
-
-            time.sleep(1)
-
-            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
-
-            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
-
-            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
-
-            if i != len(list_info[0]) - 1:
-
-                self.h_parent.callback2changecol_second()
-
-        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
-
-        self.h_parent.callback2showbigimg_second()
-
-        self.MakeEveryposFuwei()
-
-        self._rebackXY()
-
-        self.b_checkstatus = False
-
-
     def buildmodel_getsensorhigh(self, *list_info):
         """
         list_info 中放着N对 x, y 坐标，根据根据这几个坐标进行位置设置
         :param list_info:[[x, y], [x, y]]
         :return:
         """
+
         self._clear_hardware_recqueue()
 
         self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_REC_START)
 
         if not self.MakeEveryposInstatus(): return
 
-        self._rebackXY()
-
         self._rebackZERO()
+
+        self._rebackXY()
 
         list_result = []
 
@@ -609,7 +525,7 @@ class ControlManager(object):
 
         self.MakeEveryposFuwei()
 
-        self._rebackXY()
+        self._rebackZERO()
 
         self.b_checkstatus = False
 
@@ -622,17 +538,27 @@ class ControlManager(object):
         """
         self.logger.log(logging.INFO, '--------------- 开始检测控制 -------------------')
 
+        ipc_tool.kxlog("ControlManager", logging.INFO, "开始检测控制")
+
         self._clear_hardware_recqueue()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "1. 复位所有气缸状态")
 
         if not self.MakeEveryposInstatus(): return False
 
         self.h_parent.closeCamera()
 
-        self._rebackXY()
+        ipc_tool.kxlog("ControlManager", logging.INFO, "2. 控制 X Y 电机回零点")
+
+        self._rebackZERO()
 
         if not self.b_checkstatus: return False
 
-        self._rebackZERO()
+        ipc_tool.kxlog("ControlManager", logging.INFO, "3. 控制 X Y 电机回原点")
+
+        self._rebackXY()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "4. 控制 Z 电机到目标高度")
 
         self._rebackZ_Base()
 
@@ -641,6 +567,8 @@ class ControlManager(object):
         self._clear_hardware_recqueue()
 
         # # 判断托盘是否到位
+        ipc_tool.kxlog("ControlManager", logging.INFO, "5. 判断托盘是否到位")
+
         nstatus = self._judgePackZisRight(list_info[2])
 
         if nstatus == 0:
@@ -653,7 +581,9 @@ class ControlManager(object):
 
             return False
 
-        self._rebackXY()
+        ipc_tool.kxlog("ControlManager", logging.INFO, "6. 控制 X Y 电机回零点")
+
+        self._rebackZERO()
 
         self._clear_hardware_recqueue()  # 清除接收缓存
 
@@ -663,7 +593,11 @@ class ControlManager(object):
 
         movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
 
+        ipc_tool.kxlog("ControlManager", logging.INFO, "7. 开始XY轴运动拍摄控制")
+
         for i in range(len(list_info[0])):
+
+            ipc_tool.kxlog("ControlManager", logging.INFO, "7.%i-1 控制x轴移动"%i)
 
             x = list_info[0][i]
 
@@ -685,6 +619,8 @@ class ControlManager(object):
 
             if not self.b_checkstatus:  return False
 
+            ipc_tool.kxlog("ControlManager", logging.INFO, "7.%i-2 打开光源1"%i)
+
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_LIGHT1)
 
             self._waitfor_hardware_queue_result()
@@ -694,6 +630,8 @@ class ControlManager(object):
             time.sleep(1)
 
             movemsgy[3:] = translatedis2hex(y / self._DIS2PULSE)
+
+            ipc_tool.kxlog("ControlManager", logging.INFO, "7.%i-2 控制Y轴正向移动"%i)
 
             self._sendhardwaremsg(movemsgy)
 
@@ -705,15 +643,21 @@ class ControlManager(object):
 
             time.sleep(1)#
 
+            ipc_tool.kxlog("ControlManager", logging.INFO, "7.%i-3 关闭相机并更换采集方向"%i)
+
             self.h_parent.closeCamera()
 
             self.h_parent.changeCameraCapturedirection()
+
+            ipc_tool.kxlog("ControlManager", logging.INFO, "7.%i-4 打开光源2"%i)
 
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_LIGHT2)
 
             self._waitfor_hardware_queue_result()
 
             self.h_parent.onlyopencamera()
+
+            ipc_tool.kxlog("ControlManager", logging.INFO, "7.%i-5 控制Y轴反向移动"%i)
 
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
 
@@ -725,15 +669,25 @@ class ControlManager(object):
 
             time.sleep(1)
 
+            ipc_tool.kxlog("ControlManager", logging.INFO, "7.%i-6 关闭相机并更换采集方向"%i)
+
             self.h_parent.closeCamera()
 
             self.h_parent.changeCameraCapturedirection(True)
 
+        ipc_tool.kxlog("ControlManager", logging.INFO, "8. 开始XY轴运动完成，复位气缸")
+
         self.MakeEveryposFuwei()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "9. 控制 X Y 电机回零点")
+
+        self._rebackZERO()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "10. 控制 X Y 电机回原点")
 
         self._rebackXY()
 
-        self._rebackZERO()
+        ipc_tool.kxlog("ControlManager", logging.INFO, "检测控制结束")
 
         return True
 
@@ -743,12 +697,17 @@ class ControlManager(object):
         :param list_info: [nStartX, ndisX, ndisY, nXtimes] [起拍X位置， 单次X移动距离， 单次Y移动距离， X次数]
         :return:
         """
+        self.logger.log(logging.INFO, '--------------- 开始取全图建模 -------------------')
 
-        self.logger.log(logging.INFO, "开始取全图建模")
+        ipc_tool.kxlog("ControlManager", logging.INFO, "开始取全图建模")
 
         self._clear_hardware_recqueue()
 
+        ipc_tool.kxlog("ControlManager", logging.INFO, "1. 等待按下启动按钮")
+
         self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_REC_START)
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "2. 复位所有气缸")
 
         if not self.MakeEveryposInstatus(): return
 
@@ -756,17 +715,25 @@ class ControlManager(object):
 
         self.h_parent.closeCamera()
 
-        self._rebackXY()
+        ipc_tool.kxlog("ControlManager", logging.INFO, "3. 模组 X Y 回零点，并复位")
 
         self._rebackZERO()
 
+        self._rebackXY()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "4. Z轴 回零点，并到基准位")
+
         self._rebackZ_Base()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "5. 打开所有光源")
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_ALL_LIGHT)
 
         self._waitfor_hardware_queue_result()
 
         movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "6. X轴运动到偏移位置")
 
         if list_info[0] != 0:
 
@@ -787,6 +754,8 @@ class ControlManager(object):
         ncycletimes = list_info[3]
 
         nrecordx = 0
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "7. 进入控制拍摄循环")
 
         for i in range(ncycletimes):
 
@@ -836,12 +805,138 @@ class ControlManager(object):
 
                 self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
 
+        ipc_tool.kxlog("ControlManager", logging.INFO, "8. 结束控制拍摄循环，关闭所有光源")
+
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
 
         self.h_parent.callback2showbigimg()
 
+        ipc_tool.kxlog("ControlManager", logging.INFO, "9. 复位所有气缸")
+
         self.MakeEveryposFuwei()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "10. 控制电机返回原点")
+
+        self._rebackZERO()
+
+        self.b_checkstatus = False
+
+        self.logger.log(logging.INFO, '--------------- 结束取全图建模 -------------------')
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "结束取全图建模")
+
+
+    def buildmodel_second(self, *list_info):
+        """
+        二次建模控制
+        :param list_info: [[list_x, list_y]]
+        :return:
+        """
+        self.logger.log(logging.INFO, '--------------- 开始二次取图建模 -------------------')
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "开始二次取图建模")
+
+        self._clear_hardware_recqueue()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "1. 等待按下启动按钮")
+
+        self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_REC_START)
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "2. 复位所有气缸")
+
+        if not self.MakeEveryposInstatus(): return
+
+        self.h_parent.closeCamera()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "3. X Y 轴模组返回零点")
+
+        self._rebackZERO()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "4. X Y 轴模组返回原点")
 
         self._rebackXY()
 
+        ipc_tool.kxlog("ControlManager", logging.INFO, "5. Z轴模组先复位，后移动到规定位置")
+
+        self._rebackZ_Base()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "6. 打开所有光源")
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_ALL_LIGHT)
+
+        self._waitfor_hardware_queue_result()
+
+        movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
+
+        movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "7. 进入移动拍摄循环")
+
+        for i in range(len(list_info[0])):
+
+            x = list_info[0][i]
+
+            y = list_info[1][i]
+
+            # x_realmove = x - nlastmovex #让电机移动在上次的基础上移动
+            #
+            # nlastmovex = x
+
+            movemsgx[3:] = translatedis2hex(x / self._DIS2PULSE)
+
+            self._sendhardwaremsg(movemsgx)
+
+            self._waitfor_hardware_queue_result()
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_X)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE)
+
+            self.h_parent.openCamera()
+
+            movemsgy[3:] = translatedis2hex(y / self._DIS2PULSE)
+
+            self._sendhardwaremsg(movemsgy)
+
+            self._waitfor_hardware_queue_result()
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+            while not self.h_parent.callback2judgeisfull_second() and self.b_checkstatus:
+
+                time.sleep(0.5)
+
+            self.h_parent.closeCamera()
+
+            time.sleep(1)
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+            if i != len(list_info[0]) - 1:
+                self.h_parent.callback2changecol_second()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "7. 结束移动拍摄循环，关闭所有光源")
+
+        self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
+
+        self.h_parent.callback2showbigimg_second()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "8. 复位所有气缸")
+
+        self.MakeEveryposFuwei()
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "9. 模组X Y轴返回零点")
+
+        self._rebackZERO()
+
         self.b_checkstatus = False
+
+        self.logger.log(logging.INFO, '--------------- 结束二次取图建模 -------------------')
+
+        ipc_tool.kxlog("ControlManager", logging.INFO, "结束二次取图建模")

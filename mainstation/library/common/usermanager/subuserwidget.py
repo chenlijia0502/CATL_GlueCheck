@@ -34,14 +34,14 @@ class subuserwidget(QtWidgets.QDialog):
         self.ui.tableWidget.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
 
         for nindex in range(len(self.userlist)):
-            if nindex == 0:
-                newItem = QTableWidgetItem("************")#管理员账号保密
-            else:
-                newItem = QTableWidgetItem(self.userlist[nindex][0])
-                # if len(self.userlist[nindex][0]) > 3:
-                #     newItem = QTableWidgetItem(self.userlist[nindex][0][:3] + "*********")
-                # else:
-                #     newItem = QTableWidgetItem(self.userlist[nindex][0])
+            # if nindex == 0:
+            #     newItem = QTableWidgetItem("************")#管理员账号保密
+            # else:
+            newItem = QTableWidgetItem(self.userlist[nindex][0])
+            # if len(self.userlist[nindex][0]) > 3:
+            #     newItem = QTableWidgetItem(self.userlist[nindex][0][:3] + "*********")
+            # else:
+            #     newItem = QTableWidgetItem(self.userlist[nindex][0])
             self.ui.tableWidget.setItem(nindex, 0, newItem)
             for col in range(len(self.list_slevel)):
                 if col < len(self.userlist[nindex][2]):#考虑后面可能会出现新增锁定项目的可能，所以做保护

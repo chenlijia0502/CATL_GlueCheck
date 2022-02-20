@@ -45,11 +45,6 @@ class CAddUserDialogNew(QtWidgets.QDialog):
         list_list_status = self.excel_ssh.read_data_line_for_sheet(self.MODULE_SHEET_NAME)
         self.h_levelmanager.setinfo(list_list_status)
         self.userlist = self._loaduserlist()
-        # list_data = self.excel_ssh.read_data_line_for_sheet(self.LEVEL_SHEET_NAME)
-        # if list_data != []:
-        #     self.userlist = list_data[1:]
-        # else:
-        #     self.userlist = []
 
 
     def _showmanageleveltool(self):
@@ -69,19 +64,19 @@ class CAddUserDialogNew(QtWidgets.QDialog):
         self.subwidght.setWindowModality(QtCore.Qt.ApplicationModal)
         self.subwidght.exec_()
         self.userlist = self.subwidght.getrefreshuserlist()
-        print(self.userlist)
         self.saveUserlist()
+
 
     def _loaduserlist(self):
         userlist = []
         try:
             list_data = self.excel_ssh.read_data_line_for_sheet(self.LEVEL_SHEET_NAME)
-            print ("showall:", list_data)
+            #print ("showall:", list_data)
             if list_data != []:
                 for nindex, item in enumerate(list_data):
                     if nindex == 0:  # 去掉头
                         continue
-                    print ("item", self.decrypt(item[2]).decode('utf-8'))
+                    #print ("item", self.decrypt(item[2]).decode('utf-8'))
                     userlist.append([item[0], item[1], self.decrypt(item[2]).decode('utf-8'), item[3]])
             else:
                 # from 。。。。import 。。。。。
@@ -204,15 +199,23 @@ class CmanageLevelTool(QtWidgets.QDialog):
 
         self.list_labellevel = []
 
+        nminw = 150
+
+        font = QtGui.QFont()
+
+        font.setPointSizeF(15)
+
+        font.setBold(True)
+
         widget1 =QtWidgets.QWidget()
 
         horlayout1 = QtWidgets.QHBoxLayout(widget1)
 
         label = QtWidgets.QLabel(self)
 
-        label.setMinimumWidth(100)
+        label.setMinimumWidth(nminw)
 
-        label.setMaximumWidth(100)
+        label.setFont(font)
 
         label.setAlignment(QtCore.Qt.AlignCenter)
 
@@ -222,15 +225,11 @@ class CmanageLevelTool(QtWidgets.QDialog):
 
             label = QtWidgets.QLabel(self)
 
-            # font = QtGui.QFont()
-            #
-            # font.setPointSizeF(20)
-            #
-            # label.setFont(font)
-
-            label.setMinimumWidth(100)
+            label.setMinimumWidth(nminw)
 
             label.setMaximumWidth(100)
+
+            label.setFont(font)
 
             label.setAlignment(QtCore.Qt.AlignCenter)
 
@@ -254,6 +253,10 @@ class CmanageLevelTool(QtWidgets.QDialog):
 
             label.setText("权限等级")
 
+            label.setFont(font)
+
+            label.setMinimumWidth(nminw)
+
             horlayout.addWidget(label)
 
             self.list_labellevel.append(label)
@@ -268,9 +271,17 @@ class CmanageLevelTool(QtWidgets.QDialog):
 
                 checkbox.setStyleSheet("QCheckBox::indicator\n"
                                         "{\n"
-                                        "    width:100px;\n"
-                                        "    height:100px;\n"
-                                        "}")
+                                        "    width:80px;\n"
+                                        "    height:80px;\n"
+                                        "}\n"
+                                       "QCheckBox::indicator::unchecked\n"
+                                       "{ border-image: url(res/checkbox.png); }  \n"
+                                       "QCheckBox::indicator::checked\n"
+                                       " { border-image: url(res/checkbox-checked.png); } \n"
+                                       )
+
+                checkbox.setMinimumWidth(150)
+
                 list_checkbox.append(checkbox)
 
                 horlayout.addWidget(checkbox)

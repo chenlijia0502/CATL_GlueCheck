@@ -107,9 +107,6 @@ class SerialManager(object):
 
             self.logger.log(logging.INFO, "read: " + hexdata)
 
-            print(hexdata)
-
-
             if len(hexdata) > 3:
 
                 if data.hex() in imc_msg.HARDWAREBASEMSG.MSG_GUANGSHAN:

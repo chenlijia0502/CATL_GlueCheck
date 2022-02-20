@@ -20,7 +20,7 @@ from library.common.globalfun import DriveFreeSpace, DriveTotalSize
 #from project.mainwindow.MesParamTree import MesParamTreeWidget
 from project.mes.MesParamWidget import CMesParamWidget
 from library.common.globalparam import LogInfo
-from project.mainwindow.WidgetMaskCheckArea import CWidgetMaskCheckArea
+from project.other.WidgetMaskCheckArea import CWidgetMaskCheckArea
 from project.mainwindow.UploadDialog import CUploadDialog
 from project.mainwindow.CheckControlThread import CheckControlThread
 from project.mainwindow.InputDialog import CInputDialog
@@ -248,7 +248,6 @@ class kxmainwindow(KXBaseMainWidget):
             self._setstatus("0000000")#锁住
 
 
-
     def _setstatus(self, slevel):
         list_status = list(map(int, slevel))
         list_bstatus = list(map(bool, list_status))
@@ -267,8 +266,6 @@ class kxmainwindow(KXBaseMainWidget):
         self.widget_mes.setEnabled(bool(list_bstatus[5]))
 
         self.widget_maskcheckarea.setEnabled(bool(list_bstatus[6]))
-
-
 
 
     def _settoolbuttonEnable(self, bstatus):
@@ -566,21 +563,22 @@ class kxmainwindow(KXBaseMainWidget):
 
         self.h_checkcontrolthread.emitnext()#检测完成都放小车走
 
-        if (not self.mode_root) and (not bresult): # 调试模式以及结果为1都不进入下面循环
-            self.dialog_upload = CUploadDialog()
-            self.dialog_upload.show()
-            self.dialog_upload.exec_()
+        if not self.mode_root:
+            if not bresult: # 调试模式以及结果为1都不进入下面循环
+                self.dialog_upload = CUploadDialog()
+                self.dialog_upload.show()
+                self.dialog_upload.exec_()
 
-            nstatus, user = self.dialog_upload.getstatusAnduser()
-            if nstatus:
-                self.widget_mes.senddata(self.spackid, 1)  #放行
-                ipc_tool.kxlog("检测", logging.WARNING, "卡号 " + user + "对 PACKID：" + self.spackid + "进行放行操作")
+                nstatus, user = self.dialog_upload.getstatusAnduser()
+                if nstatus:
+                    self.widget_mes.senddata(self.spackid, 1)  #放行
+                    ipc_tool.kxlog("检测", logging.WARNING, "卡号 " + user + "对 PACKID：" + self.spackid + "进行放行操作")
+                else:
+                    self.widget_mes.senddata(self.spackid, 0)  # 不放行，叛废
+                    ipc_tool.kxlog("检测", logging.WARNING, "卡号 " + user + "对 PACKID：" + self.spackid + "进行判废操作")
+
             else:
-                self.widget_mes.senddata(self.spackid, 0)  # 不放行，叛废
-                ipc_tool.kxlog("检测", logging.WARNING, "卡号 " + user + "对 PACKID：" + self.spackid + "进行判废操作")
-
-        else:
-            self.widget_mes.senddata(self.spackid, 1)
+                self.widget_mes.senddata(self.spackid, 1)
 
         self.h_checkcontrolthread.emits()# 判断结果后触发下次逻辑
 
@@ -628,6 +626,7 @@ class kxmainwindow(KXBaseMainWidget):
             self.inputdialog.exec_()
 
             if self.inputdialog.gettext() == "zs20210401":
+                ipc_tool.kxlog("main", logging.WARNING, "进入调试模式")
                 self.mode_root = True
                 self.h_checkcontrolthread.setrootmode(self.mode_root)
                 self.toolbutton_test.setIcon(QtGui.QIcon(''))
@@ -645,6 +644,7 @@ class kxmainwindow(KXBaseMainWidget):
                 self.toolbutton_test.setIcon(QtGui.QIcon('res/设备自启测试.png'))
 
         else:
+            ipc_tool.kxlog("main", logging.INFO, "退出调试模式")
             self.mode_root = False
             self.h_checkcontrolthread.setrootmode(self.mode_root)
             self.toolbutton_test.setChecked(False)

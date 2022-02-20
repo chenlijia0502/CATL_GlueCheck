@@ -84,6 +84,7 @@ class GuleParam(KxBaseParamWidget):
         self.n_qualitytreenum = 0#当前已显示质量检查组数
         self.n_measurehighnum = 0#测量高度的点
         self.n_checkarea = 0#当前检测区域
+        self.b_connectstatus = False# 参数改变信号，是否连接状态，是则不调用disconnect
         dict_head = {'name': u'主站设置', 'type': 'group', 'visible':False, 'children': [
                 {'name': u'图像信息', 'type': 'imageinfo',
                  'value': {"isShow": True}, "infovisible": True},
@@ -137,6 +138,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def _connectlog(self):
+        self.b_connectstatus = True
         self.p.param("全局拍摄控制").sigTreeStateChanged.connect(self._logparamchange)
         self.p.param("检测参数").sigTreeStateChanged.connect(self._logparamchange)
         self.p.param("检测区域数量").sigTreeStateChanged.connect(self._logparamchange)
@@ -146,12 +148,14 @@ class GuleParam(KxBaseParamWidget):
 
 
     def _disconnectlog(self):
-        self.p.param("全局拍摄控制").sigTreeStateChanged.disconnect(self._logparamchange)
-        self.p.param("检测参数").sigTreeStateChanged.disconnect(self._logparamchange)
-        self.p.param("检测区域数量").sigTreeStateChanged.disconnect(self._logparamchange)
-        self.p.param("防呆防错设置").sigTreeStateChanged.disconnect(self._logparamchange)
-        for i in range(0, self._MAX_ROI_NUM):
-            self.p.param('检测区域' + str(i)).sigTreeStateChanged.disconnect(self._logparamchange)
+        if self.b_connectstatus:
+            self.p.param("全局拍摄控制").sigTreeStateChanged.disconnect(self._logparamchange)
+            self.p.param("检测参数").sigTreeStateChanged.disconnect(self._logparamchange)
+            self.p.param("检测区域数量").sigTreeStateChanged.disconnect(self._logparamchange)
+            self.p.param("防呆防错设置").sigTreeStateChanged.disconnect(self._logparamchange)
+            for i in range(0, self._MAX_ROI_NUM):
+                self.p.param('检测区域' + str(i)).sigTreeStateChanged.disconnect(self._logparamchange)
+            self.b_connectstatus = False
 
 
     def _logparamchange(self, *args):
