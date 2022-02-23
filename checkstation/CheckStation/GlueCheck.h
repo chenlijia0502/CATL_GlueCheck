@@ -147,4 +147,7 @@ private:
 
 	void SliderSub(kxCImageBuf& SrcImg, kxCImageBuf& TemplateImg, kxCImageBuf& dstCCImg, int nscalefactor);
 
+
+	void CheckLow(kxCImageBuf& SrcImg);//ºÏ≤‚Œ√≥Ê“‘º∞Ω∫ƒ⁄∂œΩ∫
+
 };

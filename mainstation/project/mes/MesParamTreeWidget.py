@@ -168,6 +168,9 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
             ipc_tool.kxlog("MES", logging.ERROR, " MES error " + str(e))
             return None
 
+    def setsfc(self, sfc):
+        if self.type == MESTYPE.CHUZHAN:
+            self.p.param('PARAM', 'sfc').setValue(sfc)
 
     def click2senddata(self):
         self.senddata()

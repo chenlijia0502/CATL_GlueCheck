@@ -3,6 +3,8 @@
 #include "kxParameter.h"
 
 
+int captureimgnum = 0;
+
 CCamera_HK g_CameraHK;
 #define _Hikvision
 
@@ -16,6 +18,14 @@ void __stdcall XferCallback(unsigned char * pData, MV_FRAME_OUT_INFO_EX* pFrameI
 		printf("Get One Frame: Width[%d], Height[%d], nFrameNum[%d]\n",
 			pFrameInfo->nWidth, pFrameInfo->nHeight, pFrameInfo->nFrameNum);
 
+		if (captureimgnum - pFrameInfo->nFrameNum == 2)
+		{
+			kxPrintf(KX_Err, "检测到相机丢图，请查看子站拍摄情况！！！！");
+		}
+		else
+		{
+			captureimgnum = pFrameInfo->nFrameNum;
+		}
 
 		// 转换图像  2020.08.28
 		cv::Mat curimg;
@@ -141,7 +151,7 @@ int CCamera_HK::Start()
 
 	//assert(m_pSapXfer);
 	//m_pSapXfer->Grab();
-
+	captureimgnum = 0;
 	int nRet = MV_CC_StartGrabbing(m_camerahandle);
 	if (MV_OK != nRet)
 	{

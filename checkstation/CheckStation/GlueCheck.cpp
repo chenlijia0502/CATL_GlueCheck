@@ -675,13 +675,15 @@ void CGlueCheck::GetGlueMask(const kxCImageBuf* RGB)
 		naverageright += rightpoint[i].x;
 	}
 
-	naverageleft = naverageleft / npointnum;
+	const int nextend = 10;//再往里缩一点，临时方案
 
-	naverageright = edgeimg2.nWidth - naverageright / npointnum;
+	naverageleft = naverageleft / npointnum + nextend;
+
+	naverageright = edgeimg2.nWidth - naverageright / npointnum - nextend;
 
 
 
-	int hoffset = 0;
+	int hoffset = 20;
 
 	nleft = min(nleft + naverageleft, RGB[0].nWidth / 2);
 
@@ -1334,6 +1336,60 @@ void CGlueCheck::SliderSub(kxCImageBuf& SrcImg, kxCImageBuf& TemplateImg, kxCIma
 
 }
 
+void CGlueCheck::CheckLow(kxCImageBuf& SrcImg)
+{
+	//这里的检低，是检测涂胶内部的情况
+	// 用专业术语来说就是检测提取的涂胶的内部孔洞
+
+
+	cv::Mat matsrc = cv::Mat(SrcImg.nHeight, SrcImg.nWidth, CV_8UC(SrcImg.nChannel), SrcImg.buf, SrcImg.nPitch);
+
+	cv::Mat hsvimg;
+
+	cv::cvtColor(matsrc, hsvimg, cv::COLOR_RGB2HSV);
+
+	kxCImageBuf kxhsvimg;
+
+	kxhsvimg.SetImageBuf(hsvimg.data, hsvimg.cols, hsvimg.rows, hsvimg.step, hsvimg.channels(), false);
+
+
+
+	//1. 提取绿胶
+	kxCImageBuf img_dst;
+	img_dst.Init(kxhsvimg.nWidth, kxhsvimg.nHeight, kxhsvimg.nChannel);
+
+	int nimg_width = kxhsvimg.nWidth;
+	int nimg_height = kxhsvimg.nHeight;
+
+	// HSV阈值设置
+	int nh_min = 29;
+	int nh_max = 224;
+	int ns_min = 11;
+	int ns_max = 255;
+	int nv_min = 38;
+	int nv_max = 100;
+
+	/* 定义三个HSV单通道的图片 */
+	kxCImageBuf img_hsv_to_h;
+	img_hsv_to_h.Init(nimg_width, nimg_height, 1);
+	kxCImageBuf img_hsv_to_s;
+	img_hsv_to_s.Init(nimg_width, nimg_height, 1);
+
+	/* 分别将图片转换成hsv的三个单个通道的图片 */
+	CKxBaseFunction basefun_extractgreen;
+	// HSV 到单通道并二值化,然后相与
+	basefun_extractgreen.KxThreshImage(kxhsvimg, img_hsv_to_h, nh_min, nh_max, HSV_H);
+	basefun_extractgreen.KxThreshImage(kxhsvimg, img_hsv_to_s, ns_min, ns_max, HSV_S);
+	basefun_extractgreen.KxThreshImage(kxhsvimg, img_dst, nv_min, nv_max, HSV_V);
+	basefun_extractgreen.KxMinEvery(img_hsv_to_h, img_hsv_to_s);
+	basefun_extractgreen.KxMinEvery(img_hsv_to_s, img_dst);            // img_dst 为最终生成的图像
+
+
+	//2. 提取最大blob
+	//int i = 10;
+
+}
+
 int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg, Json::Value &checkresult)
 {
 
@@ -1370,24 +1426,24 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 	tbb_start = tick_count::now();
 
 
-	//static int nindex = 0;
+	static int nindex = 0;
 
-	//char savepath[64];
+	char savepath[64];
 
-	//sprintf_s(savepath, "d:\\%d.bmp", nindex++);
+	sprintf_s(savepath, "d:\\%d.bmp", nindex++);
 
-	//m_hFun.SaveBMPImage_h(savepath, m_ImgCheck);
+	m_hFun.SaveBMPImage_h(savepath, m_ImgCheck);
 
 
 	// 检测涂胶的。
-	//kxCImageBuf cutimg;
+	kxCImageBuf cutimg;
 
-	//cutimg.Init(m_recttarget.Width(), m_recttarget.Height(), m_ImgCheck.nChannel);
+	cutimg.Init(m_recttarget.Width(), m_recttarget.Height(), m_ImgCheck.nChannel);
 
-	//m_hFun.KxCopyImage(m_ImgCheck, cutimg, m_recttarget);
+ 	m_hFun.KxCopyImage(m_ImgCheck, cutimg, m_recttarget);
 
 	//SliderMatch(cutimg, m_param.m_ImgTemplate);
-	
+	CheckLow(cutimg);
 
 
 	checkyiwu(m_ImgCheck, checkresult);

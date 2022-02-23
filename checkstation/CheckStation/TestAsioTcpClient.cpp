@@ -538,6 +538,11 @@ void CTestAsioTcpClient::RecMsgPackId(const unsigned char* pExtData)
 
 		Check::g_GetCheckCardObj().SetPackID(packid);
 	}
+
+
+	Graber::g_GetGraberBuffer().Init(true);//初始化所有队列
+	Graber::g_GetCamera()->ReverseScanDirection(0);// 代表相机正着走触发
+	Graber::g_GetCamera()->OpenInternalTrigger(1);//外触发
 }
 
 CTestAsioTcpClient* g_client ;

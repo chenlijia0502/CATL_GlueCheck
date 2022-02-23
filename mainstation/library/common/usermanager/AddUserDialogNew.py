@@ -28,6 +28,7 @@ class CAddUserDialogNew(QtWidgets.QDialog):
         self.excel_ssh = CExcelManager(self.STR_PASSWORDSAVE_PATH, 'Sheet', self._CSV_SAVE_HEAD)
         self.h_levelmanager = CmanageLevelTool(list_modulename, list_levelname)
         self._initinfo()
+        self.ui.userlineEdit.setEchoMode(QtWidgets.QLineEdit.Password)#这一行的设置还有保证英文格式输入的作用
         #self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)#全屏
 
         ###### 绑定按钮事件
@@ -142,7 +143,6 @@ class CAddUserDialogNew(QtWidgets.QDialog):
             tkinter.messagebox.showinfo('提示', '添加新用户成功！')
             self.ui.userlineEdit_name.clear()
             self.ui.userlineEdit.clear()
-            self.close()
         else:
             root = tkinter.Tk()
             root.withdraw()

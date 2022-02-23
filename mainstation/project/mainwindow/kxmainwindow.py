@@ -522,9 +522,7 @@ class kxmainwindow(KXBaseMainWidget):
         self.sendmsg(0, imc_msg.MSG_PACK_ID, data)
         self._SIG_NEXTPACK.emit()
         self.widget_Realtime.setsfc(self.spackid)
-
-
-
+        self.widget_mes.setchuzhansfc(self.spackid)
 
 
     def callback2autorun(self):
@@ -642,7 +640,6 @@ class kxmainwindow(KXBaseMainWidget):
                 self.toolbutton_test.setChecked(False)
                 self.toolbutton_test.setText("")
                 self.toolbutton_test.setIcon(QtGui.QIcon('res/设备自启测试.png'))
-
         else:
             ipc_tool.kxlog("main", logging.INFO, "退出调试模式")
             self.mode_root = False

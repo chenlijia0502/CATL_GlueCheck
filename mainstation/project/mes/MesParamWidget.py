@@ -59,6 +59,9 @@ class CMesParamWidget(QtWidgets.QWidget):
     def senddata(self, sfc, data):
         self.widget1.senddata(sfc, data)
 
+    def setchuzhansfc(self, sfc):
+        self.widget1.setsfc(sfc)
+
 
 if __name__ == "__main__":
     a = QtWidgets.QApplication([])

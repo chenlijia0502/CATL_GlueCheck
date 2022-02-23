@@ -1394,7 +1394,7 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	//printf("check a image  %d: ----- cost : %f ms\n", card.m_CardID, (total_e - total_s).seconds() * 1000);
 	
 	
-	SaveImg(CheckResultStatus(m_finalcheckstatus));
+	//SaveImg(CheckResultStatus(m_finalcheckstatus));
 	
 	tbb_end = tick_count::now();
 	printf_s("----- id %d cost : %f ms\n", SrcCapImg.m_ImageID, (tbb_end - tbb_start).seconds() * 1000);

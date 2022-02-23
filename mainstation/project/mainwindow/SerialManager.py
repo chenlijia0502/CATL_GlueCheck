@@ -26,9 +26,8 @@ class SerialManager(object):
         self.logger.addHandler(handler)
         #self.logger = logging.getLogger('UI.%s' % self.__class__.__name__)
 
-
-        self.list_write = []
-        self.list_read = []
+        self.queue_write = SqQueue(100)
+        self.queue_read = SqQueue(100)
         self.n_readbuffersize = nreadbuffersize
         self.thread1 = threading.Thread(target=self._cycle_write)
         self.thread2 = threading.Thread(target=self._cycle_read)
@@ -45,13 +44,17 @@ class SerialManager(object):
         if ntimeout == None:
             while True:
 
-                if self.list_read != []:
+                if not self.queue_read.isEmpty():
 
-                    data = self.list_read[0]
+                    data = self.queue_read.pop()
 
-                    del self.list_read[0]
+                    if data == None:
 
-                    return data
+                        self.logger.log(logging.ERROR, "SerialManager错误，读取queue_read队列时竟然为空")
+
+                    else:
+
+                        return data
 
                 else:
 
@@ -59,15 +62,13 @@ class SerialManager(object):
         else:
             nstarttime = time.time()
 
-            readdata = b'F' * self.n_readbuffersize * 2
+            data = b'F' * self.n_readbuffersize * 2
 
             while time.time() - nstarttime <= ntimeout:
 
-                if self.list_read != []:
+                if not self.queue_read.isEmpty():
 
-                    readdata = self.list_read[0]
-
-                    del self.list_read[0]
+                    data = self.queue_read.pop()
 
                     break
 
@@ -75,18 +76,17 @@ class SerialManager(object):
 
                     time.sleep(0.2)
 
-            return readdata
+            return data
 
     def write(self, data):
-
-        self.list_write.append(data)
+        self.queue_write.push(data)
 
 
     def reset_input_buffer(self):
 
         self.myserial.reset_input_buffer()
 
-        self.list_read = []
+        self.queue_read.clear()
 
 
     def isOpen(self):
@@ -98,7 +98,9 @@ class SerialManager(object):
 
 
     def _cycle_read(self):
-
+        """
+        读取线程，一直循环读取buffer
+        """
         while True:
 
             data = self.myserial.read(self.n_readbuffersize)
@@ -122,8 +124,7 @@ class SerialManager(object):
                         self.h_parent.callback2showerror("！！！门控打开！！！")
 
                 else:
-
-                    self.list_read.append(data)
+                    self.queue_read.push(data)
 
             time.sleep(0.2)
 
@@ -137,18 +138,70 @@ class SerialManager(object):
             s += hex(low)[2:]
         return s
 
+
     def _cycle_write(self):
 
         while True:
 
-            if self.list_write != []:
+            if not self.queue_write.isEmpty():
 
-                data = self.list_write[0]
+                data = self.queue_write.pop()
 
                 self.logger.log(logging.INFO, "write: " + self._hex_to_str(data))
 
                 self.myserial.write(data)
 
-                del self.list_write[0]
-
             time.sleep(0.2)
+
+
+
+
+
+class SqQueue(object):
+    def __init__(self, maxsize):
+        self.queue = [None] * maxsize
+        self.maxsize = maxsize
+        self.front = 0
+        self.rear = 0
+
+    # 返回当前队列的长度
+    def QueueLength(self):
+        return (self.rear - self.front + self.maxsize) % self.maxsize
+
+    # 如果队列未满，则在队尾插入元素，时间复杂度O(1)
+    def push(self, data):
+        if self.isFull():
+            #print("The queue is full!")
+            return None
+        else:
+            self.queue[self.rear] = data
+           # self.queue.insert(self.rear,data)
+            self.rear = (self.rear + 1) % self.maxsize
+
+    # 如果队列不为空，则删除队头的元素,时间复杂度O(1)
+    def pop(self):
+        if self.isEmpty():
+            #print("The queue is empty!")
+            return None
+        else:
+            data = self.queue[self.front]
+            self.queue[self.front] = None
+            self.front = (self.front + 1) % self.maxsize
+            return data
+
+    def isEmpty(self):
+        return self.rear == self.front
+
+    def isFull(self):
+        return (self.rear + 1) % self.maxsize == self.front
+
+    # 输出队列中的元素
+    def ShowQueue(self):
+        for i in range(self.maxsize):
+            print(self.queue[i],end=',')
+        print(' ')
+
+    def clear(self):
+        self.queue = [None] * len(self.queue)
+        self.front = 0
+        self.rear = 0

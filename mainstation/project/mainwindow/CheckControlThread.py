@@ -195,16 +195,16 @@ class CheckControlThread(threading.Thread):
 
             self.logger.log(logging.INFO, "------- waitforagv -----------")
 
-            self.logger.log(logging.INFO, "判断设备内部工位是否有小车")
+            self.logger.log(logging.INFO, "1. 判断设备内部工位是否有小车")
 
             if self._get_status_and_packid(self.nid2):
 
-                self.logger.log(logging.INFO, "设备内部存在小车，直接开始检测")
+                self.logger.log(logging.INFO, "2. 设备内部存在小车，直接开始检测")
 
                 return 1# 站点2内有车直接返回，并开始
 
             else:
-                self.logger.log(logging.INFO, "设备内部并无小车，等待进站工位是否有小车")
+                self.logger.log(logging.INFO, "3. 设备内部并无小车，等待进站工位是否有小车")
 
                 # 3. 获取进站口站点状态
                 while not self._get_status_and_packid(self.nid1) and self.b_runstaus:
@@ -213,7 +213,7 @@ class CheckControlThread(threading.Thread):
 
                 if not self.b_runstaus: return 1
 
-                self.logger.log(logging.INFO, "得到小车信息， 关闭光栅")
+                self.logger.log(logging.INFO, "4. 得到小车信息， 关闭光栅")
                 # 4. 关闭光栅放入小车
                 self.controlmanger.control_guangshan(1)
 
@@ -225,7 +225,7 @@ class CheckControlThread(threading.Thread):
 
                 self.logger.log(logging.INFO, "send: " + str(MSG_CONTROL_AGV))
 
-                self.logger.log(logging.INFO, "等待小车进入中间工位 %d"%self.nid2)
+                self.logger.log(logging.INFO, "5. 等待小车进入中间工位 %d"%self.nid2)
                 # 5. 检测小车到位中间站点
                 while self.b_runstaus:
 
@@ -250,6 +250,7 @@ class CheckControlThread(threading.Thread):
                     time.sleep(1)
 
                 # 6. 打开光栅
+                self.logger.log(logging.INFO, "6. 小车已进入中间工位，打开光栅")
                 self.controlmanger.control_guangshan(0)
 
                 return 1
@@ -258,13 +259,13 @@ class CheckControlThread(threading.Thread):
             self.logger.log(logging.ERROR, 'AGV错误 waitforagv %s'%str(e))
 
             self.h_parent.callback2showerror("AGV 交互错误，请查收AGV日志查看具体原因")
-            return 0
 
+            return 0
 
 
     def sendagv2next(self):
         try:
-            self.logger.log(logging.INFO, "sendagv2next， 等待结果，准备将小车送出站")
+            self.logger.log(logging.INFO, "1. sendagv2next， 等待结果，准备将小车送出站")
 
             #2022.1.21 选择直接将车放出
             while (not self.b_nextstatus) and self.b_runstaus:#等待外部将b_nextstatus置为True
@@ -275,7 +276,7 @@ class CheckControlThread(threading.Thread):
 
             if not self.b_runstaus: return
 
-            self.logger.log(logging.INFO, "检测结果已出，等待站点 %d 没有小车状态"%self.nid3)
+            self.logger.log(logging.INFO, "2. 检测结果已出，等待站点 %d 出站口没有小车状态"%self.nid3)
 
             while self.b_runstaus:
 
@@ -300,14 +301,12 @@ class CheckControlThread(threading.Thread):
 
                 time.sleep(5)
 
-            self.logger.log(logging.INFO, "出站口没有小车，关闭出站光栅，将小车送出")
+            self.logger.log(logging.INFO, "3. 出站口没有小车，关闭出站光栅，将小车送出 %d 号站点"%self.nid2)
 
             #关闭光栅
             self.controlmanger.control_guangshan(2)
 
             #送出小车
-            self.logger.log(logging.INFO, "将小车送出 %d 号站点"%self.nid2)
-
             MSG_CONTROL_AGV = imc_msg.AGVMSG.MSG_BASE_CONTROL_STATION_STATUS
 
             MSG_CONTROL_AGV[5] = self.nid2
@@ -317,7 +316,7 @@ class CheckControlThread(threading.Thread):
             self.logger.log(logging.INFO, "send: " + str(MSG_CONTROL_AGV))
 
             #监听送出小车状态
-            self.logger.log(logging.INFO, "监听小车是否到达 %d 号站点"%self.nid3)
+            self.logger.log(logging.INFO, "4. 监听小车是否到达出站站点 %d"%self.nid3)
 
             while self.b_runstaus:
 
@@ -341,7 +340,7 @@ class CheckControlThread(threading.Thread):
 
                 time.sleep(5)
 
-            self.logger.log(logging.INFO, "------------ 小车已到达 %d 号站点"%self.nid3 + ", 结束本次循环 -------------")
+            self.logger.log(logging.INFO, "5. 小车已到达出站站点 %d，打开光栅"%self.nid3)
 
 
             #开启光栅
@@ -418,12 +417,12 @@ class CheckControlThread(threading.Thread):
                 if not self.b_runstaus: continue
 
                 #小车出站
-                ipc_tool.kxlog("checkcontrolthread", logging.INFO, "第六步，结束下位机控制，小车准备出站")
+                ipc_tool.kxlog("checkcontrolthread", logging.INFO, "第七步，结束下位机控制，小车准备出站")
                 if not self.b_rootmode:
 
                     self.sendagv2next()
 
-                ipc_tool.kxlog("checkcontrolthread", logging.INFO, "第七步，小车已出，逻辑结束！")
+                ipc_tool.kxlog("checkcontrolthread", logging.INFO, "第八步，小车已出，逻辑结束！")
 
             else:
 
