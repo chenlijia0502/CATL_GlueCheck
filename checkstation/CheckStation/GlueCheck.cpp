@@ -126,6 +126,8 @@ void CGlueCheck::checkyiwu(const kxCImageBuf& SrcImg, Json::Value &checkresult)
 	//3，得到低值
 	m_ImgCheckLow.Init(CheckImg.nWidth, CheckImg.nHeight, CheckImg.nChannel);
 
+
+
 	ippiSub_8u_C3RSfs(CheckImg.buf, CheckImg.nPitch, m_ImgBaseTemplate.buf, m_ImgBaseTemplate.nPitch, m_ImgCheckLow.buf, m_ImgCheckLow.nPitch, imgsize, 0);
 
 	ippiSubC_8u_C3IRSfs(poffsetlow, m_ImgCheckLow.buf, m_ImgCheckLow.nPitch, imgsize, 0);
@@ -148,6 +150,14 @@ void CGlueCheck::checkyiwu(const kxCImageBuf& SrcImg, Json::Value &checkresult)
 	GetMaxGray(m_ImgCheckLow, m_ImgCheckLowGray);
 
 	m_hFun.KxAddImage(m_ImgCheckLowGray, m_ImgCheckHighGray);
+
+	//kxCImageBuf threshimg;
+
+	//threshimg.Init(m_ImgCheckHighGray.nWidth, m_ImgCheckHighGray.nHeight);
+
+	//m_hFun.KxThreshImage(m_ImgCheckHighGray, threshimg, 1, 255);
+
+
 
 	kxCImageBuf checkopenimg;
 
@@ -292,11 +302,11 @@ void CGlueCheck::CreateBaseModel(const kxCImageBuf& CheckImg)
 		方案二：设定基础色，然后残差结果减去灵敏度
 	*/
 	
-	const unsigned char Rbase = 30;
+	const unsigned char Rbase = 45;
 
-	const unsigned char Gbase = 50;
+	const unsigned char Gbase = 55;
 
-	const unsigned char Bbase = 20;
+	const unsigned char Bbase = 30;
 
 	kxCImageBuf ImgR, ImgB, ImgG;
 
@@ -683,7 +693,9 @@ void CGlueCheck::GetGlueMask(const kxCImageBuf* RGB)
 
 
 
-	int hoffset = 20;
+	int hoffset = 250;
+
+	int bottomoffset = 100;
 
 	nleft = min(nleft + naverageleft, RGB[0].nWidth / 2);
 
@@ -691,23 +703,13 @@ void CGlueCheck::GetGlueMask(const kxCImageBuf* RGB)
 
 	ntop = min(ntop + hoffset, RGB[0].nHeight / 2);
 
-	nbottom = max(nbottom - hoffset, RGB[0].nHeight / 2);
+	nbottom = max(nbottom - bottomoffset, RGB[0].nHeight / 2);
 
 
-	//2. 根据前一步骤提取的框内，进行绿色分割
+	//3. 根据前一步骤提取的框内，进行绿色分割
 	m_recttarget.setup(nleft, ntop, nright, nbottom);
 
-	//kxCImageBuf cutrgb[3];
-	//for (int i = 0; i < 3; i++)
-	//{
-	//	// 初始化，剪切，调用
-	//	cutrgb[i].Init(targetroi.Width(), targetroi.Height());
-	//	
-	//	m_hFun.KxCopyImage(RGB[i], cutrgb[i], targetroi);
-	//}
-	//SliderMatch(cutrgb, m_param.m_ImgTemplate);
-	//
-
+	// 旧方案，直接一片mask
 	m_ImgGlueMask.Init(RGB[0].nWidth, RGB[0].nHeight, RGB[0].nChannel);
 
 	ippsSet_8u(0, m_ImgGlueMask.buf, m_ImgGlueMask.nPitch * m_ImgGlueMask.nHeight);
@@ -717,47 +719,6 @@ void CGlueCheck::GetGlueMask(const kxCImageBuf* RGB)
 	ippiSet_8u_C1R(255, m_ImgGlueMask.buf + m_ImgGlueMask.nPitch * ntop + nleft, m_ImgGlueMask.nPitch, copysize);
 
 
-	//肇庆方案
-	//ExtractGreen(RGB, targetroi, m_ImgGlueMask);
-
-	/*
-	//2. 对边框内图案进行提取
-	
-	m_hAlg.ThreshImg(m_ImgHSV[1], m_ImgThresh, 95, CEmpiricaAlgorithm::_BINARY);
-	
-	m_hFun.KxOpenImage(m_ImgThresh, m_ImgOpen, 11, 11);
-
-	m_hFun.KxCloseImage(m_ImgOpen, m_ImgClose, 11, 11);
-
-	m_hBlobFun.SelectMaxRegionByDots(m_ImgClose, m_ImgmaxRegion);
-
-
-	//这里只是针对颜色的提取，必须加一层外部提取，把孔闭了
-
-	m_hAlg.FillHoles(m_ImgmaxRegion, m_ImgGlueMask);
-
-	//最下面那段颜色不行，所以裁剪掉 2021.12.16 后面要换掉
-
-	cv::Mat srcimg = cv::Mat(m_ImgGlueMask.nHeight, m_ImgGlueMask.nWidth, CV_8UC1, m_ImgGlueMask.buf);
-
-	cv::Rect rect = cv::boundingRect(srcimg);
-
-	int x = rect.x + rect.width / 10;
-
-	int y = rect.y + rect.height / 10;
-
-	int width = rect.width / 10 * 8;
-
-	int height = rect.height / 10 * 8;
-
-	cv::Mat cutimg = srcimg(cv::Rect(x, y, width, height)).clone();
-
-	ippsSet_8u(0, srcimg.data, srcimg.rows * srcimg.step);
-
-	IppiSize copysize = { cutimg.cols, cutimg.rows };
-
-	ippiCopy_8u_C1R(cutimg.data, cutimg.step, srcimg.data + x + srcimg.step * y, srcimg.step, copysize);
-	*/
 
 
 	m_ImgColorGlueMask.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight, 3);
@@ -959,6 +920,7 @@ void CGlueCheck::CutImg2MulImg(const kxCImageBuf& CheckImg)
 void CGlueCheck::ExtractGreen(const kxCImageBuf* RGB, kxRect<int> roi, kxCImageBuf& DstImg)
 {
 	
+	/*
 	// 1. 将图像转换为32f
 	kxCImageBuf dilateR;
 	
@@ -1054,7 +1016,105 @@ void CGlueCheck::ExtractGreen(const kxCImageBuf* RGB, kxRect<int> roi, kxCImageB
 	m_hAlg.FillHoles(maxregion, fillholesimg);
 
 	ippiAdd_8u_C1RSfs(closeimg.buf, closeimg.nPitch, fillholesimg.buf, fillholesimg.nPitch, DstImg.buf, DstImg.nPitch, imgsize, 0);
+	*/
 
+
+	// 检测是对图像进行2G - R - B的提取，然后滤除黄色胶条的影响
+	kxCImageBuf G_R, G_B;
+	G_R.Init(RGB[0].nWidth, RGB[0].nHeight);
+	G_B.Init(RGB[0].nWidth, RGB[0].nHeight);
+
+	IppiSize imgsize = { G_R.nWidth, G_R.nHeight};
+	ippiSub_8u_C1RSfs(RGB[0].buf, RGB[0].nPitch, RGB[1].buf, RGB[1].nPitch, G_R.buf, G_R.nPitch, imgsize, 0);
+	ippiSub_8u_C1RSfs(RGB[2].buf, RGB[2].nPitch, RGB[1].buf, RGB[1].nPitch, G_B.buf, G_B.nPitch, imgsize, 0);
+
+	kxCImageBuf addimg;
+	addimg.Init(RGB[0].nWidth, RGB[0].nHeight);
+
+	ippiAdd_8u_C1RSfs(G_R.buf, G_R.nPitch, G_B.buf, G_B.nPitch, addimg.buf, addimg.nPitch, imgsize, 0);
+
+
+	kxCImageBuf mask1, mask2;
+	m_hFun.KxThreshImage(addimg, mask1, 7, 255);
+	m_hFun.KxThreshImage(G_B, mask2, 7, 255);//这里其实是对 G - R做二值化，因为RGB是反的
+
+	kxCImageBuf mask;
+	mask.Init(RGB[0].nWidth, RGB[0].nHeight);
+	ippiAnd_8u_C1R(mask1.buf, mask1.nPitch, mask2.buf, mask2.nPitch, mask.buf, mask.nPitch, imgsize);
+
+	DstImg.Init(mask.nWidth, mask.nHeight);
+
+	kxCImageBuf openimg, closeimg;
+	openimg.Init(mask.nWidth, mask.nHeight);
+	closeimg.Init(mask.nWidth, mask.nHeight);
+
+
+
+	//
+
+	// 下面方法备用
+	////先开运算去除散点
+	m_hFun.KxOpenImage(mask, openimg, 5, 5);
+
+	////闭运算闭合小孔
+	m_hFun.KxCloseImage(openimg, closeimg, 21,11);
+
+	////腐蚀屏蔽边缘，容易报低
+	//kxCImageBuf erordeimg;
+	//erordeimg.Init(closeimg.nWidth, closeimg.nHeight);
+	//m_hFun.KxErodeImage(closeimg, erordeimg, 15, 15);
+
+	//m_hFun.KxErodeImage(erordeimg, DstImg, 15, 15);
+
+
+	kxCImageBuf fillholes;
+	fillholes.Init(mask.nWidth, mask.nHeight);
+	m_hFun.KxFillHoles(closeimg, fillholes);
+	CKxBlobAnalyse blob;
+	kxCImageBuf subimg;
+	subimg.Init(fillholes.nWidth, fillholes.nHeight);
+	ippiSub_8u_C1RSfs(closeimg.buf, closeimg.nPitch, fillholes.buf, fillholes.nPitch, subimg.buf, subimg.nPitch, imgsize, 0);
+	blob.ToBlobByCV(subimg, CKxBlobAnalyse::_SORT_BYDOTS, 100);
+	int nblobcount = blob.GetBlobCount();
+	
+	for (int i = 0; i < blob.GetBlobCount(); i++)
+	{
+		CKxBlobAnalyse::SingleBlobInfo blobinfo;
+
+		blobinfo = blob.GetSortSingleBlob(i);
+		//std::cout << blobinfo.m_rc.left << blobinfo.m_rc.top << blobinfo.m_rc.right << blobinfo.m_rc.bottom << std::endl;
+
+		if (blobinfo.m_rc.Width() > 1000)//宽度>1000不管
+		{
+			//std::cout << "in" << blobinfo.m_rc.Width() << std::endl;
+			kxCImageBuf roiimg;
+
+			blobinfo.m_rc.left = gMax(blobinfo.m_rc.left - 50, 0);
+
+			blobinfo.m_rc.right = gMin(blobinfo.m_rc.right + 50, subimg.nWidth - 1);
+			
+			blob.GetBlobImage(blobinfo.m_nLabel, blobinfo.m_rc, roiimg);
+
+			kxCImageBuf dilatesmallimg;
+
+			dilatesmallimg.Init(roiimg.nWidth, roiimg.nHeight);
+
+			m_hFun.KxDilateImage(roiimg, dilatesmallimg, 21, 21);
+
+			IppiSize roisize = {roiimg.nWidth, roiimg.nHeight};
+
+			kxCImageBuf subresult;
+
+			subresult.Init(roiimg.nWidth, roiimg.nHeight);
+
+			ippiSub_8u_C1IRSfs(dilatesmallimg.buf, dilatesmallimg.nPitch, fillholes.buf + blobinfo.m_rc.left + blobinfo.m_rc.top * fillholes.nPitch, fillholes.nPitch, roisize, 0);
+
+		}
+	}
+	
+	kxCImageBuf erodeimg;
+	m_hFun.KxErodeImage(fillholes, erodeimg, 15, 15);
+	DstImg.SetImageBuf(erodeimg, true);
 }
 
 void CGlueCheck::SliderMatch(kxCImageBuf& SrcImg, kxCImageBuf& Templateimg)
@@ -1435,18 +1495,64 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 	m_hFun.SaveBMPImage_h(savepath, m_ImgCheck);
 
 
+	// 把缺陷拷贝到涂胶上，看是否能检出
+
+	kxCImageBuf readimg;
+	char loadpath[128];
+	sprintf_s(loadpath, "D:\\testimg\\5.bmp");
+	m_hFun.LoadBMPImage_h(loadpath, readimg);
+
+	kxRect<int> defectpos;
+	defectpos.setup(4151, 5291, 4207, 5345);
+	kxCImageBuf defectimg;
+	defectimg.Init(defectpos.Width(), defectpos.Height(), readimg.nChannel);
+	IppiSize defectsize = { defectpos.Width(), defectpos.Height() };
+	ippiCopy_8u_C3R(readimg.buf + defectpos.top * readimg.nPitch + defectpos.left * readimg.nChannel, readimg.nPitch, defectimg.buf, defectimg.nPitch, defectsize);
+
+
+	int ncopylefet = 3000;
+	int ncopytop = 5100;
+	ippiCopy_8u_C3R(defectimg.buf, defectimg.nPitch, m_ImgCheck.buf + ncopylefet * m_ImgCheck.nChannel + ncopytop * m_ImgCheck.nPitch, m_ImgCheck.nPitch, defectsize);
+
+
+	kxCImageBuf RGBNEW[3];
+
+	m_hAlg.SplitRGB(m_ImgCheck, RGBNEW);
+
+	kxCImageBuf dstimg;
+
+	ExtractGreen(RGBNEW, m_recttarget, m_ImgGlueMask);
+
+
+
+	m_ImgColorGlueMask.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight, 3);
+
+	unsigned char *pbuf[3] = { m_ImgGlueMask.buf , m_ImgGlueMask.buf , m_ImgGlueMask.buf };
+
+	IppiSize imgsize = { m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight };
+
+	ippiCopy_8u_P3C3R(pbuf, m_ImgGlueMask.nPitch, m_ImgColorGlueMask.buf, m_ImgColorGlueMask.nPitch, imgsize);
+
+	kxCImageBuf finalcheckimg;
+
+	finalcheckimg.Init(m_ImgCheck.nWidth, m_ImgCheck.nHeight, m_ImgCheck.nChannel);
+
+
+	ippiAnd_8u_C3R(m_ImgColorGlueMask.buf, m_ImgColorGlueMask.nPitch, m_ImgCheck.buf, m_ImgCheck.nPitch, finalcheckimg.buf, finalcheckimg.nPitch, imgsize);
+
+
 	// 检测涂胶的。
-	kxCImageBuf cutimg;
+	//kxCImageBuf cutimg;
 
-	cutimg.Init(m_recttarget.Width(), m_recttarget.Height(), m_ImgCheck.nChannel);
+	//cutimg.Init(m_recttarget.Width(), m_recttarget.Height(), m_ImgCheck.nChannel);
 
- 	m_hFun.KxCopyImage(m_ImgCheck, cutimg, m_recttarget);
+ //	m_hFun.KxCopyImage(m_ImgCheck, cutimg, m_recttarget);
 
 	//SliderMatch(cutimg, m_param.m_ImgTemplate);
-	CheckLow(cutimg);
+	//CheckLow(cutimg);
 
 
-	checkyiwu(m_ImgCheck, checkresult);
+	checkyiwu(finalcheckimg, checkresult);
 
 	DstImg.SetImageBuf(m_ImgCheck, true);
 
