@@ -1,4 +1,4 @@
-pyinstaller.exe -w --uac-admin -i logo.ico main.py
+D:\Anaconda\Scripts\pyinstaller.exe  -w --uac-admin -i logo.ico main.spec
 pyinstaller -w --uac-admin -i logo.ico main.spec
 
 

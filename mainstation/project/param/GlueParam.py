@@ -9,6 +9,7 @@ import xmltodict
 import json
 import cv2
 import numpy as np
+import os
 from kxpyqtgraph.kxparameterTree.KxCustomWidget import *
 from library.parametersetting.ParamItemPY.KxBaseWidget import KxBaseParamWidget, registerkxwidget
 from kxpyqtgraph.kxparameterTree.KxParameter import KxParameter
@@ -21,6 +22,7 @@ from project.param.MergeImg import CMergeImg, CMergeImgToList
 from PIL import Image
 from project.param.WaitDialogWithText import WaitDialogWithText
 import  logging
+import threading
 from library.common.readconfig import readconfig, MAINSTATION_CONFIG
 #节拍  分析
 #
@@ -29,6 +31,7 @@ class BuildStatus:#建模状态
     STATUS_INIT = 0
     STATUS_ALL = 1
     STATUS_SECOND = 2
+    STATUS_SIMULATE = 3#载入图像进行的模拟建模状态
 
 class GuleParam(KxBaseParamWidget):
     """
@@ -40,6 +43,11 @@ class GuleParam(KxBaseParamWidget):
     _BUILD_MODEL_SCALE_FACTOR = 4#建模的时候对图像进行压缩，不然会卡顿
 
     _SIG_CAPTUREBIGIMG_DONE = QtCore.pyqtSignal()# 大图采集建模完成
+
+    SIG_LOAD2MODEL1 = QtCore.pyqtSignal(object)  # 单张图像采集
+    SIG_LOAD2MODEL2 = QtCore.pyqtSignal()  # 切换下一列
+    SIG_LOAD2MODEL3 = QtCore.pyqtSignal()  # 采集完成
+    SIG_LOAD2MODEL_ERROR = QtCore.pyqtSignal(str)  # 发生错误
 
     def __init__(self, h_parentwidget, n_uid, n_areanum, n_stationid):
         KxBaseParamWidget.__init__(self,n_uid, n_areanum, n_stationid)
@@ -59,7 +67,6 @@ class GuleParam(KxBaseParamWidget):
         self.h_bigimage = None
         self.threadWaitDialog = None
         self._connectlog()
-        self.ui.h_pBtLoad.clicked.connect(self.loadimg)
         self._SIG_CAPTUREBIGIMG_DONE.connect(self._closewaitdialog)
 
 
@@ -77,6 +84,8 @@ class GuleParam(KxBaseParamWidget):
         self.h_imgitem = pg.ImageItem()
         self.view.addItem(self.h_imgitem)
         self.ui.h_pBtSave.clicked.connect(self.saveparameters)
+        self.ui.h_pBtLoad.setText("模拟建模")
+        self.ui.h_pBtLoad.clicked.connect(self._simulate2buildmodel)
 
 
     def _initparam(self):
@@ -138,6 +147,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def _connectlog(self):
+        """连接日志信号槽，改动可显示到日志中"""
         self.b_connectstatus = True
         self.p.param("全局拍摄控制").sigTreeStateChanged.connect(self._logparamchange)
         self.p.param("检测参数").sigTreeStateChanged.connect(self._logparamchange)
@@ -148,6 +158,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def _disconnectlog(self):
+        """取消连接日志信号槽，因为参数树的一个bug，程序刚启动的时候会有些"""
         if self.b_connectstatus:
             self.p.param("全局拍摄控制").sigTreeStateChanged.disconnect(self._logparamchange)
             self.p.param("检测参数").sigTreeStateChanged.disconnect(self._logparamchange)
@@ -165,6 +176,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def _initsignal(self):
+        """初始化时负责连接关键信号槽"""
         self.p.param('检测区域数量').sigValueChanged.connect(self._add_checkarea)
         self.p.param('全局拍摄控制', '全局取图').sigActivated.connect(self._captureimg)
         self.p.param('全局拍摄控制', '扫描区域取图').sigActivated.connect(self._captureimg_second)
@@ -173,8 +185,14 @@ class GuleParam(KxBaseParamWidget):
         self.p.param('防呆防错设置', '基准点数量').sigValueChanged.connect(self._addpointparam)
         self.p.param('防呆防错设置', '标定基准高度').sigActivated.connect(self._calibrate_highsensor_point)
 
+        self.SIG_LOAD2MODEL1.connect(self._slot_simulate_recimg)
+        self.SIG_LOAD2MODEL2.connect(self._slot_simulate_changcol)
+        self.SIG_LOAD2MODEL3.connect(self._slot_simulate_builddone)
+        self.SIG_LOAD2MODEL_ERROR.connect(self._slot_error)
+
 
     def _addpointparam(self, *even):
+        """显示或隐藏防呆防错信号槽"""
         if int(even[1]) > self.n_measurehighnum:
             for n_i in range(self.n_measurehighnum, int(even[1])):
                 self.p.param('防呆防错设置','防呆防错点' + str(n_i)).show()
@@ -185,6 +203,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def _add_checkarea(self, *even):
+        """显示或隐藏检测区域"""
         if int(even[1]) > self.n_checkarea:
             for n_i in range(self.n_checkarea, int(even[1])):
                 self.p.param('检测区域' + str(n_i)).show()
@@ -197,6 +216,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def _append_checkarea_param(self, dict_params):
+        """增加检测区域的参数"""
         list_standardschildrenitems = []
         for i in range(0, self._MAX_ROI_NUM):
             list_standardschildrenitems.append(
@@ -214,7 +234,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def _append_scan_area(self, dict_params):
-
+        """增加扫描区域的参数"""
         list_standardschildrenitems = []
         for i in range(0, self._MAX_SCAN_NUM):
             list_standardschildrenitems.append(
@@ -239,8 +259,8 @@ class GuleParam(KxBaseParamWidget):
 
 
     def _append_fangdaifangcuo_point(self):
+        """给参数树增加防呆防错的参数"""
         list_child = [{'name': '基准点数量', 'type': 'int', 'value': 0, 'limits': [0, 6]}]
-
         for i in range(6):
             dict_child = {'name': '防呆防错点%d'%i, 'type': 'group','expanded':False, 'visible':False, 'children': [
             {'name': 'X位置', 'type': 'int', 'value': 0, 'limits': [0, StaticConfigParam.MAX_X_LEN]},
@@ -303,7 +323,7 @@ class GuleParam(KxBaseParamWidget):
 
     def _captureimg_second(self):
         """
-        第二次采集全局参数，根据roi框的位置进行拍摄
+        第二次采集图像进行建模，根据roi框的位置进行拍摄
         :return:
         """
         self.threadWaitDialog = WaitDialogWithText('正在二次取图建模，请勿点击...')
@@ -312,6 +332,33 @@ class GuleParam(KxBaseParamWidget):
         self.threadWaitDialog.show()
         QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
 
+        imgW = int(self.p.param('全局拍摄控制', '相机横向像素数').value())
+
+        list_x, list_y, list_buildimgnum, list_bigimgH = self._getlist_xy_movepos()
+
+        for nindex, n_build_imgnum in  enumerate(list_buildimgnum):
+
+            self.p.param("扫描区域", "扫描区域%d图像数量" % nindex).setValue(n_build_imgnum)
+
+        self.h_mergelistobj.clear()
+
+        self.h_mergelistobj.initinfo(list_buildimgnum, int(imgW / self._BUILD_MODEL_SCALE_FACTOR), list_bigimgH)
+
+        self.build_status = BuildStatus.STATUS_SECOND
+
+        ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL_SECOND, [list_x, list_y]))
+
+
+    def _getlist_xy_movepos(self):
+        """
+        获取 二次取图建模时所需要的移动距离，也是实际检测流程开始时需要的数据
+        Returns
+        -------
+        list_x  移动x距离,单位mm
+        list_y  移动y距离，单位mm
+        list_buildimgnum    每个值代表扫描一列拍摄多少张图
+        list_bigimgH        每一列的大图高，用于拼接图像
+        """
         nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
         nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
@@ -363,57 +410,16 @@ class GuleParam(KxBaseParamWidget):
 
             list_bigimgH.append(int(n_build_imgnum * int(imgH / self._BUILD_MODEL_SCALE_FACTOR)))
 
-            self.p.param("扫描区域", "扫描区域%d图像数量"%nindex).setValue(n_build_imgnum)
 
-        self.h_mergelistobj.clear()
-
-        self.h_mergelistobj.initinfo(list_buildimgnum, int(imgW / self._BUILD_MODEL_SCALE_FACTOR), list_bigimgH)
-
-        self.build_status = BuildStatus.STATUS_SECOND
-
-        ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_BUILD_MODEL_SECOND, [list_x, list_y]))
+        return list_x, list_y, list_buildimgnum, list_bigimgH
 
 
     def call2back2getcaptureinfo(self):
+        """
+            开始检测时，外部回调这个函数得到运动信息，以及标定的防呆防错基准值
+        """
 
-        nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
-
-        nStartX = int(self.p.param('全局拍摄控制', '起拍位置').value())
-
-        imgH = int(self.p.param('全局拍摄控制', '相机纵向像素数').value())
-
-        nmiddleoffset = int(int(self.p.param('全局拍摄控制', '相机横向像素数').value()) / 2 / self._BUILD_MODEL_SCALE_FACTOR)
-
-        # 二次建模，对一次建模的roi进行隐藏，只需记录结果即可
-        for n_i in range(int(nXtimes)):
-            self.p.param('扫描区域', '扫描区域' + str(n_i)).isShow(False)
-
-        list_posx = []
-
-        list_x = []
-
-        list_y = []
-
-        for i in range(nXtimes):
-            list_posx.append(self.p.param('扫描区域', '扫描区域' + str(i)).get_list_pos())
-
-        for roipos in list_posx:
-            list_x.append(int(int(
-                max(0, (roipos[0] + roipos[
-                    2]) / 2 - nmiddleoffset)) * self._BUILD_MODEL_SCALE_FACTOR / StaticConfigParam.DIS2PIXEL + nStartX))
-
-            list_y.append(int(roipos[3]) * self._BUILD_MODEL_SCALE_FACTOR)
-
-        # list_y记录y轴移动距离，但是需要考虑图像每次拍摄取整以及可能丢步的问题
-
-        for nindex, y in enumerate(list_y):
-            n_build_imgnum = int(y / imgH) + 1
-
-            # ndisY = min(int((n_build_imgnum + 1) * imgH / StaticConfigParam.DIS2PIXEL), StaticConfigParam.MAX_Y_LEN)
-            ndisY = min(int(n_build_imgnum * imgH / StaticConfigParam.DIS2PIXEL) + StaticConfigParam.RUN_MORE_DIS,
-                        StaticConfigParam.MAX_Y_LEN)
-
-            list_y[nindex] = ndisY
+        list_x, list_y, list_buildimgnum, list_bigimgH = self._getlist_xy_movepos()
 
         # 记录判断防呆防错的点
         list_z = []
@@ -438,7 +444,6 @@ class GuleParam(KxBaseParamWidget):
         扫描之后记录点值回调 callback2set_highsensor_point 将测量点结果送回
         :return:
         """
-
         nnum = int(self.p.param('防呆防错设置', '基准点数量').value())
 
         if nnum > 0:
@@ -462,7 +467,16 @@ class GuleParam(KxBaseParamWidget):
 
 
     def callback2set_highsensor_point(self, list_param):
+        """
+        外部回调进行设置基准值
+        Parameters
+        ----------
+        list_param：高度传感器获取的基准值
 
+        Returns
+        -------
+
+        """
         for nindex, data in enumerate(list_param):
 
             self.p.param('防呆防错设置', '防呆防错点%d' % nindex, '基准值').setValue(str(int(data)))
@@ -483,6 +497,12 @@ class GuleParam(KxBaseParamWidget):
 
 
     def loadparameters(self):
+        """
+        载入模板参数，切换模板或新建模板、刚启动程序的时候都会调用这个类
+        Returns
+        -------
+
+        """
         self._disconnectlog()
 
         super(GuleParam, self).loadparameters()
@@ -523,6 +543,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def saveparameters(self):
+        """保存参数"""
         self._disconnectlog()
         self._sortcheckpos()
         self._saveMapColRow()
@@ -614,6 +635,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def _changeshowimg(self, *even):
+        """改变显示图像，选择组号几的时候进行切换"""
         nindex = int(even[1])
 
         if nindex < len(self.list_img):
@@ -640,6 +662,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def _setbaseimgpath(self):
+        """设置底板路径"""
         list_str = self.str_filedirectory.split('\\')
         for i in range(self._MAX_SCAN_NUM):
             list_str[-1] = str(i) + '.bmp'
@@ -648,6 +671,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def _ReceiveBuildModelImg(self, tuple_data):
+        """接收建模图像，第一次建模的图，且压缩放入拼图obj中"""
         dict_result = json.loads(tuple_data)
         img = self._getimage(dict_result)
         newsize = (int(img.shape[1] / self._BUILD_MODEL_SCALE_FACTOR), int(img.shape[0] / self._BUILD_MODEL_SCALE_FACTOR))
@@ -689,6 +713,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def callback2changecol(self):
+        """初次建模时N次扫描，进行更换列"""
         self.h_mergeobj.IncreaseCol()
 
         self.threadWaitDialog.setProcessBarVal(20)
@@ -696,6 +721,7 @@ class GuleParam(KxBaseParamWidget):
 
 
     def callback2showbigimg(self):
+        """初次建模完成回调显示大图"""
         self.h_imgitem.setImage(self.h_mergeobj.bigimg)
 
         self.h_bigimage = self.h_mergeobj.bigimg
@@ -712,10 +738,12 @@ class GuleParam(KxBaseParamWidget):
 
 
     def callback2judgeisfull(self):
+        """外部回调判断当前列图像是否已满，是的话外部会执行扫描下一列的动作"""
         return self.h_mergeobj.IsFull()
 
 
     def callback2changecol_second(self):
+        """"""
         self.h_mergelistobj.IncreaseCol()
 
         self.threadWaitDialog.setProcessBarVal(20)
@@ -731,7 +759,6 @@ class GuleParam(KxBaseParamWidget):
         self.p.param('扫描区域', "匹配位置0").isShow(True)
 
         self._SIG_CAPTUREBIGIMG_DONE.emit()
-
 
 
 
@@ -837,12 +864,102 @@ class GuleParam(KxBaseParamWidget):
         ipc_tool.getqueue_processedData().put((-1, imc_msg.MSG_SET_CHECK_MASK, self.getcheckareastatus()))
 
 
+    def _simulate2buildmodel(self):
+        """
+        模拟建模，也即载入图片进行建模
+        1. 首先初始化图形列表
+        2. 打开线程
+        3.
+        Returns
+        -------
+
+        """
+        file_name = QtWidgets.QFileDialog.getExistingDirectory(self, "打开模拟取图路径")
+        #print (file_name)
+
+        self.threadWaitDialog = WaitDialogWithText('本地取图进行二次建模，请勿点击...')
+        self.threadWaitDialog.clear()
+        self.threadWaitDialog.setProcessBarRange(0, 100)
+        self.threadWaitDialog.show()
+        QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
+
+        imgW = int(self.p.param('全局拍摄控制', '相机横向像素数').value())
+
+        list_x, list_y, list_buildimgnum, list_bigimgH = self._getlist_xy_movepos()
+
+        self.h_mergelistobj.clear()
+
+        self.h_mergelistobj.initinfo(list_buildimgnum, int(imgW / self._BUILD_MODEL_SCALE_FACTOR), list_bigimgH)
+
+        self.build_status = BuildStatus.STATUS_SIMULATE
+
+        threadloadimg2buildmodel = threading.Thread(target=self._threadfun_loadimg2buildmodel, args=[list_buildimgnum,
+                                                                                                     file_name])
+        threadloadimg2buildmodel.start()
+
+
+    def _slot_simulate_recimg(self, img):
+        newsize = (int(img.shape[1] / self._BUILD_MODEL_SCALE_FACTOR), int(img.shape[0] / self._BUILD_MODEL_SCALE_FACTOR))
+        resizeimg = cv2.resize(img, newsize)
+        self.h_mergelistobj.merge(resizeimg)
+
+
+    def _slot_simulate_changcol(self):
+        print("change col")
+        self.callback2changecol_second()
+
+
+    def _slot_simulate_builddone(self):
+        self.callback2showbigimg_second()
+
+
+    def _slot_error(self, info):
+        self._closewaitdialog()
+        QtWidgets.QMessageBox.warning(self, u"错误", "！！！" + info + " ！！！", QtWidgets.QMessageBox.Cancel)
+
+
+    def _threadfun_loadimg2buildmodel(self, *data):
+        """
+        线程，载入图片进行建模。图片名称有序列要求，从 0 开始不断迭代，且中间不能断，且总数量不能小于两倍sum(list_imgnum)
+        Parameters
+        ----------
+        data    :[list_imgnum, path]
+                 list_imgnum 图像列表数量，代表没一列采集多少张图像
+                 path        模拟取图路径
+        Returns
+        -------
+
+        """
+        list_imgnum = data[0]
+        path = data[1]
+        if os.path.isdir(path):
+            nmaxnum = sum(list_imgnum)
+            nreadindex = 0  # 读取索引
+            nreadimgnum = 0
+            for nimgnum in list_imgnum:
+                for i in range(nimgnum):
+                    readpath = path + "\\" + str(nreadindex) + ".bmp"
+                    nreadindex += 1
+                    if os.path.isfile(readpath):
+                        with open(readpath, 'rb') as curfp:
+                            img = np.array(copy.copy(Image.open(curfp)))
+                        nreadimgnum += 1
+                        self.SIG_LOAD2MODEL1.emit(img)
+                    print(readpath)
+                nreadindex += nimgnum  # 跳到下一列
+                self.SIG_LOAD2MODEL2.emit()
+            if nreadimgnum != nmaxnum:
+                self.SIG_LOAD2MODEL_ERROR.emit("图像数量不足，无法完成建模")  # 返回错误
+            else:
+                self.SIG_LOAD2MODEL3.emit()
+        else:
+            self.SIG_LOAD2MODEL_ERROR.emit("路径不存在")  # 返回错误
 
 
     def loadimg(self):
         file_name = QtWidgets.QFileDialog.getOpenFileName(self, "open file dialog", "D://card",
                                                           "bmp files(*.bmp)")
-        print(file_name)
+        #print(file_name)
         image = cv2.imread(file_name[0], 1)
         self.h_imgitem.setImage(image, autoLevels=False)
 

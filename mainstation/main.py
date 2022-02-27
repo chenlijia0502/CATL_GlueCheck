@@ -62,6 +62,7 @@ def setup_communicateprocess(dict_config):
                                        int(dict_config['maxCameraPerStation']))
     tcpserver.start()
 
+
 def setup_datatransferprocess(dict_config):
     """创建处理数据进程，处理子站发过来的数据，一方面转给主界面进程，一方面控制硬件"""
     process_datahandling = DataProcess(int(dict_config['istranslate']))

@@ -9,12 +9,13 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from library.common.usermanager.ui_addusernew import Ui_addusernew
 from library.common.usermanager.subuserwidget import subuserwidget
 from library.common.ExcelManager import CExcelManager
+from library.common.globalparam import SYSTEMPATH
 
 
 
 
 class CAddUserDialogNew(QtWidgets.QDialog):
-    STR_PASSWORDSAVE_PATH = "d:\\software\\system\\userlist.xlsx"
+    STR_PASSWORDSAVE_PATH = SYSTEMPATH.BASE_DIR + "\\userlist.xlsx"
     LEVEL_SHEET_NAME = "Sheet1"# 保存用户权限列表的sheet名
     MODULE_SHEET_NAME = "Sheet2" #保存等级列表的sheet名
     _CSV_SAVE_HEAD = ['name', 'ID','permission','time']

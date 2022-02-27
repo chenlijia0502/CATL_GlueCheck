@@ -24,6 +24,7 @@ from project.other.WidgetMaskCheckArea import CWidgetMaskCheckArea
 from project.mainwindow.UploadDialog import CUploadDialog
 from project.mainwindow.CheckControlThread import CheckControlThread
 from project.mainwindow.InputDialog import CInputDialog
+from project.mainwindow.RecordDebugTimes import CRecordDebugTimes
 
 
 class kxmainwindow(KXBaseMainWidget):
@@ -109,7 +110,7 @@ class kxmainwindow(KXBaseMainWidget):
         self._SIG_PACKID.connect(self.callback2sendnextpackid)
 
         #调试模式
-        self.mode_root = False# 调试模式
+        self.modeobj = CRecordDebugTimes()
 
 
     def __timeout2checkdiskcapacity(self):
@@ -561,7 +562,7 @@ class kxmainwindow(KXBaseMainWidget):
 
         self.h_checkcontrolthread.emitnext()#检测完成都放小车走
 
-        if not self.mode_root:
+        if not self.modeobj.debugmode:
             if not bresult: # 调试模式以及结果为1都不进入下面循环
                 self.dialog_upload = CUploadDialog()
                 self.dialog_upload.show()
@@ -580,10 +581,17 @@ class kxmainwindow(KXBaseMainWidget):
 
         self.h_checkcontrolthread.emits()# 判断结果后触发下次逻辑
 
+        if self.modeobj.debugmode:#调试模式下增加记录
+
+            self.modeobj.IncreaseDebugTimes()
+
+            self.ui.label_rootnum.setText(self.modeobj.Getdebugtimes())
+
 
     def callback2changecheckstatus(self, list_data):
 
         self.widget_Paramsetting.str2paramitemfun(0, 1, 'callback2changecheckstatus', list_data)
+
 
     def callback2ensure_all_checkarea_selected(self):
         """
@@ -609,7 +617,6 @@ class kxmainwindow(KXBaseMainWidget):
 
                 self._onlinerun()
 
-
         self.h_checkcontrolthread.emitselected()
 
 
@@ -625,8 +632,9 @@ class kxmainwindow(KXBaseMainWidget):
 
             if self.inputdialog.gettext() == "zs20210401":
                 ipc_tool.kxlog("main", logging.WARNING, "进入调试模式")
-                self.mode_root = True
-                self.h_checkcontrolthread.setrootmode(self.mode_root)
+                self.modeobj.debugmode = True
+                self.ui.label_rootnum.setText(str(self.modeobj.Getdebugtimes()))
+                self.h_checkcontrolthread.setrootmode(self.modeobj.debugmode)
                 self.toolbutton_test.setIcon(QtGui.QIcon(''))
                 font = QtGui.QFont()
                 font.setPointSizeF(30)
@@ -634,16 +642,19 @@ class kxmainwindow(KXBaseMainWidget):
                 self.toolbutton_test.setFont(font)
                 self.toolbutton_test.setText("调试\n模式")
                 self.toolbutton_test.setStyleSheet("""color: rgb(255, 0, 0)""")
+
             else:
-                self.mode_root = False
-                self.h_checkcontrolthread.setrootmode(self.mode_root)
+                self.modeobj.debugmode = False
+                self.h_checkcontrolthread.setrootmode(self.modeobj.debugmode)
+                self.ui.label_rootnum.setText("")
                 self.toolbutton_test.setChecked(False)
                 self.toolbutton_test.setText("")
                 self.toolbutton_test.setIcon(QtGui.QIcon('res/设备自启测试.png'))
         else:
             ipc_tool.kxlog("main", logging.INFO, "退出调试模式")
-            self.mode_root = False
-            self.h_checkcontrolthread.setrootmode(self.mode_root)
+            self.modeobj.debugmode = False
+            self.ui.label_rootnum.setText("")
+            self.h_checkcontrolthread.setrootmode(self.modeobj.debugmode)
             self.toolbutton_test.setChecked(False)
             self.toolbutton_test.setText("")
             self.toolbutton_test.setIcon(QtGui.QIcon('res/设备自启测试.png'))

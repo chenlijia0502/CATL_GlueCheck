@@ -103,27 +103,5 @@ tabWidgetStyle = '''
                 '''
 
 
-# tabWidgetStyle = '''
-#                 QTabBar::tab {
-#                 border-color: black;
-#                 border-width: 3px;
-#                 border-top-left-radius: 6px;
-#                 border-top-right-radius: 6px;
-#                 background:lightGray;
-#                 color:black;
-#                 min-width:30ex;
-#                 min-height:10ex;
-#                 font:10pt 'Consolas';
-#                 }
-#                 QTabBar::tab:selected{
-#                 background:rgb(69,160,178);
-#                 color:white;
-#                 }
-#                 QTabBar::tab:!selected{
-#                 background:none;
-#                 color:black;
-#                 }
-#                 QTabBar::tab:!selected:hover {
-#                 margin-left: 5px;
-#                 }
-#                 '''
+class SYSTEMPATH:
+    BASE_DIR = "d:\\software\\system\\"
