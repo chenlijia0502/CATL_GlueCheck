@@ -3,6 +3,12 @@ import logging
 from library.common.globalparam import SYSTEMPATH
 from library.ipc import ipc_tool
 
+class DebugStatus:
+    STATUS1 = 0# 非调试模式
+    STATUS2 = 1#  调试模式
+    STATUS3 = 2#  系统自动放行模式，全判OK
+    STATUS4 = 3#  软件不检模式，但会取图存图。目的是考虑程序可能检测过程中发生崩溃，但不想放弃该组数据。注意只有一次，检完一次之后会自动复位
+
 class CRecordDebugTimes(object):
     """
     记录调试模式，并且记录调试模式下运行次数
@@ -10,7 +16,7 @@ class CRecordDebugTimes(object):
     FILE_PATH = SYSTEMPATH.BASE_DIR + "\\debug.txt"
     def __init__(self):
         super(CRecordDebugTimes, self).__init__()
-        self.debugmode = False
+        self.debugmode = DebugStatus.STATUS1
         self.ndebugtimes = 0
         self.__initpathfile()
 

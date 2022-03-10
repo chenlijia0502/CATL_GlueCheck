@@ -32,6 +32,8 @@ class GlobalMsgSend:
     MSG_ENDMOVE = 255
     MSG_ENDALLMOVE = 256
 
+    MSG_NOT_CHECK = 1004 #当前pack不检只存图
+
 
 """
    2020.02.11为了数据的传递，自定义口信号之后，其会将数据自动地放入对应的队列中，送到该界面去.

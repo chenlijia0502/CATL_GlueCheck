@@ -207,7 +207,9 @@ void CTestAsioTcpClient::OnRecvData(int nStationID, const unsigned char* pData, 
 				case MSG_PACK_ID://收到pack id
 					RecMsgPackId(pExtData);
 					break;
-
+				case MSG_NOT_CHECK:
+					RecMsgToSetIsCheck(pExtData);
+					break;
 				
 				default:
 					break;
@@ -544,5 +546,18 @@ void CTestAsioTcpClient::RecMsgPackId(const unsigned char* pExtData)
 	Graber::g_GetCamera()->ReverseScanDirection(0);// 代表相机正着走触发
 	Graber::g_GetCamera()->OpenInternalTrigger(1);//外触发
 }
+
+void CTestAsioTcpClient::RecMsgToSetIsCheck(const unsigned char* pExtData)
+{
+	Json::Reader reader;
+	Json::Value root;
+	if (reader.parse((const char*)pExtData, root))  // reader将Json字符串解析到root，root将包含Json里所有子元素  
+	{
+		int nischeck = root["ischeck"].asInt();  
+
+		Check::g_GetCheckCardObj().SetIsCheck(nischeck);
+	}
+}
+
 
 CTestAsioTcpClient* g_client ;

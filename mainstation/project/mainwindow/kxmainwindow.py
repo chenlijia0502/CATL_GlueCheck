@@ -24,7 +24,7 @@ from project.other.WidgetMaskCheckArea import CWidgetMaskCheckArea
 from project.mainwindow.UploadDialog import CUploadDialog
 from project.mainwindow.CheckControlThread import CheckControlThread
 from project.mainwindow.InputDialog import CInputDialog
-from project.mainwindow.RecordDebugTimes import CRecordDebugTimes
+from project.mainwindow.RecordDebugTimes import CRecordDebugTimes, DebugStatus
 
 
 class kxmainwindow(KXBaseMainWidget):
@@ -562,7 +562,7 @@ class kxmainwindow(KXBaseMainWidget):
 
         self.h_checkcontrolthread.emitnext()#检测完成都放小车走
 
-        if not self.modeobj.debugmode:
+        if self.modeobj.debugmode == DebugStatus.STATUS1:
             if not bresult: # 调试模式以及结果为1都不进入下面循环
                 self.dialog_upload = CUploadDialog()
                 self.dialog_upload.show()
@@ -579,13 +579,33 @@ class kxmainwindow(KXBaseMainWidget):
             else:
                 self.widget_mes.senddata(self.spackid, 1)
 
-        self.h_checkcontrolthread.emits()# 判断结果后触发下次逻辑
+        elif self.modeobj.debugmode == DebugStatus.STATUS3:
 
-        if self.modeobj.debugmode:#调试模式下增加记录
+            self.widget_mes.senddata(self.spackid, 1)  #
 
+            ipc_tool.kxlog("检测", logging.WARNING, "系统自动对 PACKID：" + self.spackid + "进行放行操作")
+
+        elif self.modeobj.debugmode == DebugStatus.STATUS4:# 取图模式只检一次
+
+            self.widget_mes.senddata(self.spackid, 1)  #
+
+            ipc_tool.kxlog("检测", logging.WARNING, "取图模式，自动对 PACKID：" + self.spackid + "进行放行操作")
+
+            self.toolbutton_test.setChecked(False)
+
+            self._ROOT()
+
+            self._sendnotcheck(1)
+
+        else:#调试模式下增加记录
             self.modeobj.IncreaseDebugTimes()
 
             self.ui.label_rootnum.setText(self.modeobj.Getdebugtimes())
+
+        self.h_checkcontrolthread.emits()# 判断结果后触发下次逻辑
+
+
+
 
 
     def callback2changecheckstatus(self, list_data):
@@ -632,9 +652,9 @@ class kxmainwindow(KXBaseMainWidget):
 
             if self.inputdialog.gettext() == "zs20210401":
                 ipc_tool.kxlog("main", logging.WARNING, "进入调试模式")
-                self.modeobj.debugmode = True
+                self.modeobj.debugmode = DebugStatus.STATUS2
                 self.ui.label_rootnum.setText(str(self.modeobj.Getdebugtimes()))
-                self.h_checkcontrolthread.setrootmode(self.modeobj.debugmode)
+                self.h_checkcontrolthread.setrootmode(True)
                 self.toolbutton_test.setIcon(QtGui.QIcon(''))
                 font = QtGui.QFont()
                 font.setPointSizeF(30)
@@ -642,20 +662,52 @@ class kxmainwindow(KXBaseMainWidget):
                 self.toolbutton_test.setFont(font)
                 self.toolbutton_test.setText("调试\n模式")
                 self.toolbutton_test.setStyleSheet("""color: rgb(255, 0, 0)""")
-
+            elif self.inputdialog.gettext() == "zs20210401auto":
+                ipc_tool.kxlog("main", logging.WARNING, "进入自动放行模式")
+                self.modeobj.debugmode = DebugStatus.STATUS3
+                self.h_checkcontrolthread.setrootmode(False)
+                self.toolbutton_test.setIcon(QtGui.QIcon(''))
+                font = QtGui.QFont()
+                font.setPointSizeF(30)
+                font.setBold(True)
+                self.toolbutton_test.setFont(font)
+                self.toolbutton_test.setText("放行\n模式")
+                self.toolbutton_test.setStyleSheet("""color: rgb(0, 255, 0)""")
+            elif self.inputdialog.gettext() == "zs20210401software":
+                ipc_tool.kxlog("main", logging.WARNING, "进入取图模式，当前pack不检，只存图以及上传正确数据")
+                self.modeobj.debugmode = DebugStatus.STATUS4
+                self._sendnotcheck(0)
+                self.h_checkcontrolthread.setrootmode(False)
+                self.toolbutton_test.setIcon(QtGui.QIcon(''))
+                font = QtGui.QFont()
+                font.setPointSizeF(30)
+                font.setBold(True)
+                self.toolbutton_test.setFont(font)
+                self.toolbutton_test.setText("取图\n模式")
+                self.toolbutton_test.setStyleSheet("""color: rgb(0, 0, 255)""")
             else:
-                self.modeobj.debugmode = False
-                self.h_checkcontrolthread.setrootmode(self.modeobj.debugmode)
+                self.modeobj.debugmode = DebugStatus.STATUS1
+                self.h_checkcontrolthread.setrootmode(False)
                 self.ui.label_rootnum.setText("")
                 self.toolbutton_test.setChecked(False)
                 self.toolbutton_test.setText("")
                 self.toolbutton_test.setIcon(QtGui.QIcon('res/设备自启测试.png'))
         else:
             ipc_tool.kxlog("main", logging.INFO, "退出调试模式")
-            self.modeobj.debugmode = False
+            self._sendnotcheck(1)
+            self.modeobj.debugmode = DebugStatus.STATUS1
             self.ui.label_rootnum.setText("")
-            self.h_checkcontrolthread.setrootmode(self.modeobj.debugmode)
+            self.h_checkcontrolthread.setrootmode(False)
             self.toolbutton_test.setChecked(False)
             self.toolbutton_test.setText("")
             self.toolbutton_test.setIcon(QtGui.QIcon('res/设备自启测试.png'))
 
+
+    def _sendnotcheck(self, nischeck):
+        """
+        发送给子站，用于取图模式时不检测
+        :param nischeck: 0 为不检，1为继续检测
+        :return:
+        """
+        data = json.dumps({'ischeck':nischeck})
+        self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_NOT_CHECK, data)

@@ -71,7 +71,6 @@ enum MessageType
 
 	MSG_A = 2022,//获取A消息
 
-	//MSG_ONE_IMG					= 1004,	//单张测试
 	//MSG_LEARN_DEFECT			= 1006, //单个缺陷学习
 	//MSG_LEARN_DEFECT_COMPLETED  = 1007, //单张缺陷学习完成
 	//MSG_LEARN_ONE               = 1008, //单张学习
@@ -105,6 +104,7 @@ enum MessageType
 
 	MSG_SHOW_IMG = 1100, //检测时候拍的实时图像，用于实时显示界面显示
 
+	MSG_NOT_CHECK = 1004,// #当前pack不检只存图
 
 };
 

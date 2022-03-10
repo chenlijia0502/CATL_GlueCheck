@@ -23,6 +23,7 @@ CKxCheck::CKxCheck()
 	InitCheckMethod();
 	m_echeckstatus = _OFFLINE_RUN;
 	m_nCurPackIDimgindex = 0;
+	m_bIscheck = true;
 }
 
 CKxCheck::~CKxCheck()
@@ -396,24 +397,19 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 	}
 
 
-	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "拼图信息", "最大检测框高", szResult);
-	if (!nSearchStatus)
-	{
-		sprintf_s(ErrorInfo, 256, "最大检测框高");
-		return false;
-	}
-	int nmaxheight = 0;
+	//nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "拼图信息", "最大检测框高", szResult);
+	//if (!nSearchStatus)
+	//{
+	//	sprintf_s(ErrorInfo, 256, "最大检测框高");
+	//	return false;
+	//}
+	//nStatus = KxXmlFun2::FromStringToInt(szResult, nmaxheight);
+	//if (!nStatus)
+	//{
+	//	return false;
+	//}
 
-	nStatus = KxXmlFun2::FromStringToInt(szResult, nmaxheight);
-	if (!nStatus)
-	{
-		return false;
-	}
 
-	std::cout << "maxheight: " << nmaxheight << std::endl;
-	m_ImgMaxSizeA.Init(nImgW, nmaxheight, 3);
-
-	m_ImgMaxSizeB.Init(nImgW, nmaxheight, 3);
 
 	int ncolnum, nrownum;
 	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "拼图信息", "行数", szResult);
@@ -432,18 +428,7 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 	
 	nrownum = m_param.m_nmaxrownum;
 
-	//初始缩略大图
-	int nsingleimgh = nmaxheight / _SPLICING_IMG_SCALEFACTOR;
-
-	int nsingleimgw = nImgW / _SPLICING_IMG_SCALEFACTOR;
-
-	int nbigimgw = nsingleimgw * ncolnum;
-
-	int nbigimgh = nsingleimgh * nrownum;
-
-	m_ImgSplicing.Init(nbigimgw, nbigimgh, 3);
-
-	ippsSet_8u(0, m_ImgSplicing.buf, m_ImgSplicing.nPitch * m_ImgSplicing.nHeight);
+	
 
 
 	int *nimgnum = new int[m_param.m_nscantimes];
@@ -499,6 +484,8 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 
 
 	// 2022.2.7 提取模板中的图作为标准模板，之后提取的再跟它进行滑动残差
+
+	//int *pimgh = new int[m_param.m_nscantimes];// 存图建模图像高度，用于防止下面检测框扩大之后的越界
 	
 	for (int i = 0; i < m_param.m_nscantimes; i++)
 	{
@@ -523,6 +510,8 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 
 		m_hBaseFun.LoadBMPImage_h(readpath.c_str(), bigimg);
 
+		//pimgh[i] = bigimg.nHeight * m_param.m_nimgscalefactor;
+
 		for (int j = 0; j < m_param.m_nROINUM; j++)
 		{
 			if (m_param.params[j].m_nGrabTimes == i)
@@ -532,17 +521,17 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 				roi.divC(m_param.m_nimgscalefactor);
 
 				// roi 向内缩，目的是测试涂胶整体缩小效果
-				const int nsuoxiaohor = 200;
+				//const int nsuoxiaohor = 200;
 
-				const int nsuoxiaover = 100;
+				//const int nsuoxiaover = 100;
 
-				roi.left += nsuoxiaohor;
+				//roi.left += nsuoxiaohor;
 
-				roi.right -= nsuoxiaohor;
+				//roi.right -= nsuoxiaohor;
 
-				roi.top += nsuoxiaover;
+				//roi.top += nsuoxiaover;
 
-				roi.bottom -= nsuoxiaover;
+				//roi.bottom -= nsuoxiaover;
 
 				//--------------------
 
@@ -556,21 +545,71 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 
 	}
 
-	//// 2022.2.7 这里做一下扩充，原因是建模的时候有意拉小了
-	//const int nextend = 500;
+	//// 2022.2.27 这里做一下扩充，原因是建模的时候拉的是底部的框，但要考虑pack会偏移的问题
+	//const int nhorextend = 500;
+	//const int nverextend = 200;
 	//for (int i = 0; i < m_param.m_nROINUM; i++)
 	//{
-	//	m_param.params[i].m_rcCheckROI.top -= nextend;
-	//	m_param.params[i].m_rcCheckROI.bottom += nextend;
+	//	int newtop = gMax(0, m_param.params[i].m_rcCheckROI.top - nverextend);
+	//	int newbot = gMin(nimgnum[i] * nImgH - 1, m_param.params[i].m_rcCheckROI.bottom + nverextend);
+	//	int newleft = gMax(0, m_param.params[i].m_rcCheckROI.left - nverextend);
+	//	int newright = gMin(nImgW - 1, m_param.params[i].m_rcCheckROI.right + nverextend);
+
+	//	//m_param.params[i].m_rcCheckROI.top = 
+	//	//m_param.params[i].m_rcCheckROI.bottom =
+	//	//m_param.params[i].m_rcCheckROI.left = 
+	//	//m_param.params[i].m_rcCheckROI.right = 
+
 	//}
 
 
+	int nmaxheight = 0;
 
+	int nmaxwidth = 0;
+
+	for (int i = 0; i < m_param.m_nROINUM; i++)
+	{
+		if (nmaxheight < m_param.params[i].m_rcCheckROI.Height())
+		{
+			nmaxheight = m_param.params[i].m_rcCheckROI.Height();
+		}
+
+		if (nmaxwidth < m_param.params[i].m_rcCheckROI.Width())
+		{
+			nmaxwidth = m_param.params[i].m_rcCheckROI.Width();
+		}
+	}
+
+	const int nextend = 200;//考虑可能有偏移
+
+	nmaxheight += nextend;
+
+	nmaxwidth += nextend;
+
+	m_nMaximgW = nmaxwidth;
+
+	m_nMaximgH = nmaxheight;
+	
+	//m_ImgMaxSizeA.Init(nImgW, nmaxheight, 3);
+
+	//m_ImgMaxSizeB.Init(nImgW, nmaxheight, 3);
+
+	//初始缩略大图
+	int nsingleimgh = m_nMaximgH / _SPLICING_IMG_SCALEFACTOR;
+
+	int nsingleimgw = m_nMaximgW / _SPLICING_IMG_SCALEFACTOR;
+
+	int nbigimgw = nsingleimgw * ncolnum;
+
+	int nbigimgh = nsingleimgh * nrownum;
+
+	m_ImgSplicing.Init(nbigimgw, nbigimgh, 3);
+
+	ippsSet_8u(0, m_ImgSplicing.buf, m_ImgSplicing.nPitch * m_ImgSplicing.nHeight);
 
 	delete[] nimgnum;
 
 	delete[] rect;
-
 
 	//g_SaveImgQue.closefp();//每次重新载入都关闭fp
 
@@ -1240,95 +1279,51 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	// 2. 排序图像，进行检测
 	kxCImageBuf bigimgA, bigimgB;
 
-
-	for (int j = 0; j < m_param.m_nscantimes; j++)
+	if (m_bIscheck)
 	{
-		if (m_hcombineimg.IsColFull(j))
+		for (int j = 0; j < m_param.m_nscantimes; j++)
 		{
-			for (int i = 0; i < m_param.m_nROINUM; i++)
+			if (m_hcombineimg.IsColFull(j))
 			{
-				// 判断roi是否是这个扫描组里的，是的话裁剪进行检测   2021.12.14
-				if ((m_param.params[i].m_nGrabTimes == j) && (m_param.params[i].m_nIsnotcheck != 1))
+				for (int i = 0; i < m_param.m_nROINUM; i++)
 				{
-					m_hCheckResult[0].clear();
-
-					m_hCheckResult[0]["ISFULL"] = 0;
-
-					m_hCheckResult[0]["currow"] = m_param.params[i].m_nCurGrabID;
-
-					m_hCheckResult[0]["curcol"] = m_param.params[i].m_nGrabTimes;
-
-					m_hcombineimg.GetImg(bigimgA, bigimgB, j);
-
-
-
-					kxRect<int> copyrect;
-
-					copyrect.setup(0, m_param.params[i].m_rcCheckROI.top, m_TransferImage.nWidth - 1, m_param.params[i].m_rcCheckROI.bottom);
-
-					kxCImageBuf checkimgA, checkimgB;
-
-					checkimgA.Init(m_TransferImage.nWidth, copyrect.Height(), 3);
-
-					checkimgB.Init(m_TransferImage.nWidth, copyrect.Height(), 3);
-
-					m_hBaseFun.KxCopyImage(bigimgA, checkimgA, copyrect);
-
-					//char savepath[32];
-
-					//sprintf_s(savepath, "d:\\1.bmp");
-
-					//m_hBaseFun.SaveBMPImage_h(savepath, bigimgB);
-
-					m_hBaseFun.KxCopyImage(bigimgB, checkimgB, copyrect);
-
-					m_hCheckTools[0]->SetParam(&m_param.params[i]);
-
-					m_hCheckTools[0]->SetCheckBlobID(i);
-
-					ippsSet_8u(0, m_ImgMaxSizeA.buf, m_ImgMaxSizeA.nPitch * m_ImgMaxSizeA.nHeight);
-
-					ippsSet_8u(0, m_ImgMaxSizeB.buf, m_ImgMaxSizeB.nPitch * m_ImgMaxSizeB.nHeight);
-
-					IppiSize copysize = { checkimgA.nWidth, copyrect.Height()};
-
-					ippiCopy_8u_C3R(checkimgA.buf, checkimgA.nPitch, m_ImgMaxSizeA.buf, m_ImgMaxSizeA.nPitch, copysize);
-
-					ippiCopy_8u_C3R(checkimgB.buf, checkimgB.nPitch, m_ImgMaxSizeB.buf, m_ImgMaxSizeB.nPitch, copysize);
-
-					if (i == 1)// 表示全部检测完成,主站收到这个标志位会进行
+					// 判断roi是否是这个扫描组里的，是的话裁剪进行检测   2021.12.14
+					if ((m_param.params[i].m_nGrabTimes == j) && (m_param.params[i].m_nIsnotcheck != 1))
 					{
-						int ntette = 0;
+						m_hCheckResult[0].clear();
+
+						m_hCheckResult[0]["ISFULL"] = 0;
+
+						m_hCheckResult[0]["currow"] = m_param.params[i].m_nCurGrabID;
+
+						m_hCheckResult[0]["curcol"] = m_param.params[i].m_nGrabTimes;
+
+						m_hcombineimg.GetImg(bigimgA, bigimgB, j);
+
+						m_hCheckTools[0]->SetParam(&m_param.params[i]);
+
+						m_hCheckTools[0]->SetCheckBlobID(i);
+
+						m_DstImg.Init(m_nMaximgW, m_nMaximgH, bigimgA.nChannel);
+
+						m_bCheckStatus[0] = m_hCheckTools[0]->Check(bigimgA, bigimgB, m_DstImg, m_hCheckResult[0]);
+
+						SaveBadImg(m_DstImg, m_hCheckResult[0]);
+
+						if (i == m_param.m_nROINUM - 1)//表示全部检测完成,主站收到这个标志位会进行
+						{
+							m_hCheckResult[0]["ISFULL"] = 1;
+						}
+
+						CopyImg2SplicImg(m_DstImg, m_param.params[i].m_nCurGrabID, m_param.params[i].m_nGrabTimes);
+
+						AnalyseCheckResult(i, m_hCheckResult);
+
 					}
-
-					m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_ImgMaxSizeA, m_ImgMaxSizeB, m_DstImg, m_hCheckResult[0]);
-
-					SaveBadImg(m_DstImg, m_hCheckResult[0]);
-
-					if (i == m_param.m_nROINUM - 1)// 表示全部检测完成,主站收到这个标志位会进行
-					{
-						m_hCheckResult[0]["ISFULL"] = 1;
-					}
-
-					CopyImg2SplicImg(m_DstImg, m_param.params[i].m_nCurGrabID, m_param.params[i].m_nGrabTimes);
-
-					AnalyseCheckResult(i, m_hCheckResult);
-
-
-
-
 				}
 
-				
-				//if (m_struct2check[i].m_bCanCheck)
-				//{
-				//	m_hCheckTools[0]->SetParam(&m_param.params[i]);
-				//	m_bCheckStatus[0] = m_hCheckTools[0]->Check(m_struct2check[i].m_BigImg, m_DstImg, m_hCheckResult[0]);
-				//	m_struct2check[i].m_bCanCheck = false;
-				//}
+				m_hcombineimg.ResetCol(j);
 			}
-
-			m_hcombineimg.ResetCol(j);
 		}
 	}
 
@@ -1393,9 +1388,7 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	//total_e = tick_count::now();
 	//printf("check a image  %d: ----- cost : %f ms\n", card.m_CardID, (total_e - total_s).seconds() * 1000);
 	
-	
-	//SaveImg(CheckResultStatus(m_finalcheckstatus));
-	
+		
 	tbb_end = tick_count::now();
 	printf_s("----- id %d cost : %f ms\n", SrcCapImg.m_ImageID, (tbb_end - tbb_start).seconds() * 1000);
 

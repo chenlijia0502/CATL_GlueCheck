@@ -57,6 +57,8 @@ private:
 	void RecMsgJustOpenCamera();
 	void RecMsgPackId(const unsigned char* pExtData);// ’µΩÕ–≈Ãpack id 
 
+	void RecMsgToSetIsCheck(const unsigned char* pExtData);
+
 };
 
 extern CTestAsioTcpClient* g_client;

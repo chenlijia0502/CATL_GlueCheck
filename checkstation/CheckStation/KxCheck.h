@@ -114,6 +114,10 @@ private:
 	CheckStatus					m_echeckstatus;
 
 	CEmpiricaAlgorithm			m_hAlg;
+	int							m_nMaximgW;
+	int							m_nMaximgH;
+
+	bool						m_bIscheck;//主站可能会设置存图模式，用于应对当检测算法崩溃时还可进行单纯存图模式
 
 private:
 	//转Bayer图像为彩色图像或模拟数据转换
@@ -174,6 +178,18 @@ public:
 		else
 		{
 			m_echeckstatus = _OFFLINE_RUN;
+		}
+	}
+
+	void SetIsCheck(int nischeck)
+	{
+		if (nischeck)
+		{
+			m_bIscheck = true;
+		}
+		else
+		{
+			m_bIscheck = false;
 		}
 	}
 

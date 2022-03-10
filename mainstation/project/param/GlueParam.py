@@ -615,12 +615,12 @@ class GuleParam(KxBaseParamWidget):
                 list_col[ncol] += 1
 
         nmaxrow = max(list_col)
-        print (list_h)
+        #print (list_h)
         nmaxh = max(list_h) * self._BUILD_MODEL_SCALE_FACTOR
 
         self.p.param('拼图信息', '行数').setValue(nmaxrow)
         self.p.param('拼图信息', '列数').setValue(ncolnum)
-        self.p.param('拼图信息', '最大检测框高').setValue(nmaxh)
+        #self.p.param('拼图信息', '最大检测框高').setValue(nmaxh)
 
         #2. 设置每个检测区域的组ID，表示这个roi在当前组中属于第几个ID，便于显示检测结果的时候拼图
         ncurcol = -1
@@ -905,7 +905,6 @@ class GuleParam(KxBaseParamWidget):
 
 
     def _slot_simulate_changcol(self):
-        print("change col")
         self.callback2changecol_second()
 
 
@@ -945,7 +944,6 @@ class GuleParam(KxBaseParamWidget):
                             img = np.array(copy.copy(Image.open(curfp)))
                         nreadimgnum += 1
                         self.SIG_LOAD2MODEL1.emit(img)
-                    print(readpath)
                 nreadindex += nimgnum  # 跳到下一列
                 self.SIG_LOAD2MODEL2.emit()
             if nreadimgnum != nmaxnum:

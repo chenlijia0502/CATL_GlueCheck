@@ -220,7 +220,7 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
                 else:
                     errorwindow = QtWidgets.QMessageBox()
                     respond = errorwindow.warning(self, "警告，数据上传失败", str(result[0]) + " " + result[1], QtWidgets.QMessageBox.Ok)
-                    ipc_tool.kxlog("MES", logging.ERROR, "！！！MES出站 上传失败！！！")
+                    ipc_tool.kxlog("MES", logging.ERROR, "！！！MES出站 上传失败！！！" + result[1])
 
             elif self.type == MESTYPE.SHOUJIAN:
 
@@ -260,7 +260,7 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
                 else:
                     errorwindow = QtWidgets.QMessageBox()
                     respond = errorwindow.warning(self, "警告，数据上传失败", str(result[0]) + " " + result[1], QtWidgets.QMessageBox.Ok)
-                    ipc_tool.kxlog("MES", logging.ERROR, "！！！MES首件 上传失败！！！")
+                    ipc_tool.kxlog("MES", logging.ERROR, "！！！MES首件 上传失败！！！" + result[1])
 
         except Exception as e:
             ipc_tool.kxlog("MES", logging.ERROR, " MES SEND ERROR " + str(e))

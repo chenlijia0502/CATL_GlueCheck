@@ -45,7 +45,7 @@ public:
 		int				m_noffsethigh;//高灵敏度偏移，从主站读取结果直接乘以25，目的是统一到255的灰阶
 		int				m_noffsetlow;//低灵敏度偏移，从主站读取结果直接乘以25，目的是统一到255的灰阶
 
-		kxCImageBuf		m_ImgTemplate;
+		kxCImageBuf		m_ImgTemplate;//压缩的模板，专门用于检测涂胶是否大面积缺的，压缩系数看建模
 
 	};
 
@@ -147,7 +147,16 @@ private:
 
 	void SliderSub(kxCImageBuf& SrcImg, kxCImageBuf& TemplateImg, kxCImageBuf& dstCCImg, int nscalefactor);
 
-
 	void CheckLow(kxCImageBuf& SrcImg);//检测蚊虫以及胶内断胶
+
+
+	//2022.02.28 
+	void GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kxRect<int>& targetrect);//根据建模ROI搜出来的目标区域
+
+	void MergeImgNew(const kxCImageBuf& SrcImg1, const kxCImageBuf& SrcImg2, kxRect<int> targetrect, kxCImageBuf& DstImg);
+
+	void ExtractGreenNew(const kxCImageBuf* RGB, kxRect<int> roi, kxCImageBuf& DstImg);
+
+	void SliderMatchNew(kxCImageBuf& SrcImg, int ntargetw, int ntargeth, kxCImageBuf& Templateimg, kxCImageBuf& blobimg);
 
 };

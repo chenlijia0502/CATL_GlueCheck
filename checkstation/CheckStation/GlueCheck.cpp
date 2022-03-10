@@ -594,6 +594,7 @@ void CGlueCheck::GetEdgePoints(const kxCImageBuf& GrayImg, int nDir, int nthresh
 
 }
 
+
 void CGlueCheck::GetGlueMask(const kxCImageBuf* RGB)
 {
 
@@ -1260,141 +1261,6 @@ void CGlueCheck::SliderMatch(kxCImageBuf& SrcImg, kxCImageBuf& Templateimg)
 
 }
 
-void CGlueCheck::SliderSub(kxCImageBuf& SrcImg, kxCImageBuf& TemplateImg, kxCImageBuf& dstCCImg, int nscalefactor)
-{
-
-	/*
-		经过特殊编辑的滑动残差。 
-		（1）首先是 TemplateImg的高度 > SrcImg的高度
-		（2）目标是TemplateImg - SrcImg
-		（3）并且是在TemplateImg上截取一部分 - SrcImg
-		（4）但是TemplateImg的宽度很可能 < SrcImg的宽度
-		
-		综上，必须先对TemplateImg的高度进行保护扩充，宽度进行滑动范围扩充，保证补 0 之后的 TemplateImg 尺寸大于SrcImg
-
-
-		
-	*/
-	//1 .扩充图像
-
-	if (SrcImg.nHeight > TemplateImg.nHeight || SrcImg.nWidth < TemplateImg.nWidth)
-	{
-		std::cout << "原图尺寸不符合要求，无法进行滑动残差" << std::endl;
-
-		return;//先暴力的把不符合要求的直接返回
-	}
-
-	int nexpand = (SrcImg.nWidth - TemplateImg.nWidth) / 2 + 40;// 20是暂定的数字, 单侧扩展大小
-
-	kxCImageBuf bigtemplateimg;
-
-	bigtemplateimg.Init(nexpand * 2 + TemplateImg.nWidth, TemplateImg.nHeight);
-
-	ippsSet_8u(0, bigtemplateimg.buf, bigtemplateimg.nPitch * bigtemplateimg.nHeight);
-
-	IppiSize templatesize = { TemplateImg.nWidth, TemplateImg.nHeight };
-
-	ippiCopy_8u_C1R(TemplateImg.buf, TemplateImg.nPitch, bigtemplateimg.buf + nexpand, bigtemplateimg.nPitch, templatesize);
-
-
-
-	//1. 压缩图像
-	kxCImageBuf resize1, resize2;
-
-	resize1.Init(SrcImg.nWidth / nscalefactor, SrcImg.nHeight / nscalefactor);
-
-	resize2.Init(bigtemplateimg.nWidth / nscalefactor, bigtemplateimg.nHeight / nscalefactor);
-
-	m_hFun.KxResizeImage(SrcImg, resize1);
-
-	m_hFun.KxResizeImage(bigtemplateimg, resize2);
-
-
-	
-	int nxtimes = gMax(0, resize2.nWidth - resize1.nWidth);
-
-	int nytimes = gMax(0, resize2.nHeight - resize1.nHeight);
-
-	unsigned char *buf;
-
-	Ipp64f nmin = 99999999999999999;
-
-	kxCImageBuf subresult, minsubresult;
-
-	subresult.Init(resize1.nWidth, resize1.nHeight);
-
-	IppiSize size = { resize1.nWidth, resize1.nHeight };
-
-	IppiPoint minpos = { 0, 0 };
-
-	bool zerostatus = false;
-
-	for (int i = 0; i <= nxtimes; i++)
-	{
-		if (zerostatus)
-		{
-			break;
-		}
-		for (int j = 0; j <= nytimes; j++)
-		{
-			buf = resize2.buf + i * resize2.nChannel + j * resize2.nPitch;
-
-			ippiSet_8u_C1R(0, subresult.buf, subresult.nPitch, size);
-			
-			ippiSub_8u_C1RSfs(resize1.buf, resize1.nPitch, buf, resize2.nPitch, subresult.buf, subresult.nPitch, size, 0);
-
-			Ipp64f sum;
-
-			ippiSum_8u_C1R(subresult.buf, subresult.nWidth, size, &sum);
-			
-			if (sum < nmin)
-			{
-				nmin = sum;
-
-				minpos.x = i;
-				
-				minpos.y = j;
-
-				minsubresult.SetImageBuf(subresult, true);
-
-				if (abs(nmin - 0) < 1e-6)
-				{
-					zerostatus = true;
-					break;
-				}
-			}
-		}
-	}
-
-
-	dstCCImg.Init(SrcImg.nWidth, SrcImg.nHeight);
-
-	if (zerostatus)// 全零则 对结果直接赋0
-	{
-		ippsSet_8u(0, dstCCImg.buf, dstCCImg.nPitch * dstCCImg.nHeight);
-	}
-	else
-	{
-		minpos.x *= nscalefactor;
-
-		minpos.y *= nscalefactor;
-
-		buf = bigtemplateimg.buf + minpos.x + minpos.y * bigtemplateimg.nPitch;
-
-		IppiSize orisize = { SrcImg.nWidth, SrcImg.nHeight };
-
-		ippiSub_8u_C1RSfs(SrcImg.buf, SrcImg.nPitch, buf, bigtemplateimg.nPitch, dstCCImg.buf, dstCCImg.nPitch, orisize, 0);
-
-	}
-
-
-
-
-
-	
-
-
-}
 
 void CGlueCheck::CheckLow(kxCImageBuf& SrcImg)
 {
@@ -1450,10 +1316,513 @@ void CGlueCheck::CheckLow(kxCImageBuf& SrcImg)
 
 }
 
+
+
+
+
+
+
+// ---------- 2022.2.28 再次新写，认为有用的 ------------------//
+
+void CGlueCheck::GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kxRect<int>& targetrect)
+{
+	//根据建模ROI搜出来的目标区域
+
+
+	//1. 获取扩充检测区域的图像，目的是为了检测效果
+	kxRect<int> cutroi = rcCheck;
+
+	const int offset = 200;
+
+	cutroi.left = gMax(cutroi.left - offset, 0);
+
+	cutroi.top = gMax(cutroi.top - offset, 0);
+
+	cutroi.right = gMin(cutroi.right + offset, SrcImg.nWidth - 1);
+
+	cutroi.bottom = gMin(cutroi.bottom + offset, SrcImg.nHeight - 1);
+
+	kxCImageBuf targetimg;
+
+	targetimg.Init(cutroi.Width(), cutroi.Height(), SrcImg.nChannel);
+
+	m_hFun.KxCopyImage(SrcImg, targetimg, cutroi);
+
+
+	//2. 裁剪图像，搜索上下左右四个边
+
+	//（1）左右
+	kxCImageBuf RGB[3], edgeimg1, edgeimg2;
+
+	m_hAlg.SplitRGB(targetimg, RGB);
+
+
+	int edge1 = gMin(offset * 2 - 1, RGB[1].nWidth - 1);
+
+	IppiSize cutsize = { edge1 + 1, RGB[1].nHeight };
+
+	edgeimg1.Init(cutsize.width, cutsize.height);
+
+	ippiCopy_8u_C1R(RGB[1].buf, RGB[1].nPitch, edgeimg1.buf, edgeimg1.nPitch, cutsize);
+
+
+	int edge2 = gMax(0, RGB[1].nWidth - offset * 2);
+
+	cutsize = { RGB[1].nWidth - edge2, RGB[1].nHeight };
+
+	edgeimg2.Init(cutsize.width, cutsize.height);
+
+	ippiCopy_8u_C1R(RGB[1].buf, RGB[1].nPitch, edgeimg2.buf, edgeimg2.nPitch, cutsize);
+
+	const int npointnum = 20;
+
+	kxPoint<int> leftpoint[npointnum];
+
+	kxPoint<int> rightpoint[npointnum];
+
+	GetEdgePoints(edgeimg1, 1, 10, leftpoint, npointnum);
+
+	GetEdgePoints(edgeimg2, 0, 10, rightpoint, npointnum);
+
+	int naverageleft = 0;
+
+	int naverageright = 0;
+
+	for (int i = 0; i < npointnum; i++)
+	{
+		naverageleft += leftpoint[i].x;
+
+		naverageright += rightpoint[i].x;
+	}
+
+	const int nextend = 10;//再往里缩一点，临时方案
+
+	naverageleft = naverageleft / npointnum + nextend;
+
+	naverageright = edgeimg2.nWidth - naverageright / npointnum - nextend;
+
+	int ntargetleft = naverageleft;
+
+	int ntargetright = edge2 + naverageright;
+
+	// （2）上下
+	int ntargettop = 0; 
+	
+	int ntargetbottom = 0;
+
+	SearchEdge(RGB[0], _Horizontal_Project_Dir, 150, ntargettop, ntargetbottom);
+
+	ntargettop += nextend;
+
+	ntargetbottom -= nextend;
+
+	// （3）算相对SrcImg的偏移，从而得到检测区域
+	
+	targetrect.setup(ntargetleft, ntargettop, ntargetright, ntargetbottom);
+
+	targetrect.offset(rcCheck.left, rcCheck.top);
+
+
+}
+
+void CGlueCheck::MergeImgNew(const kxCImageBuf& SrcImg1, const kxCImageBuf& SrcImg2, kxRect<int> targetrect, kxCImageBuf& DstImg)
+{
+	// 裁剪区域，进行合并两张图像操作。合并方法是将图1过曝区域换成图2
+	kxCImageBuf SrcImgA, SrcImgB;
+
+	SrcImgA.Init(targetrect.Width(), targetrect.Height());
+
+	SrcImgB.Init(targetrect.Width(), targetrect.Height());
+
+	m_hFun.KxCopyImage(SrcImg1, SrcImgA, targetrect);
+
+	m_hFun.KxCopyImage(SrcImg2, SrcImgB, targetrect);
+
+	kxCImageBuf gray1, threshimg, dilateimg;
+
+	gray1.Init(SrcImgA.nWidth, SrcImgA.nHeight);
+
+	dilateimg.Init(SrcImgA.nWidth, SrcImgA.nHeight);
+
+	IppiSize imgsize = { SrcImgA.nWidth, SrcImgA.nHeight };
+
+	//取srcimgA里RGB最大值
+	GetMaxGray(SrcImgA, gray1);
+
+	m_hAlg.ThreshImg(gray1, threshimg, 100, CEmpiricaAlgorithm::_BINARY);
+
+	dilateimg.Init(threshimg.nWidth, threshimg.nHeight);
+
+	m_hFun.KxDilateImage(threshimg, dilateimg, 5, 5);
+
+	threshimg.SetImageBuf(dilateimg);
+
+	kxCImageBuf img1, img2;
+
+	img1.Init(threshimg.nWidth, threshimg.nHeight, 3);
+
+	img2.Init(threshimg.nWidth, threshimg.nHeight, 3);
+
+	kxCImageBuf guobaomaskimg;
+
+	guobaomaskimg.Init(threshimg.nWidth, threshimg.nHeight, 3);
+
+	unsigned char* pbuf[3] = { threshimg.buf, threshimg.buf, threshimg.buf };
+
+	ippiCopy_8u_P3C3R(pbuf, threshimg.nPitch, guobaomaskimg.buf, guobaomaskimg.nPitch, imgsize);
+
+	// A - mask 
+	ippiSub_8u_C3RSfs(guobaomaskimg.buf, guobaomaskimg.nPitch, SrcImgA.buf, SrcImgA.nPitch, img1.buf, img1.nPitch, imgsize, 0);
+
+	//B 与 mask相与
+	ippiAnd_8u_C3R(guobaomaskimg.buf, guobaomaskimg.nPitch, SrcImgB.buf, SrcImgB.nPitch, img2.buf, img2.nPitch, imgsize);
+
+	kxCImageBuf mergeresult;
+
+	mergeresult.Init(threshimg.nWidth, threshimg.nHeight, 3);
+	//DstImg.Init(threshimg.nWidth, threshimg.nHeight, 3);
+
+	ippiAdd_8u_C3RSfs(img1.buf, img1.nPitch, img2.buf, img2.nPitch, mergeresult.buf, mergeresult.nPitch, imgsize, 0);
+
+	ippiAnd_8u_C3IR(m_ImgColorGlueMask.buf, m_ImgColorGlueMask.nPitch, mergeresult.buf, mergeresult.nPitch, imgsize);
+
+	ippiCopy_8u_C3R(mergeresult.buf, mergeresult.nPitch, DstImg.buf, DstImg.nPitch, imgsize);
+}
+
+void CGlueCheck::ExtractGreenNew(const kxCImageBuf* RGB, kxRect<int> roi, kxCImageBuf& DstImg)
+{
+	// 检测是对图像进行2G - R - B的提取
+	kxCImageBuf G_R, G_B;
+	G_R.Init(RGB[0].nWidth, RGB[0].nHeight);
+	G_B.Init(RGB[0].nWidth, RGB[0].nHeight);
+
+	IppiSize imgsize = { G_R.nWidth, G_R.nHeight };
+	ippiSub_8u_C1RSfs(RGB[0].buf, RGB[0].nPitch, RGB[1].buf, RGB[1].nPitch, G_R.buf, G_R.nPitch, imgsize, 0);
+	ippiSub_8u_C1RSfs(RGB[2].buf, RGB[2].nPitch, RGB[1].buf, RGB[1].nPitch, G_B.buf, G_B.nPitch, imgsize, 0);
+
+	kxCImageBuf addimg;
+	addimg.Init(RGB[0].nWidth, RGB[0].nHeight);
+
+	ippiAdd_8u_C1RSfs(G_R.buf, G_R.nPitch, G_B.buf, G_B.nPitch, addimg.buf, addimg.nPitch, imgsize, 0);
+
+	kxCImageBuf mask;
+	mask.Init(RGB[0].nWidth, RGB[0].nHeight);
+	m_hFun.KxThreshImage(addimg, mask, 7, 255);
+
+	DstImg.Init(mask.nWidth, mask.nHeight);
+
+	kxCImageBuf openimg, closeimg;
+	openimg.Init(mask.nWidth, mask.nHeight);
+	closeimg.Init(mask.nWidth, mask.nHeight);
+
+	// TODO : 后面需要在这里加对黄色绝缘条的掩膜，可以认为就是掩膜框掩掉固定位置
+
+	//
+
+	// 下面方法备用
+	////先开运算去除散点
+	m_hFun.KxOpenImage(mask, openimg, 5, 5);
+
+	////闭运算闭合小孔
+	m_hFun.KxCloseImage(openimg, closeimg, 21, 11);
+
+
+}
+
+void CGlueCheck::SliderMatchNew(kxCImageBuf& SrcImg, int ntargetw, int ntargeth, kxCImageBuf& Templateimg, kxCImageBuf& blobimg)
+{
+	//1. 
+	kxRect<int> targetrect;
+
+	targetrect.setup(0, 0, ntargetw - 1, ntargeth - 1);
+
+	kxCImageBuf targetimg;
+
+	targetimg.Init(ntargetw, ntargeth);
+
+	m_hFun.KxCopyImage(SrcImg, targetimg, targetrect);
+
+
+	// 2. 归一化图像
+	int basew = targetimg.nWidth / 4;
+
+	int baseh = targetimg.nHeight / 4;
+
+	kxCImageBuf resizesrc;
+
+	resizesrc.Init(basew, baseh);
+
+	m_hFun.KxResizeImage(targetimg, resizesrc);
+
+	// 3. TODO ！！！对模板操作的这部分：先对模板图像进行腐蚀，后面要移植到建模那去，根据参数进行设置！！！
+	kxCImageBuf erodetemplate;
+
+	erodetemplate.Init(Templateimg.nWidth, Templateimg.nHeight);
+
+	m_hAlg.ZSErodeImage(Templateimg, erodetemplate, 9, 9, NULL, ippBorderConst, 0);
+
+	for (int i = 0; i < 1; i++)
+	{
+		m_hAlg.ZSErodeImage(erodetemplate, erodetemplate, 9, 9, NULL, ippBorderConst, 0);
+	}
+
+	//kxCImageBuf subresult;
+
+	//subresult.Init(erodetemplate.nWidth, erodetemplate.nHeight);
+
+	//IppiSize imgsizeresize = { erodetemplate.nWidth, erodetemplate.nHeight };
+
+	//ippiSub_8u_C1RSfs(resizesrc.buf, resizesrc.nPitch, erodetemplate.buf, erodetemplate.nPitch, subresult.buf, subresult.nPitch, imgsizeresize, 0);
+
+
+	// 在模板图上、下边缘填充黑色
+	kxCImageBuf bigtemplate;
+
+	const int headbotextend = 100;
+
+	bigtemplate.Init(erodetemplate.nWidth, erodetemplate.nHeight + headbotextend * 2);
+
+	ippsSet_8u(0, bigtemplate.buf, bigtemplate.nPitch * bigtemplate.nHeight);
+
+	IppiSize templatesize = { erodetemplate.nWidth, erodetemplate.nHeight };
+
+	ippiCopy_8u_C1R(erodetemplate.buf, erodetemplate.nPitch, bigtemplate.buf + bigtemplate.nPitch * headbotextend, bigtemplate.nPitch, templatesize);
+
+	
+	//4. 重点部分，对检测图进行N次分割成小图（单向分割）,再用这N张小图在模板图上进行滑动对减
+
+	const int nsplittimes = 16;
+
+	kxCImageBuf bigCCImg;
+
+	bigCCImg.Init(resizesrc.nWidth, resizesrc.nHeight);
+
+	// 做一个测试
+	//IppiSize masksize = {200, 200};
+	//ippiSet_8u_C1R(0, resizesrc.buf + 290 + 624 * resizesrc.nPitch, resizesrc.nPitch, masksize);
+
+
+	for (int i = 0; i < nsplittimes; i++)
+	{
+		// (1) 裁剪检测图
+		kxCImageBuf smallimg;
+
+		kxRect<int> cutrect;
+
+		int nstep = resizesrc.nHeight / nsplittimes;
+
+		cutrect.setup(0, nstep * i, resizesrc.nWidth - 1, nstep * (i + 1) - 1);
+
+		smallimg.Init(cutrect.Width(), cutrect.Height());
+
+		m_hFun.KxCopyImage(resizesrc, smallimg, cutrect);
+
+		// (2) 裁剪模板图，模板图进行了上下扩充
+
+		kxCImageBuf smalltemplate;
+
+		const int nextend = 100;
+
+		int ntemplatetop = gMax(0, nstep * i - nextend);
+
+		int ntemplatebottom = gMin(bigtemplate.nHeight - 1, nstep * (i + 1) - 1 + nextend);
+
+		cutrect.setup(0, ntemplatetop, bigtemplate.nWidth - 1, ntemplatebottom);
+
+		smalltemplate.Init(cutrect.Width(), cutrect.Height());
+
+		m_hFun.KxCopyImage(bigtemplate, smalltemplate, cutrect);
+
+		kxCImageBuf CCImg;
+
+		CCImg.Init(smallimg.nWidth, smallimg.nHeight);
+
+		SliderSub(smallimg, smalltemplate, CCImg, 5);
+
+		IppiSize cutsize = { CCImg.nWidth, CCImg.nHeight };
+
+		ippiCopy_8u_C1R(CCImg.buf, CCImg.nPitch, bigCCImg.buf + bigCCImg.nPitch * nstep * i, bigCCImg.nPitch, cutsize);
+
+	}
+
+
+}
+
+void CGlueCheck::SliderSub(kxCImageBuf& SrcImg, kxCImageBuf& TemplateImg, kxCImageBuf& dstCCImg, int nscalefactor)
+{
+
+	/*
+	// 旧格式
+		经过特殊编辑的滑动残差。
+		（1）首先是 TemplateImg的高度 > SrcImg的高度
+		（2）目标是TemplateImg - SrcImg
+		（3）并且是在TemplateImg上截取一部分 - SrcImg
+		（4）但是TemplateImg的宽度很可能 < SrcImg的宽度
+
+		综上，必须先对TemplateImg的高度进行保护扩充，宽度进行滑动范围扩充，保证补 0 之后的 TemplateImg 尺寸大于SrcImg
+
+	// 新格式 2022.03.01
+		
+		先想想怎么处理，包括对哪个模板大哪个图像小，还有边缘怎么赋值的问题
+
+	*/
+	//1 .扩充图像
+
+	if (SrcImg.nHeight > TemplateImg.nHeight || SrcImg.nWidth < TemplateImg.nWidth)
+	{
+		std::cout << "原图尺寸不符合要求，无法进行滑动残差" << std::endl;
+
+		return;//先暴力的把不符合要求的直接返回
+	}
+
+	int nexpand = (SrcImg.nWidth - TemplateImg.nWidth) / 2 + 40;// 20是暂定的数字, 单侧扩展大小
+
+	kxCImageBuf bigtemplateimg;
+
+	bigtemplateimg.Init(nexpand * 2 + TemplateImg.nWidth, TemplateImg.nHeight);
+
+	ippsSet_8u(0, bigtemplateimg.buf, bigtemplateimg.nPitch * bigtemplateimg.nHeight);
+
+	IppiSize templatesize = { TemplateImg.nWidth, TemplateImg.nHeight };
+
+	ippiCopy_8u_C1R(TemplateImg.buf, TemplateImg.nPitch, bigtemplateimg.buf + nexpand, bigtemplateimg.nPitch, templatesize);
+
+
+
+	//1. 压缩图像
+	kxCImageBuf resize1, resize2;
+
+	resize1.Init(SrcImg.nWidth / nscalefactor, SrcImg.nHeight / nscalefactor);
+
+	resize2.Init(bigtemplateimg.nWidth / nscalefactor, bigtemplateimg.nHeight / nscalefactor);
+
+	m_hFun.KxResizeImage(SrcImg, resize1);
+
+	m_hFun.KxResizeImage(bigtemplateimg, resize2);
+
+
+
+	int nxtimes = gMax(0, resize2.nWidth - resize1.nWidth);
+
+	int nytimes = gMax(0, resize2.nHeight - resize1.nHeight);
+
+	unsigned char *buf;
+
+	Ipp64f nmin = 99999999999999999;
+
+	kxCImageBuf subresult, minsubresult;
+
+	subresult.Init(resize1.nWidth, resize1.nHeight);
+
+	IppiSize size = { resize1.nWidth, resize1.nHeight };
+
+	IppiPoint minpos = { 0, 0 };
+
+	bool zerostatus = false;
+
+	for (int i = 0; i <= nxtimes; i++)
+	{
+		if (zerostatus)
+		{
+			break;
+		}
+		for (int j = 0; j <= nytimes; j++)
+		{
+			buf = resize2.buf + i * resize2.nChannel + j * resize2.nPitch;
+
+			ippiSet_8u_C1R(0, subresult.buf, subresult.nPitch, size);
+
+			ippiSub_8u_C1RSfs(resize1.buf, resize1.nPitch, buf, resize2.nPitch, subresult.buf, subresult.nPitch, size, 0);
+
+			Ipp64f sum;
+
+			ippiSum_8u_C1R(subresult.buf, subresult.nWidth, size, &sum);
+
+			if (sum < nmin)
+			{
+				nmin = sum;
+
+				minpos.x = i;
+
+				minpos.y = j;
+
+				minsubresult.SetImageBuf(subresult, true);
+
+				if (abs(nmin - 0) < 1e-6)
+				{
+					zerostatus = true;
+					break;
+				}
+			}
+		}
+	}
+
+
+	dstCCImg.Init(SrcImg.nWidth, SrcImg.nHeight);
+
+	if (zerostatus)// 全零则 对结果直接赋0
+	{
+		ippsSet_8u(0, dstCCImg.buf, dstCCImg.nPitch * dstCCImg.nHeight);
+	}
+	else
+	{
+		minpos.x *= nscalefactor;
+
+		minpos.y *= nscalefactor;
+
+		buf = bigtemplateimg.buf + minpos.x + minpos.y * bigtemplateimg.nPitch;
+
+		IppiSize orisize = { SrcImg.nWidth, SrcImg.nHeight };
+
+		ippiSub_8u_C1RSfs(SrcImg.buf, SrcImg.nPitch, buf, bigtemplateimg.nPitch, dstCCImg.buf, dstCCImg.nPitch, orisize, 0);
+
+	}
+
+}
+
+
+
 int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg, Json::Value &checkresult)
 {
 
+	
+	// 1. 找到检测位置
 
+	kxRect <int> checkarea;
+
+	GetTargetROI(SrcImgA, m_param.m_rcCheckROI, checkarea);
+
+	if (checkarea.Width() > DstImg.nWidth || checkarea.Height() > DstImg.nHeight)
+	{
+		std::cout << "搜边结果显示检测区域 > 检测框设置大小，无法进行检测" << std::endl;
+		return 0;// 后期加日志，以及异常处理
+	}
+
+
+	// 2.目标区域图像合并，过滤过曝图像区域
+
+	m_ImgCheck.Init(DstImg.nWidth, DstImg.nHeight, SrcImgA.nChannel);
+
+	MergeImgNew(SrcImgA, SrcImgB, checkarea, m_ImgCheck);
+
+
+	// 3.提取涂胶区域，只做了简单的提取，以及开运算滤散点、闭运算填充大blob
+	m_hAlg.SplitRGB(m_ImgCheck, m_ImgRGB);
+
+	m_ImgGlueMask.Init(m_ImgRGB[0].nWidth, m_ImgRGB[0].nHeight, m_ImgRGB[0].nChannel);
+
+	ExtractGreenNew(m_ImgRGB, checkarea, m_ImgGlueMask);
+
+
+	// 4.检测严重断胶
+	kxCImageBuf blobimg1;
+
+	blobimg1.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight);
+
+	SliderMatchNew(m_ImgGlueMask, checkarea.Width(), checkarea.Height(), m_param.m_ImgTemplate, blobimg1);
+
+
+	/*
 	tick_count tbb_start, tbb_end;
 
 	checkresult["defect num"] = 0;
@@ -1486,33 +1855,10 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 	tbb_start = tick_count::now();
 
 
-	static int nindex = 0;
-
-	char savepath[64];
-
-	sprintf_s(savepath, "d:\\%d.bmp", nindex++);
-
-	m_hFun.SaveBMPImage_h(savepath, m_ImgCheck);
-
-
-	// 把缺陷拷贝到涂胶上，看是否能检出
-
-	kxCImageBuf readimg;
-	char loadpath[128];
-	sprintf_s(loadpath, "D:\\testimg\\5.bmp");
-	m_hFun.LoadBMPImage_h(loadpath, readimg);
-
-	kxRect<int> defectpos;
-	defectpos.setup(4151, 5291, 4207, 5345);
-	kxCImageBuf defectimg;
-	defectimg.Init(defectpos.Width(), defectpos.Height(), readimg.nChannel);
-	IppiSize defectsize = { defectpos.Width(), defectpos.Height() };
-	ippiCopy_8u_C3R(readimg.buf + defectpos.top * readimg.nPitch + defectpos.left * readimg.nChannel, readimg.nPitch, defectimg.buf, defectimg.nPitch, defectsize);
-
-
-	int ncopylefet = 3000;
-	int ncopytop = 5100;
-	ippiCopy_8u_C3R(defectimg.buf, defectimg.nPitch, m_ImgCheck.buf + ncopylefet * m_ImgCheck.nChannel + ncopytop * m_ImgCheck.nPitch, m_ImgCheck.nPitch, defectsize);
+	//static int nindex = 0;
+	//char savepath[64];
+	//sprintf_s(savepath, "d:\\%d.bmp", nindex++);
+	//m_hFun.SaveBMPImage_h(savepath, m_ImgCheck);
 
 
 	kxCImageBuf RGBNEW[3];
@@ -1553,9 +1899,10 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 
 
 	checkyiwu(finalcheckimg, checkresult);
-
+	
+	*/
 	DstImg.SetImageBuf(m_ImgCheck, true);
-
+	
 	return 1;
 }
 
