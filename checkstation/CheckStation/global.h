@@ -106,6 +106,8 @@ enum MessageType
 
 	MSG_NOT_CHECK = 1004,// #当前pack不检只存图
 
+	MSG_CHECK_MATCHERROR = 2001, // 匹配图像发生错误
+
 };
 
 

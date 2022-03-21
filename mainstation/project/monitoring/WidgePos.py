@@ -11,7 +11,7 @@ class WidgetEdgePos(QtWidgets.QWidget):
         layout=QtWidgets.QHBoxLayout()
 
         #实现的效果是一样的，N行M列，所以要灵活运用函数，这里只是示范一下如何单独设置行列
-        self.TableWidget=QtWidgets.QTableWidget(5,6)
+        self.TableWidget=QtWidgets.QTableWidget(4,6)
 
         # TableWidget = QTableWidget()
         # TableWidget.setRowCount(4)
@@ -19,7 +19,8 @@ class WidgetEdgePos(QtWidgets.QWidget):
         #设置水平方向的表头标签与垂直方向上的表头标签，注意必须在初始化行列之后进行，否则，没有效果
         self.TableWidget.setHorizontalHeaderLabels(['检测区域1', '检测区域2','检测区域3','检测区域4', '检测区域5', '检测区域6'])
         #Todo 优化1 设置垂直方向的表头标签
-        self.TableWidget.setVerticalHeaderLabels(['左', '右', '上', '下', '涂胶面积'])
+        #self.TableWidget.setVerticalHeaderLabels(['左', '右', '上', '下', '涂胶面积'])
+        self.TableWidget.setVerticalHeaderLabels(['block面积', '涂胶面积', '异物面积', '气泡面积','左', '右', '上', '下'])
 
         for i in range(4):
             self.TableWidget.setRowHeight(i, 25)
@@ -71,7 +72,7 @@ class WidgetEdgePos(QtWidgets.QWidget):
 
     def setdata(self, list_data, rowindex):
         for col, data in enumerate(list_data):
-            newItem = QtWidgets.QTableWidgetItem(str(round(data, 1)) + "mm²")
+            newItem = QtWidgets.QTableWidgetItem(str(data) + "mm²")
             self.TableWidget.setItem(rowindex, col, newItem)
 
 
@@ -79,7 +80,7 @@ class WidgetEdgePos(QtWidgets.QWidget):
 
         self.TableWidget.setHorizontalHeaderLabels(list_shead)
 
-        self.TableWidget.setVerticalHeaderLabels(['左', '右', '上', '下', '涂胶面积'])
+        self.TableWidget.setVerticalHeaderLabels(['block面积', '涂胶面积', '异物面积', '气泡面积'])
 
 
     def clear(self):

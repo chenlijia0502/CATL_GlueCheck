@@ -180,20 +180,85 @@ bool CKxCheck::ReadReadJudgeStandardParaByXml(const char* lpszFile, int nIndex)
 
 bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 {
-	
+
+	//// 测试xmlhandle读取
+	//tinyxml2::XMLDocument  xmlHandle;
+	//int openstatus = KxXmlFun2::OpenXmlFile(filePath, xmlHandle);
+	//if (!openstatus)
+	//{
+	//	return false;
+	//}
+	//std::string sr;
+	//int tststatu = KxXmlFun2::SearchXmlGetValue(xmlHandle, "检测区域数量", sr);
+
 	std::string szResult;
-	int nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测区域数量", szResult);
+	//int nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测区域数量", szResult);
+	//if (!nSearchStatus)
+	//{
+	//	sprintf_s(ErrorInfo, 256, "检测区域数量");
+	//	return false;
+	//}
+	//int nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.m_nROINUM);
+	//if (!nStatus)
+	//{
+	//	return false;
+	//}
+
+	int nImgW, nImgH;
+
+	int nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "全局拍摄控制", "相机横向像素数", szResult);
 	if (!nSearchStatus)
 	{
-		sprintf_s(ErrorInfo, 256, "检测区域数量");
+		sprintf_s(ErrorInfo, 256, "相机横向像素数");
 		return false;
 	}
 
-	int nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.m_nROINUM);
+	int nStatus = KxXmlFun2::FromStringToInt(szResult, nImgW);
 	if (!nStatus)
 	{
 		return false;
 	}
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "全局拍摄控制", "相机纵向像素数", szResult);
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "相机纵向像素数");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, nImgH);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "全局拍摄控制", "拍摄组数", szResult);
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "拍摄组数");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.m_nscantimes);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+
+	int ncolnum, nrownum;
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "拼图信息", "行数", szResult);
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "行数");
+		return false;
+	}
+	nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.m_nmaxrownum);
+	if (!nStatus)
+	{
+		return false;
+	}
+
 
 	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "建模图像缩放系数", szResult);
 	if (!nSearchStatus)
@@ -275,165 +340,229 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 	}
 
 
+	std::string groupword[6] = { "组数一", "组数二", "组数三", "组数四", "组数五", "组数六" };
 
-	for (int nindex = 0; nindex < m_param.m_nROINUM; nindex++)
+	m_param.m_nROINUM = 0;
+
+	//int ncurcheckroiid = 0;
+	// 读取检测框
+	for (int i = 0; i < m_param.m_nscantimes; i++)
 	{
-
-		m_param.params[nindex].m_noffsethigh = nhighoffset;
-
-		m_param.params[nindex].m_noffsetlow = nlowoffset;
-
-		m_param.params[nindex].m_ndefectthresh = ndefectthresh;
-
-		m_param.params[nindex].m_ndefectdots = ndefectdots;
+		int nchecknum = 0;
 
 		char name[64];
 
 		memset(name, 0, 64);
 
-		sprintf_s(name, "检测区域%d", nindex);
+		sprintf_s(name, "检测区域数量");
 
-		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "检测区域", "pos", szResult);
-		
+		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, groupword[i], name, szResult);
+
 		if (!nSearchStatus)
 		{
-			sprintf_s(ErrorInfo, 256, "检测区域");
+			sprintf_s(ErrorInfo, 256, name);
 			return false;
 		}
 
-		nStatus = KxXmlFun2::FromStringToKxRect(szResult, m_param.params[nindex].m_rcCheckROI);
+		nStatus = KxXmlFun2::FromStringToInt(szResult, nchecknum);
+		if (!nStatus)
+		{
+			return false;
+		}
+		for (int j = 0; j < nchecknum; j++)
+		{
+			memset(name, 0, 64);
+
+			sprintf_s(name, "检测区域%d", j+1);
+
+			nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, groupword[i], name, "检测区域", "pos", szResult);
+
+			if (!nSearchStatus)
+			{
+				sprintf_s(ErrorInfo, 256, "检测区域");
+				return false;
+			}
+
+			nStatus = KxXmlFun2::FromStringToKxRect(szResult, m_param.params[m_param.m_nROINUM].m_rcCheckROI);
+			if (!nStatus)
+			{
+				sprintf_s(ErrorInfo, 256, "检测区域");
+
+				return false;
+			}
+
+			m_param.params[m_param.m_nROINUM].m_rcCheckROI.mulC(m_param.m_nimgscalefactor);
+
+			nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, groupword[i], name, "屏蔽当前检测区域", szResult);
+
+			if (!nSearchStatus)
+			{
+				sprintf_s(ErrorInfo, 256, "屏蔽当前检测区域");
+				return false;
+			}
+
+			nStatus = KxXmlFun2::FromStringToBool(szResult, m_param.params[m_param.m_nROINUM].m_nIsnotcheck);
+			if (!nStatus)
+			{
+				sprintf_s(ErrorInfo, 256, "屏蔽当前检测区域");
+				return false;
+			}
+
+			m_param.params[m_param.m_nROINUM].m_nGrabTimes = i;
+
+			m_param.params[m_param.m_nROINUM].m_nCurGrabID = j;
+
+			m_param.params[m_param.m_nROINUM].m_ndefectdots = ndefectdots;
+
+			m_param.params[m_param.m_nROINUM].m_noffsethigh = nhighoffset * 10;
+
+			m_param.params[m_param.m_nROINUM].m_noffsetlow = nlowoffset * 10;
+
+			m_param.m_nROINUM++;
+
+		}
+
+	}
+
+	// 读取高灰度掩膜框
+	for (int i = 0; i < m_param.m_nscantimes; i++)
+	{
+		int nchecknum = 0;
+
+		char name[64];
+
+		memset(name, 0, 64);
+
+		sprintf_s(name, "高灰度掩膜数量");
+
+		int nmasknum = 0;
+
+		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, groupword[i], name, szResult);
+
+		if (!nSearchStatus)
+		{
+			sprintf_s(ErrorInfo, 256, name);
+			return false;
+		}
+
+		nStatus = KxXmlFun2::FromStringToInt(szResult, nmasknum);
 		if (!nStatus)
 		{
 			return false;
 		}
 
-		m_param.params[nindex].m_rcCheckROI.mulC(m_param.m_nimgscalefactor);
+		kxRect<int> *prect = new kxRect<int>[nmasknum];
+		for (int j = 0; j < nmasknum; j++)
+		{
+			memset(name, 0, 64);
 
-		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "扫描组号", szResult);
+			sprintf_s(name, "高灰度掩膜区域%d", j);
+
+			nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, groupword[i], name, "pos", szResult);
+
+			if (!nSearchStatus)
+			{
+				sprintf_s(ErrorInfo, 256, "高灰度掩膜区域");
+				return false;
+			}
+
+			nStatus = KxXmlFun2::FromStringToKxRect(szResult, prect[j]);
+			if (!nStatus)
+			{
+				sprintf_s(ErrorInfo, 256, "高灰度掩膜区域");
+
+				return false;
+			}
+			prect[j].mulC(m_param.m_nimgscalefactor);
+			
+		}
+
+		// 将掩膜框转换为检测框内位置
+		for (int j = 0; j < m_param.m_nROINUM; j++)
+		{
+			if (m_param.params[j].m_nGrabTimes == i)
+			{
+				GetRealmaskpos(m_param.params[i].m_rcCheckROI, prect, nmasknum, m_param.params[i].m_vecrcHighmaskROI);
+			}
+		}
+		delete[]prect;
+
+	}
+
+	// 读取低灰度掩膜框
+	for (int i = 0; i < m_param.m_nscantimes; i++)
+	{
+		int nchecknum = 0;
+
+		char name[64];
+
+		memset(name, 0, 64);
+
+		sprintf_s(name, "低灰度掩膜数量");
+
+		int nmasknum = 0;
+
+		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, groupword[i], name, szResult);
 
 		if (!nSearchStatus)
 		{
-			sprintf_s(ErrorInfo, 256, "扫描组号");
+			sprintf_s(ErrorInfo, 256, name);
 			return false;
 		}
 
-		nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.params[nindex].m_nGrabTimes);
+		nStatus = KxXmlFun2::FromStringToInt(szResult, nmasknum);
 		if (!nStatus)
 		{
 			return false;
 		}
 
-		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "当前组ID", szResult);
-
-		if (!nSearchStatus)
+		kxRect<int> *prect = new kxRect<int>[nmasknum];
+		for (int j = 0; j < nmasknum; j++)
 		{
-			sprintf_s(ErrorInfo, 256, "当前组ID");
-			return false;
+			memset(name, 0, 64);
+
+			sprintf_s(name, "低灰度掩膜区域%d", j);
+
+			nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, groupword[i], name, "pos", szResult);
+
+			if (!nSearchStatus)
+			{
+				sprintf_s(ErrorInfo, 256, "低灰度掩膜区域");
+				return false;
+			}
+
+			nStatus = KxXmlFun2::FromStringToKxRect(szResult, prect[j]);
+			if (!nStatus)
+			{
+				sprintf_s(ErrorInfo, 256, "低灰度掩膜区域");
+
+				return false;
+			}
+			prect[j].mulC(m_param.m_nimgscalefactor);
+
 		}
 
-		nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.params[nindex].m_nCurGrabID);
-		if (!nStatus)
+		// 将掩膜框转换为检测框内位置
+		for (int j = 0; j < m_param.m_nROINUM; j++)
 		{
-			return false;
+			if (m_param.params[j].m_nGrabTimes == i)
+			{
+				GetRealmaskpos(m_param.params[j].m_rcCheckROI, prect, nmasknum, m_param.params[j].m_vecrcLowmaskROI);
+			}
 		}
-
-		nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, name, "屏蔽当前检测区域", szResult);
-
-		if (!nSearchStatus)
-		{
-			sprintf_s(ErrorInfo, 256, "屏蔽当前检测区域");
-			return false;
-		}
-
-		nStatus = KxXmlFun2::FromStringToBool(szResult, m_param.params[nindex].m_nIsnotcheck);
-		if (!nStatus)
-		{
-			return false;
-		}
+		delete[]prect;
 
 	}
 
 
-
-	int nImgW, nImgH;
-
-	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "全局拍摄控制", "相机横向像素数", szResult);
-	if (!nSearchStatus)
-	{
-		sprintf_s(ErrorInfo, 256, "相机横向像素数");
-		return false;
-	}
-
-	nStatus = KxXmlFun2::FromStringToInt(szResult, nImgW);
-	if (!nStatus)
-	{
-		return false;
-	}
-
-	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "全局拍摄控制", "相机纵向像素数", szResult);
-	if (!nSearchStatus)
-	{
-		sprintf_s(ErrorInfo, 256, "相机纵向像素数");
-		return false;
-	}
-
-	nStatus = KxXmlFun2::FromStringToInt(szResult, nImgH);
-	if (!nStatus)
-	{
-		return false;
-	}
-
-	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "全局拍摄控制", "拍摄组数", szResult);
-	if (!nSearchStatus)
-	{
-		sprintf_s(ErrorInfo, 256, "拍摄组数");
-		return false;
-	}
-
-	nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.m_nscantimes);
-	if (!nStatus)
-	{
-		return false;
-	}
-
-
-	//nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "拼图信息", "最大检测框高", szResult);
-	//if (!nSearchStatus)
-	//{
-	//	sprintf_s(ErrorInfo, 256, "最大检测框高");
-	//	return false;
-	//}
-	//nStatus = KxXmlFun2::FromStringToInt(szResult, nmaxheight);
-	//if (!nStatus)
-	//{
-	//	return false;
-	//}
-
-
-
-	int ncolnum, nrownum;
-	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "拼图信息", "行数", szResult);
-	if (!nSearchStatus)
-	{
-		sprintf_s(ErrorInfo, 256, "行数");
-		return false;
-	}
-	nStatus = KxXmlFun2::FromStringToInt(szResult, m_param.m_nmaxrownum);
-	if (!nStatus)
-	{
-		return false;
-	}
 
 	ncolnum = m_param.m_nscantimes;//扫描次数即为列数
 	
 	nrownum = m_param.m_nmaxrownum;
 
-	
-
-
 	int *nimgnum = new int[m_param.m_nscantimes];
 
-	kxRect<int> * rect = new kxRect<int>[m_param.m_nscantimes];
+	kxRect<int> * rect = new kxRect<int>[m_param.m_nscantimes * 2];
 
 	for (int i = 0; i < m_param.m_nscantimes; i++)
 	{
@@ -456,6 +585,13 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 		{
 			return false;
 		}
+
+
+	}
+
+	for (int i = 0; i < m_param.m_nscantimes * 2; i++)
+	{
+		char name[64];
 
 		memset(name, 0, 64);
 
@@ -484,8 +620,6 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 
 
 	// 2022.2.7 提取模板中的图作为标准模板，之后提取的再跟它进行滑动残差
-
-	//int *pimgh = new int[m_param.m_nscantimes];// 存图建模图像高度，用于防止下面检测框扩大之后的越界
 	
 	for (int i = 0; i < m_param.m_nscantimes; i++)
 	{
@@ -545,23 +679,6 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 
 	}
 
-	//// 2022.2.27 这里做一下扩充，原因是建模的时候拉的是底部的框，但要考虑pack会偏移的问题
-	//const int nhorextend = 500;
-	//const int nverextend = 200;
-	//for (int i = 0; i < m_param.m_nROINUM; i++)
-	//{
-	//	int newtop = gMax(0, m_param.params[i].m_rcCheckROI.top - nverextend);
-	//	int newbot = gMin(nimgnum[i] * nImgH - 1, m_param.params[i].m_rcCheckROI.bottom + nverextend);
-	//	int newleft = gMax(0, m_param.params[i].m_rcCheckROI.left - nverextend);
-	//	int newright = gMin(nImgW - 1, m_param.params[i].m_rcCheckROI.right + nverextend);
-
-	//	//m_param.params[i].m_rcCheckROI.top = 
-	//	//m_param.params[i].m_rcCheckROI.bottom =
-	//	//m_param.params[i].m_rcCheckROI.left = 
-	//	//m_param.params[i].m_rcCheckROI.right = 
-
-	//}
-
 
 	int nmaxheight = 0;
 
@@ -589,10 +706,6 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 	m_nMaximgW = nmaxwidth;
 
 	m_nMaximgH = nmaxheight;
-	
-	//m_ImgMaxSizeA.Init(nImgW, nmaxheight, 3);
-
-	//m_ImgMaxSizeB.Init(nImgW, nmaxheight, 3);
 
 	//初始缩略大图
 	int nsingleimgh = m_nMaximgH / _SPLICING_IMG_SCALEFACTOR;
@@ -611,9 +724,37 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 
 	delete[] rect;
 
-	//g_SaveImgQue.closefp();//每次重新载入都关闭fp
-
 	return true;
+
+}
+
+void CKxCheck::GetRealmaskpos(kxRect<int> CheckRect, kxRect<int>* MaskRect, int nmasknum, std::vector<kxRect<int>>& vecrect)
+{
+	vecrect.clear();
+
+	for (int i = 0; i < nmasknum; i++)
+	{
+		if (MaskRect[i].right > CheckRect.left && MaskRect[i].left < CheckRect.right  && MaskRect[i].bottom > CheckRect.top && MaskRect[i].top < CheckRect.bottom)
+		{
+			int nleft = gMax(CheckRect.left, MaskRect[i].left);
+			
+			int nright = gMin(CheckRect.right, MaskRect[i].right);
+			
+			int ntop = gMax(CheckRect.top, CheckRect.top);
+			
+			int nbottom = gMin(CheckRect.bottom, MaskRect[i].bottom);
+
+			kxRect<int> rcrect;
+
+			rcrect.setup(nleft, nright, ntop, nbottom);
+
+			rcrect.offset(CheckRect.left, CheckRect.top);
+
+			vecrect.push_back(rcrect);
+		}
+	}
+
+
 
 }
 
@@ -1255,7 +1396,6 @@ void CKxCheck::CopyImg2SplicImg(const kxCImageBuf& SrcImg, int nrow, int ncol)
 
 int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 {
-	
 	tick_count tbb_start, tbb_end;
 	tbb_start = tick_count::now();
 	
@@ -1265,22 +1405,30 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	
 	SaveImg(_Check_Ok);
 
-	
-	m_hcombineimg.appendImg(m_TransferImage, m_nCurPackIDimgindex);
-	//m_hcombineimg.appendImg(m_TransferImage, SrcCapImg.m_ImageID - 1);
-
 	ClearResult(SrcCapImg.m_CardID);
-	
-	m_finalcheckstatus = CheckResultStatus::_Check_Ok;
-	
 
-	m_nCurPackIDimgindex++;
+	m_finalcheckstatus = CheckResultStatus::_Check_Ok;
 
 	// 2. 排序图像，进行检测
 	kxCImageBuf bigimgA, bigimgB;
 
 	if (m_bIscheck)
 	{
+
+		int nresult = m_hcombineimg.appendImg(m_TransferImage, m_nCurPackIDimgindex);
+		if (nresult == 0)
+		{
+			// 发送消息告知子站检测异常
+			std::string sendstr = "";
+			if (Net::IsExistNetObj())
+			{
+				Net::GetAsioTcpClient()->SendMsg(Config::g_GetParameter().m_nNetStationId, int(MSG_CHECK_MATCHERROR), int(sendstr.size()), sendstr.c_str());
+			}
+		}
+
+
+		m_nCurPackIDimgindex++;
+
 		for (int j = 0; j < m_param.m_nscantimes; j++)
 		{
 			if (m_hcombineimg.IsColFull(j))
@@ -1305,6 +1453,14 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 						m_hCheckTools[0]->SetCheckBlobID(i);
 
 						m_DstImg.Init(m_nMaximgW, m_nMaximgH, bigimgA.nChannel);
+
+						ippsSet_8u(0, m_DstImg.buf, m_DstImg.nHeight * m_DstImg.nPitch);
+
+						m_hCheckResult[0]["defect num"] = 0;
+
+						m_hCheckResult[0]["blockarea"] = 0;
+
+						m_hCheckResult[0]["area"] = 0;
 
 						m_bCheckStatus[0] = m_hCheckTools[0]->Check(bigimgA, bigimgB, m_DstImg, m_hCheckResult[0]);
 

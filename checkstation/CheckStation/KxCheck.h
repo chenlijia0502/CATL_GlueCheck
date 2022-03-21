@@ -71,6 +71,9 @@ public:
 		int				m_nscantimes;//扫描次数
 		int				m_nmaxrownum; // 扫描列中最多有几个列ROI
 
+
+
+
 	};
 
 
@@ -143,6 +146,9 @@ private:
 	void CopyImg2SplicImg(const kxCImageBuf& SrcImg, int nrow, int ncol);
 
 	void GetG_Template(kxCImageBuf& SrcDstImg);// 输入一张彩色图，得到一个单通道的二值化模板图
+
+	void GetRealmaskpos(kxRect<int> CheckRect, kxRect<int>* MaskRect, int nmasknum, std::vector<kxRect<int>>& vecrect);// 根据相对偏移，获取检测框中掩膜框的真实位置
+	
 	
 public:
 	//检查一张卡片的全流程,包括预处理，处理

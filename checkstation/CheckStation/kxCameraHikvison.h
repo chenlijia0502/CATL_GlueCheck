@@ -70,6 +70,7 @@ private:
 
 	bool m_bStop;
 	bool m_bInitIsOk;
+
 };
 
 extern CCamera_HK g_CameraHK;

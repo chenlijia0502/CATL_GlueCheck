@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "kxCameraHikvison.h"
 #include "kxParameter.h"
+cv::Mat g_captureimg;
 
 
 int captureimgnum = 0;
@@ -18,9 +19,10 @@ void __stdcall XferCallback(unsigned char * pData, MV_FRAME_OUT_INFO_EX* pFrameI
 		printf("Get One Frame: Width[%d], Height[%d], nFrameNum[%d]\n",
 			pFrameInfo->nWidth, pFrameInfo->nHeight, pFrameInfo->nFrameNum);
 
-		if (captureimgnum - pFrameInfo->nFrameNum == 2)
+		if (pFrameInfo->nFrameNum - captureimgnum >= 2)
 		{
 			kxPrintf(KX_Err, "检测到相机丢图，请查看子站拍摄情况！！！！");
+			std::cout << pFrameInfo->nFrameNum << "    " << captureimgnum << std::endl;
 		}
 		else
 		{
@@ -28,14 +30,13 @@ void __stdcall XferCallback(unsigned char * pData, MV_FRAME_OUT_INFO_EX* pFrameI
 		}
 
 		// 转换图像  2020.08.28
-		cv::Mat curimg;
 		if (Config::g_GetParameter().m_nImgType == _Type_G24)
 		{
-			curimg = cv::Mat(pFrameInfo->nHeight, pFrameInfo->nWidth, CV_8UC3);
+			g_captureimg = cv::Mat(pFrameInfo->nHeight, pFrameInfo->nWidth, CV_8UC3, cv::Scalar(255,255,255));
 		}
 		else
 		{
-			curimg = cv::Mat(pFrameInfo->nHeight, pFrameInfo->nWidth, CV_8UC1);
+			g_captureimg = cv::Mat(pFrameInfo->nHeight, pFrameInfo->nWidth, CV_8UC1);
 
 		}
 		//cv::Mat curimg = cv::Mat(pFrameInfo->nHeight, pFrameInfo->nWidth, CV_8UC3);
@@ -52,19 +53,23 @@ void __stdcall XferCallback(unsigned char * pData, MV_FRAME_OUT_INFO_EX* pFrameI
 		//stConvertParam.enDstPixelType = PixelType_Gvsp_RGB8_Packed; //ch:输出像素格式 | en:output pixel format
 		//yl 2020.09.01 为修复在线检测输出图像颜色不对，在此修改输出像素格式
 		stConvertParam.enDstPixelType = PixelType_Gvsp_BGR8_Packed; //ch:输出像素格式 | en:output pixel format   
-		stConvertParam.pDstBuffer = curimg.data;                    //ch:输出数据缓存 | en:output data buffer
-		stConvertParam.nDstBufferSize = curimg.step * curimg.rows;  //ch:输出缓存大小 | en:output buffer size
+		stConvertParam.pDstBuffer = g_captureimg.data;                    //ch:输出数据缓存 | en:output data buffer
+		stConvertParam.nDstBufferSize = g_captureimg.step * g_captureimg.rows;  //ch:输出缓存大小 | en:output buffer size
 
 		//pUser = CCamera_HK d;
 		//void *handle = pUser->gethandle();
 		CCamera_HK *pInfoContext = (CCamera_HK *)pUser;
 		void *handle = pInfoContext->gethandle();
 		int nRet = MV_CC_ConvertPixelType(handle, &stConvertParam);
+		if (nRet != MV_OK)
+		{
+			std::cout << "！！！！！！！！！！！！！！相机回调取图错误， 错误代码：" << nRet << std::endl;
+		}
 
 		//cv::namedWindow("h", 0);
 		//cv::imshow("h", curimg);
 		//cv::waitKey(110);
-		pInfoContext->OnGrab(curimg.data, curimg.cols, curimg.rows, curimg.channels());   //yl 2020.08.29 增加通道数
+		pInfoContext->OnGrab(g_captureimg.data, g_captureimg.cols, g_captureimg.rows, g_captureimg.channels());
 		// 把curimg塞入队列
 
 	}
@@ -127,9 +132,20 @@ int CCamera_HK::Stop()
 	int nRet = MV_CC_StopGrabbing(m_camerahandle);
 	if (MV_OK == nRet || MV_OK == MV_E_CALLORDER)//临时加个调用顺序错误
 	{
-		MV_CC_ClearImageBuffer(m_camerahandle);//2022.2.8 停止采集的时候顺便清除缓存
+
 		m_bStop = true;
 		printf("stop successed\n");
+
+		// 下面的用法不对，不需要，注释写的是在不停止取图的情况下清除缓存。2022.3.13 
+		//nRet = MV_CC_ClearImageBuffer(m_camerahandle);//2022.2.8 停止采集的时候顺便清除缓存
+		//if (nRet == MV_OK)
+		//{
+		//}
+		//else
+		//{
+		//	printf("MV_CC_ClearImageBuffer      ERROR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+		//	std::cout << "错误代码： " << nRet << std::endl;
+		//}
 	}
 	else
 	{
@@ -152,7 +168,13 @@ int CCamera_HK::Start()
 	//assert(m_pSapXfer);
 	//m_pSapXfer->Grab();
 	captureimgnum = 0;
-	int nRet = MV_CC_StartGrabbing(m_camerahandle);
+
+	int nRet = MV_CC_SetImageNodeNum(m_camerahandle, 10);// 2022.3.14应海康要求进行设置，应对丢帧问题
+	if (MV_OK != nRet)
+	{
+		kxPrintf(KX_Err, "设备图像NODE Num失败！");
+	}
+	nRet = MV_CC_StartGrabbing(m_camerahandle);
 	if (MV_OK != nRet)
 	{
 		printf("Start Grabbing fail! nRet [0x%x]\n", nRet);
@@ -161,6 +183,7 @@ int CCamera_HK::Start()
 	}
 	else
 	{
+
 		m_bStop = false;
 	}
 
@@ -304,6 +327,10 @@ int CCamera_HK::OpenInternalTrigger(int nStatus)
 		printf("Open Internal Trigger fail! nRet [0x%x]\n", nRet);
 		return m_bInitIsOk;
 	}
+	else
+	{
+		std::cout << "设置外触发模式成功" << nStatus << std::endl;
+	}
 	return 0;
 }
 
@@ -360,7 +387,14 @@ bool CCamera_HK::PrintDeviceInfo(MV_CC_DEVICE_INFO* pstMVDevInfo)
 
 void CCamera_HK::ReverseScanDirection(int nStatus)
 {
-	int nRet = MV_CC_SetBoolValue(m_camerahandle, "ReverseScanDirection", nStatus);
+	if (m_bStop == true)
+	{
+		int nRet = MV_CC_SetBoolValue(m_camerahandle, "ReverseScanDirection", nStatus);
+		if (nRet != MV_OK)
+		{
+			std::cout << "反转图像失败！！！！！！！！！！！！错误代码：" << nRet << std::endl;
+		}
+	}
 }
 
 

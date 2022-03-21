@@ -31,11 +31,24 @@ public:
 
 	void SetCheckBlobID(int nId) { m_nID = nId;  }
 
+	enum
+	{
+		_MAX_BLOBIMG = 30,// 最大连通域分析数量
+		_SINGLE_BLOBIMG_H = 2000,//每个进入分析的图像大小
+		_IMG_OVERLAP = 20, // 图像重叠大小
+		_MAX_MASK_NUM = 20, // 高亮掩膜最大数量
+	};
+
 	struct SingleParam
 	{
 		kxRect<int>		m_rcCheckROI;
+		//std::vector(kxRect<int>)		m_prcHighmaskROI[_MAX_MASK_NUM];
+		std::vector<kxRect<int>>	m_vecrcHighmaskROI;
+		std::vector<kxRect<int>>	m_vecrcLowmaskROI;
+
+
 		int				m_nGrabTimes;//扫描列，设备移动扫描第几组,说明当前扫描图像属于第几组
-		int				m_nCurGrabID;// 当前扫描列第几个roi
+		int				m_nCurGrabID;// 当前扫描列第几个roi, 根据组数中第几个roi确定的
 		int				m_nIsnotcheck;//是否屏蔽当前检测
 
 
@@ -49,12 +62,7 @@ public:
 
 	};
 
-	enum
-	{
-		_MAX_BLOBIMG = 30,// 最大连通域分析数量
-		_SINGLE_BLOBIMG_H = 2000,//每个进入分析的图像大小
-		_IMG_OVERLAP = 20, // 图像重叠大小
-	};
+
 
 
 private:
@@ -78,8 +86,11 @@ private:
 	CEmpiricaAlgorithm		 m_hAlg;
 
 	kxCImageBuf				 m_ImgmaxRegion;
-	kxCImageBuf				 m_ImgGlueMask;//蓝胶掩膜
-	kxCImageBuf				 m_ImgColorGlueMask;//蓝胶掩膜
+	kxCImageBuf				 m_ImgGlueMask;//蓝胶区域
+	kxCImageBuf				 m_ImgColorGlueMask;//蓝胶区域
+
+	kxCImageBuf				 m_ImgGlueMaskFillholes;//涂胶区域掩膜，填充孔洞的目的是提取蓝胶时没有提取
+	kxCImageBuf				 m_ImgColorGlueMaskFillholes;
 
 	kxCImageBuf				 m_ImgR_Mask;
 
@@ -110,6 +121,10 @@ private:
 	int						 m_nID;//当前是第几个blob，用于存储缺陷图片信息
 	kxRect<int>				 m_recttarget;
 
+	kxCImageBuf				 m_Blobimg1;
+	kxCImageBuf				 m_Blobimg2;
+	kxCImageBuf				 m_Blobimg3;
+
 
 private:
 	void checkcolordiff(const kxCImageBuf& SrcImg);// 检色差
@@ -122,7 +137,6 @@ private:
 
 	void GetGlueMask(const kxCImageBuf* RGB);//用特定方法提取掩膜
 
-	void CreateBaseModel(const kxCImageBuf& CheckImg);//创建基础模板，彩色高模板，彩色低模板
 
 	void MergeImg(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg);
 
@@ -155,8 +169,20 @@ private:
 
 	void MergeImgNew(const kxCImageBuf& SrcImg1, const kxCImageBuf& SrcImg2, kxRect<int> targetrect, kxCImageBuf& DstImg);
 
-	void ExtractGreenNew(const kxCImageBuf* RGB, kxRect<int> roi, kxCImageBuf& DstImg);
+	void ExtractGreenNew(const kxCImageBuf* RGB,  kxCImageBuf& DstImg);
 
 	void SliderMatchNew(kxCImageBuf& SrcImg, int ntargetw, int ntargeth, kxCImageBuf& Templateimg, kxCImageBuf& blobimg);
+
+	void ModelFillholes(kxCImageBuf& SrcImg, kxCImageBuf& DstImg);
+
+	void checkwithmodel(const kxCImageBuf& SrcImg, const kxCImageBuf& gluearea, kxCImageBuf& dsthigh, kxCImageBuf& dstlow);// 通过模板方式把缺陷找出
+
+	void CreateBaseModel(const kxCImageBuf& SrcImg, const kxCImageBuf& gluemask, kxCImageBuf& DstHigh, kxCImageBuf& DstLow);
+
+	int JudgeDefectType(kxCImageBuf& blobimg, kxRect<int>rect);
+
+	//void Transhsv2check(kxCImageBuf& SrcImg, kxCImageBuf& DstHigh, kxCImageBuf& DstLow);// 将RBG转换为hsv进行检测
+
+	void GetHmask(const kxCImageBuf& SrcImg, kxCImageBuf& DstMask);// 获取不并入的H检测的掩膜
 
 };

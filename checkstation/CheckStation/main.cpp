@@ -182,7 +182,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	//testjson();
 
 	//设置异常处理函数
-	::SetUnhandledExceptionFilter(GPTUnhandledExceptionFilter);
+	//::SetUnhandledExceptionFilter(GPTUnhandledExceptionFilter);
 	//ShowWindow(hwnd, SW_MINIMIZE);//设置窗口最小化
 
 	g_Environment.ReadSystemParam();

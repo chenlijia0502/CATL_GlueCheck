@@ -114,7 +114,101 @@ class FindEdgeToCalibrate(object):
 
 
 
+class FindEdgeToCalibrateNew(object):
+    _OFFSET_X = 1200
+    _OFFSET_Y = 200
+    _WIDTH = 1100
+    _HEIGHT = 1500
+    _BLOCKNUM = 4
+    def __init__(self):
+        super(FindEdgeToCalibrateNew, self).__init__()
+
+
+    def solveimg(self, srcimg):
+        """
+        程序设定的输入是一张绿色色卡 + 一个标定块。两者的相对位置固定。
+        先提取出绿色的位置，再固定偏移，找到标定板的位置。
+        """
+
+        img1 = np.array(srcimg[:, :, 0], np.uint8)
+        img2 = np.array(srcimg[:, :, 1], np.uint8)
+        img3 = np.array(srcimg[:, :, 2], np.uint8)
+
+        subimg1 = cv2.subtract(img2, img1)
+        subimg2 = cv2.subtract(img2, img3)
+        subimg = np.array(subimg1 / 2, np.uint8) + np.array(subimg2 / 2, np.uint8)
+        ret, result = cv2.threshold(subimg, 200, 255, cv2.THRESH_OTSU)
+
+        retval, labels, stats, centroids = cv2.connectedComponentsWithStats(result)
+
+        list_gray = []
+        list_h = []
+        list_w = []
+
+        if retval > 1:
+            array_dots = stats[1:, 4]
+            nmaxindex = np.argmax(array_dots) + 1
+            pos = stats[nmaxindex, :]# x, y, w, h......
+            x, y, w, h = pos[:4]
+
+            targetimg = srcimg[y:y + h, x: x+w]
+
+            cv2.rectangle(srcimg, (x, y), (x + w, y + h), (255, 0, 0), 3)
+            list_gray = [int(np.mean(targetimg[:, :, 0])),
+                   int(np.mean(targetimg[:, :, 1])), int(np.mean(targetimg[:, :, 2]))]
+
+            # print ("识别到的色卡平均颜色: ", int(np.mean(targetimg[:, :, 0])),
+            #        int(np.mean(targetimg[:, :, 1])), int(np.mean(targetimg[:, :, 2])))
+
+            calibrate_x = max(0, x - self._OFFSET_X)
+            calibrate_y = max(0, y - self._OFFSET_Y)
+
+            calibrateblock = srcimg[calibrate_y:calibrate_y + self._HEIGHT, calibrate_x:calibrate_x + self._WIDTH]
+
+            solveimg1 = calibrateblock[:, :, 0]
+
+            ret, dst = cv2.threshold(solveimg1, 230, 255, cv2.THRESH_BINARY)
+
+            retval, labels, stats, centroids = cv2.connectedComponentsWithStats(dst)
+
+            array_alldots = stats[1:, 4]
+
+            list_pos = []
+
+            if len(array_alldots) >= self._BLOCKNUM:
+
+                list_sortindex = sorted(range(len(array_alldots)), key=lambda k: array_alldots[k], reverse=True)[:self._BLOCKNUM]
+
+                for nindex in list_sortindex:
+
+                    list_pos.append(stats[nindex + 1, :4])
+
+                for roi in list_pos:
+
+                    list_w.append(roi[2])
+
+                    list_h.append(roi[3])
+
+                    cv2.rectangle(srcimg, (calibrate_x + roi[0], calibrate_y + roi[1]),
+                                  (calibrate_x + roi[0] + roi[2], calibrate_y + roi[1] + roi[3]), (255, 0, 0), 3)
+
+        return srcimg, list_w, list_h, list_gray
+
+
+
+        #cv2.imwrite("d:\\result.bmp", result)
+
+
+
+
+
+
 class ShowCalibrateWidget(QtWidgets.QDialog):
+    """
+    两个作用：
+    （1）标定数据，跟参考数据进行比对
+    （2）保存数据作为标准值
+    """
     def __init__(self):
         super(ShowCalibrateWidget, self).__init__()
         self.horlayout = QtWidgets.QHBoxLayout(self)
@@ -177,24 +271,23 @@ if __name__ == "__main__":
     w = ShowCalibrateWidget()
 
 
-    img1 = cv2.imread("d:\\0.bmp", 1)
-    print(img1.shape)
-    # img2 = cv2.imread("d:\\2.bmp", 1)
-    # img3 = cv2.imread("d:\\3.bmp", 1)
-    #
-    A = FindEdgeToCalibrate()
-    #
-    solveimg, list_w, list_h, list_gray =  A.solveimg(img1)
-    #
-    #
-    #
+    img1 = cv2.imread("d:\\img\\test.bmp", 1)
+
+    A = FindEdgeToCalibrateNew()
+
+    solveimg, list_w, list_h, list_gray = A.solveimg(img1)
+
     w.setimg(solveimg)
-    #
-    # w.settext(str(sums))
+    s_word = "识别到的格子宽： " + str(list_w) + "\n\n识别到的格子高： " + str(list_h) + "\n\n识别到的标准色板灰度： " + str(list_gray)
+    w.settext(s_word)
 
     w.show()
 
     App.exec_()
+
+    # w = FindEdgeToCalibrateNew()
+    # img = cv2.imread("D:\\img\\test.bmp", 1)
+    # w.solveimg(img)
 
 
 

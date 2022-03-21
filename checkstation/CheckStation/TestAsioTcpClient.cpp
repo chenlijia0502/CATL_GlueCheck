@@ -506,7 +506,7 @@ void CTestAsioTcpClient::RecMsgToCloseCamera_BuildModel(const unsigned char* pEx
 
 void CTestAsioTcpClient::RecMsgToChangeCameraCaptureDirection(int nstatus)
 {
-	printf_s("改变相机采集方向");
+	printf_s("改变相机采集方向\n");
 	if (nstatus > 0)
 	{
 		Graber::g_GetCamera()->ReverseScanDirection(1);

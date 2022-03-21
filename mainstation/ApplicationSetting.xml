@@ -9,7 +9,7 @@
 	<isopenplc>1</isopenplc>
 	<paramsdir>d:\Param-gule\</paramsdir>
 	<sendtcpdatalatertime>0.5</sendtcpdatalatertime>
-	<hardwarecom>COM1</hardwarecom>
+	<hardwarecom>COM4</hardwarecom>
 	<n_hardware_port>7</n_hardware_port>
 	<n_hardwarequeuelen>6</n_hardwarequeuelen>
 	<softwareaddress>192.168.0.20</softwareaddress>
@@ -25,21 +25,21 @@
 	</MES>
 	<SHOUJIAN>
 		<XPOS>900</XPOS>
-		<YPOS1>200</YPOS1>
-		<YPOS2>450</YPOS2>
+		<YPOS1>0</YPOS1>
+		<YPOS2>250</YPOS2>
 	</SHOUJIAN>
 	<AGV>
-		<IP>192.168.101.1</IP>
+		<IP>192.168.3.240</IP>
 		<PORT>9000</PORT>
-		<STATION1ID>19</STATION1ID>
-		<STATION2ID>20</STATION2ID>
-		<STATION3ID>21</STATION3ID>
+		<STATION1ID>7</STATION1ID>
+		<STATION2ID>8</STATION2ID>
+		<STATION3ID>9</STATION3ID>
 	</AGV>
 	<substation>
 		<substation1>
 			<stationstatu>1</stationstatu>
 			<picturepath>d:\PlateEdgeCheck</picturepath>
-			<exepath>D:\ND-GULECHECK\project\nd-gulecheck\checkstation\CheckStation\CheckStation.exe</exepath>
+			<exepath>D:\software\substation\CheckStation.exe</exepath>
 			<ui_parameter_terms>
 				<KxGlobal></KxGlobal>
 				<GuleParam></GuleParam>

@@ -23,3 +23,10 @@ UNLOCK_STYLESHEET = """QToolButton#toolButton_userlevel\n
 QToolButton:hover#toolButton_userlevel\n 
 {background-color:transparent;border:0px;\n
  background-color:lightBlue;\n}\n"""
+
+
+
+class SYSPATH:# 一些文件路径
+    PATH_CHECKDATA = "D:\\CHECK_DATA\\"
+    PATH_MESCHUZHAN_EXCEL = "D:\\MESLOG\\出站校验接口(dataCollectForSfcEx)\\"
+    PATH_MESSHOUJIAN_EXCEL = "D:\\MESLOG\\首件接口(dataCollectForSfcEx)\\"

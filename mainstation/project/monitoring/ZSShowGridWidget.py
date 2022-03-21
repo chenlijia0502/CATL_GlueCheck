@@ -42,10 +42,6 @@ class ZSImgListDetectWidget(QtWidgets.QWidget):
         layout_9.addWidget(self.historyScrollBar)
         layout_9.setSpacing(0)
         layout_9.setContentsMargins(0, 0, 0, 0)
-        layout = QtWidgets.QGridLayout(self)
-        layout.addLayout(layout_9, 0, 0, 1, 2)
-        layout.setSpacing(0)
-        layout.setContentsMargins(0, 0, 0, 0)
         self.inithistoryShowArea(enlargeRatio=enlargeRatio)
 
     def initLogInfo(self):

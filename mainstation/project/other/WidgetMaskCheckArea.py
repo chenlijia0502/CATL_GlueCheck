@@ -245,23 +245,26 @@ class Ccarmap(QtWidgets.QWidget):
 
 
     def setselected(self, list_status):
-        list_row = [2, 2, 1, 1, 0, 0]
-        list_col = [0, 1, 0, 1, 0, 1]
+        try:
+            list_row = [2, 2, 1, 1, 0, 0]
+            list_col = [0, 1, 0, 1, 0, 1]
 
-        font = QtGui.QFont()
-        font.setPointSize(20)
-        font.setBold(True)
-        for i, status in enumerate(list_status):
-            if status:
-                newItem = QtWidgets.QTableWidgetItem("  检测区域%d"%i)
-                newItem.setFont(font)
-                newItem.setBackground(QtGui.QColor(255, 0, 0))
-                self.TableWidget.setItem(list_row[i], list_col[i], newItem)
-            else:
-                newItem = QtWidgets.QTableWidgetItem("  检测区域%d"%i)
-                newItem.setFont(font)
-                newItem.setBackground(QtGui.QColor(255, 255, 255))
-                self.TableWidget.setItem(list_row[i], list_col[i], newItem)
+            font = QtGui.QFont()
+            font.setPointSize(20)
+            font.setBold(True)
+            for i, status in enumerate(list_status):
+                if status:
+                    newItem = QtWidgets.QTableWidgetItem("  检测区域%d"%i)
+                    newItem.setFont(font)
+                    newItem.setBackground(QtGui.QColor(255, 0, 0))
+                    self.TableWidget.setItem(list_row[i], list_col[i], newItem)
+                else:
+                    newItem = QtWidgets.QTableWidgetItem("  检测区域%d"%i)
+                    newItem.setFont(font)
+                    newItem.setBackground(QtGui.QColor(255, 255, 255))
+                    self.TableWidget.setItem(list_row[i], list_col[i], newItem)
+        except Exception as e:
+            print (e)
 
 
 

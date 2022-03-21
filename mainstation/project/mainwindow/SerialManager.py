@@ -4,6 +4,7 @@ import time
 import imc_msg
 import time
 import logging
+from library.common.globalparam import LogInfo
 
 
 
@@ -19,12 +20,11 @@ class SerialManager(object):
         # 通信日志独此一份log
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(level=logging.INFO)
-        handler = logging.FileHandler("D:\\log\\HARDWARE%s.txt"%time.strftime("%Y-%m-%d"))
-        handler.setLevel(logging.INFO)
+        self.handler = logging.FileHandler(LogInfo.PATH_SAVE_LOG + 'HARDWARE%s.log' % time.strftime("%Y-%m-%d"))
+        self.handler.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s - %(message)s')
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
-        #self.logger = logging.getLogger('UI.%s' % self.__class__.__name__)
+        self.handler.setFormatter(formatter)
+        self.logger.addHandler(self.handler)
 
         self.queue_write = SqQueue(100)
         self.queue_read = SqQueue(100)
@@ -33,6 +33,15 @@ class SerialManager(object):
         self.thread2 = threading.Thread(target=self._cycle_read)
         self.thread1.start()
         self.thread2.start()
+
+
+    def updatelog(self):
+        self.logger.removeHandler(self.handler)
+        self.handler = logging.FileHandler(LogInfo.PATH_SAVE_LOG + 'HARDWARE_%s.log' % time.strftime("%Y-%m-%d"))
+        self.handler.setLevel(logging.INFO)
+        self.formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
+        self.handler.setFormatter(self.formatter)
+        self.logger.addHandler(self.handler)
 
 
     def read(self, ntimeout=None):

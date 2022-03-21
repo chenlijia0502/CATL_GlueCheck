@@ -204,16 +204,16 @@ int CkxEnvironment::ReadSystemParam()
 	//载入相机设备ID
 	kxGetPrivateProfileString("Camera", "DeviceId", "", szTemp, sizeof(szTemp), iniPath);
 	strcpy_s(g_szCameraDeviceId, sizeof(g_szCameraDeviceId), "");
-	nTemp = 0;
-	for(int i = 0; i < gc_nCameraMacAddress; i++)
-		if(0 == strcmp(gc_szCameraMacAddress[i], szTemp))
-		{
-			strcpy_s(g_szCameraDeviceId, sizeof(g_szCameraDeviceId), gc_szCameraMacAddress[i]);
-			nTemp = 1;
-			break;
-		}
-	if(0 == nTemp)
-		kxPrintf(KX_INFO, "相机设备ID错误 %s", szTemp);
+	//nTemp = 0;
+	//for(int i = 0; i < gc_nCameraMacAddress; i++)
+	//	if(0 == strcmp(gc_szCameraMacAddress[i], szTemp))
+	//	{
+	//		strcpy_s(g_szCameraDeviceId, sizeof(g_szCameraDeviceId), gc_szCameraMacAddress[i]);
+	//		nTemp = 1;
+	//		break;
+	//	}
+	//if(0 == nTemp)
+	//	kxPrintf(KX_INFO, "相机设备ID错误 %s", szTemp);
 
 	//其他相机参数
 	kxGetPrivateProfileString("Camera", "ConfigName", ".\\T_Genie_TS-C3500_Default_Default.ccf", g_szCameraConfigPath, sizeof(g_szCameraConfigPath), iniPath);

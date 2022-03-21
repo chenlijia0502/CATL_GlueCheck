@@ -108,12 +108,6 @@ bool CSaveQue::SaveImg(kxCImageBuf& Img, unsigned int& nOffset)
 	int nstatus = fflush(m_fp);
 
 
-	kxCImageBuf readimg;
-
-	ReadImgFromFileByOffset(m_nOffset, readimg);
-
-	//readimg.Read(m_fp);
-
 	//std::cout << "Ð´ÈëÁ÷×´Ì¬: " << status << " " << nstatus << std::endl;
 	m_nOffset = m_nOffset+m_nBlockSize;
 

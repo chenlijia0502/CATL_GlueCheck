@@ -14,7 +14,7 @@ from project.mainwindow.ControlManager import ControlManager
 from project.mainwindow.SerialManager import SerialManager
 from App import TimeStatus
 from project.other.globalparam import *
-from project.mainwindow.Calibrate import FindEdgeToCalibrate, ShowCalibrateWidget
+from project.mainwindow.Calibrate import FindEdgeToCalibrateNew, ShowCalibrateWidget
 from project.mainwindow.CPCTSParam import WidgetCPCTSParam
 from library.common.globalfun import DriveFreeSpace, DriveTotalSize
 #from project.mainwindow.MesParamTree import MesParamTreeWidget
@@ -25,6 +25,8 @@ from project.mainwindow.UploadDialog import CUploadDialog
 from project.mainwindow.CheckControlThread import CheckControlThread
 from project.mainwindow.InputDialog import CInputDialog
 from project.mainwindow.RecordDebugTimes import CRecordDebugTimes, DebugStatus
+from project.other.WaitDialogWithText import WaitDialogWithText
+from project.other.DebugWidget import CDebugWidget
 
 
 class kxmainwindow(KXBaseMainWidget):
@@ -85,13 +87,23 @@ class kxmainwindow(KXBaseMainWidget):
         self.ui.horizontalLayout_2.addWidget(self.pushbutton_mask)
 
 
+        self.pushbutton_debug = QtWidgets.QPushButton(self)
+        self.widget_debug = CDebugWidget(self)
+        self.pushbutton_debug.setMinimumSize(QtCore.QSize(80, 90))
+        self.pushbutton_debug.setMaximumSize(QtCore.QSize(80, 90))
+        self.pushbutton_debug.setFont(font)
+        self.pushbutton_debug.setText("工具\n助手")
+        self.ui.horizontalLayout_2.addWidget(self.pushbutton_debug)
+
+
         self._initstackwidget([self.ui.pbt_realtime, self.ui.pbt_paramset, self.ui.pbt_logview, self.ui.pushButton_worklist,
-                               self.pushbutton_cpcts, self.pushbutton_mes, self.pushbutton_mask],
+                               self.pushbutton_cpcts, self.pushbutton_mes, self.pushbutton_mask, self.pushbutton_debug],
                               [self.widget_Realtime, self.widget_Paramsetting, self.widget_runlog, self.widget_worklist,
-                               self.widget_cpcts, self.widget_mes, self.widget_maskcheckarea])
+                               self.widget_cpcts, self.widget_mes, self.widget_maskcheckarea, self.widget_debug])
         self._completeui()
         self._completeconnect()
         self.ui.label_2.setText("下箱体托盘检测")
+        self.blockstatus = True
         self._setstatus("0000000")
         self.h_threadlock = threading.Thread(target=self._judegIsTime2Lock)
         self.h_threadlock.start()
@@ -109,8 +121,26 @@ class kxmainwindow(KXBaseMainWidget):
         self._SIG_ISMASKSELECT.connect(self._slot_ensureismaskselected)
         self._SIG_PACKID.connect(self.callback2sendnextpackid)
 
+        self.loggertimer = QtCore.QTimer(self)
+        self.s_today = time.strftime("%Y-%m-%d")
+        self.loggertimer.timeout.connect(self._refreshloggerpath)
+        self.loggertimer.start(1000*60*5)
+
         #调试模式
         self.modeobj = CRecordDebugTimes()
+        ipc_tool.kxlog("MAIN", logging.INFO, "————————————————启动程序————————————————————")
+
+
+    def _refreshloggerpath(self):
+        """
+        定时更新日志路径，确保日志按天更新。
+        AGV、 上下位机通信、 控制流程日志
+        """
+        if self.s_today != time.strftime("%Y-%m-%d"):
+            self.s_today = time.strftime("%Y-%m-%d")
+            self.h_control.updatelog()
+            self.mySeria.updatelog()
+            self.h_checkcontrolthread.updatelog()
 
 
     def __timeout2checkdiskcapacity(self):
@@ -147,8 +177,9 @@ class kxmainwindow(KXBaseMainWidget):
             curtime = time.time()
             diff = curtime - TimeStatus.g_curtime
 
-            if self.widget_permission.isHidden():
+            if self.widget_permission.isHidden() and not self.blockstatus:
                 if diff > 300: #表示超过这么多秒没有操作就锁屏
+                    self.blockstatus = True
                     self._SIG_SHOWLOCK.emit()
             else:
                 TimeStatus.g_curtime = time.time()
@@ -202,13 +233,13 @@ class kxmainwindow(KXBaseMainWidget):
         self._SIG_ERRORINFO.connect(self._showerrorinfo)
 
 
-    def _test_adjust_z(self):
-        ipc_tool.kxlog("主站", logging.INFO, "测试z轴调节")
-        self.serial_Reconnect()
-        self.h_control.setserial(self.mySeria)
-        # self.h_control.buildmodel(s_extdata)
-        t = threading.Thread(target=self.h_control.control_adjust_z)
-        t.start()
+    # def _test_adjust_z(self):
+    #     ipc_tool.kxlog("主站", logging.INFO, "测试z轴调节")
+    #     self.serial_Reconnect()
+    #     self.h_control.setserial(self.mySeria)
+    #     # self.h_control.buildmodel(s_extdata)
+    #     t = threading.Thread(target=self.h_control.control_adjust_z)
+    #     t.start()
 
 
 
@@ -231,22 +262,30 @@ class kxmainwindow(KXBaseMainWidget):
         self.ui.toolButton_userlevel.setStyleSheet(LOCK_STYLESHEET)
         self._setstatus("0000000")  # 锁住
         self.widget_runlog.setid("NONE")
+        ipc_tool.kxlog("权限", logging.INFO, "用户自动退出")
 
 
     def showpermissiondialog(self):
+        ipc_tool.kxlog("权限", logging.INFO, "用户手动退出")
         self.ui.toolButton_userlevel.setStyleSheet(LOCK_STYLESHEET)
         self.setEnabled(False)
         self.widget_permission.clear()
         self.widget_permission.show()
         self.widget_permission.exec_()
+        self.blockstatus = True
+
         self.setEnabled(True)
         account = self.widget_permission.getpermissionlevel()
         if account is not None:
+            self.blockstatus = False
+            ipc_tool.kxlog("权限", logging.INFO, "用户 " + account[0] + " 刷卡登录")
             self.ui.toolButton_userlevel.setStyleSheet(UNLOCK_STYLESHEET)
             self._setstatus(account[2])
             self.widget_runlog.setid(account[0])
         else:
             self._setstatus("0000000")#锁住
+            self.widget_runlog.setid("None")
+
 
 
     def _setstatus(self, slevel):
@@ -303,9 +342,13 @@ class kxmainwindow(KXBaseMainWidget):
             t = threading.Thread(target=self.h_control.buildmodel_getsensorhigh, args=s_extdata)
             t.start()
         elif n_msgtype == imc_msg.MSG_DOT_CHECK_RESULT:
+            self._closewaitdialog()
             self.reccalibrateimg(s_extdata)
         elif n_msgtype == imc_msg.MSG_SET_CHECK_MASK:
             self.widget_maskcheckarea.setcheckarea(s_extdata)
+        elif n_msgtype == imc_msg.MSG_CHECK_MATCHERROR:
+            if self.ui.toolbtn_onlinerun.isChecked():
+                self._showerrorinfo("！！！匹配图像发生错误，疑似相机异常，请重新开始检测！！！")
 
 
 
@@ -438,6 +481,11 @@ class kxmainwindow(KXBaseMainWidget):
 
     def _shoujian(self):
         ipc_tool.kxlog("主站", logging.INFO, "开始首件检测")
+        self.threadWaitDialog = WaitDialogWithText('正在做首件，请勿点击...')
+        self.threadWaitDialog.clear()
+        self.threadWaitDialog.setProcessBarRange(0, 100)
+        self.threadWaitDialog.show()
+        QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.ExcludeUserInputEvents)
         self.serial_Reconnect()
         self.h_control.setserial(self.mySeria)
         self.h_control.setcheckstatus(True)
@@ -445,6 +493,9 @@ class kxmainwindow(KXBaseMainWidget):
                                                                              int(self.dict_config['SHOUJIAN']['YPOS1']),
                                                                              int(self.dict_config['SHOUJIAN']['YPOS2'])])
         t.start()
+        # TODO : 暂时使用首件做来回跑测试
+        # t = threading.Thread(target=self.h_control.testcamera)
+        # t.start()
 
 
     def callback2dotcheck(self):
@@ -460,7 +511,7 @@ class kxmainwindow(KXBaseMainWidget):
         import json
         dict_result = json.loads(tuple_data)
         img = self._getimage(dict_result)
-        obj = FindEdgeToCalibrate()
+        obj = FindEdgeToCalibrateNew()
         solveimg, list_w, list_h, list_gray  = obj.solveimg(img)
         cv2.imwrite("d:\\test.bmp", img)
 
@@ -600,7 +651,7 @@ class kxmainwindow(KXBaseMainWidget):
         else:#调试模式下增加记录
             self.modeobj.IncreaseDebugTimes()
 
-            self.ui.label_rootnum.setText(self.modeobj.Getdebugtimes())
+            self.ui.label_rootnum.setText(str(self.modeobj.Getdebugtimes()))
 
         self.h_checkcontrolthread.emits()# 判断结果后触发下次逻辑
 
@@ -673,7 +724,7 @@ class kxmainwindow(KXBaseMainWidget):
                 self.toolbutton_test.setFont(font)
                 self.toolbutton_test.setText("放行\n模式")
                 self.toolbutton_test.setStyleSheet("""color: rgb(0, 255, 0)""")
-            elif self.inputdialog.gettext() == "zs20210401software":
+            elif self.inputdialog.gettext() == "zs20210401pass":
                 ipc_tool.kxlog("main", logging.WARNING, "进入取图模式，当前pack不检，只存图以及上传正确数据")
                 self.modeobj.debugmode = DebugStatus.STATUS4
                 self._sendnotcheck(0)
@@ -711,3 +762,32 @@ class kxmainwindow(KXBaseMainWidget):
         """
         data = json.dumps({'ischeck':nischeck})
         self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_NOT_CHECK, data)
+
+
+    def callback2lockwindow(self):
+        """
+        当检测到并无托盘的时候，回调锁住界面
+        """
+        if self.widget_permission.isHidden() and not self.blockstatus:
+            self.blockstatus = True
+            self._SIG_SHOWLOCK.emit()
+            ipc_tool.kxlog("权限", logging.INFO, "检测过程未发现托盘，用户被强制退出锁住权限")
+
+
+    def getspackid(self):
+        """提供其它界面调用"""
+        return self.spackid
+
+    def _closewaitdialog(self):
+        QtCore.QCoreApplication.processEvents(QtCore.QEventLoop.AllEvents)
+
+        self.threadWaitDialog.setProcessBarVal(100)
+
+        self.threadWaitDialog.close()
+
+
+    def sendagvmsg(self, msgtype):
+        """
+        发送agv小车信息，msgtype = 0为放小车进站，其余为出站
+        """
+        self.h_checkcontrolthread.sendagvmsg(msgtype)

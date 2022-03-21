@@ -72,8 +72,13 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
         """
         curpath = time.strftime('%Y-%m-%d', time.localtime(time.time())) + ".xlsx"
         if curpath != self.curpath:
-            if not self.excel_log.b_iswriting:#只要不是正在写入
-                self.excel_log = CExcelManager(self.basedir + "\\" + self.curpath, self.basesheet_name, self.basehead)
+            self.curpath = curpath
+            while 1:
+                if not self.excel_log.b_iswriting:#只要不是正在写入
+                    self.excel_log = CExcelManager(self.basedir + "\\" + self.curpath, self.basesheet_name, self.basehead)
+                    break
+                else:
+                    time.sleep(5)
 
 
     def _initui(self):

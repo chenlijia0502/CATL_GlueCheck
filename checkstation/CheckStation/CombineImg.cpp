@@ -10,8 +10,6 @@ void CCombineImg::Init(int nW, int nH, int ncol, int* nnums, kxRect<int>* modelr
 	{
 		m_nEveryColImgnum[i] = nnums[i];
 		
-		m_rectmodel[i] = modelroi[i];
-
 		m_ImgBigListA[i].Init(nW, nH*nnums[i], 3);
 
 		m_ImgBigListB[i].Init(nW, nH*nnums[i], 3);
@@ -22,6 +20,12 @@ void CCombineImg::Init(int nW, int nH, int ncol, int* nnums, kxRect<int>* modelr
 
 	}
 
+	for (int i = 0; i < ncol * 2; i++)
+	{
+		m_rectmodel[i] = modelroi[i];
+	}
+
+
 	Clear();
 
 	m_bisinit = true;
@@ -29,8 +33,9 @@ void CCombineImg::Init(int nW, int nH, int ncol, int* nnums, kxRect<int>* modelr
 }
 
 
-void CCombineImg::appendImg(kxCImageBuf& srcimg, int nImgIndex)
+int CCombineImg::appendImg(kxCImageBuf& srcimg, int nImgIndex)
 {
+	//当匹配之后发现匹配错误返回0，否则返回1
 
 	// 1. 确认是哪一列    nImgIndex是从0开始数的
 
@@ -99,19 +104,56 @@ void CCombineImg::appendImg(kxCImageBuf& srcimg, int nImgIndex)
 
 		m_ImgBigListB[ncolindex].SetImageBuf(dst.data, dst.cols, dst.rows, dst.step, dst.channels(), true);
 
-
 		m_nCurScanTimes += 1;
 
 		// 4. 对列满的图像进行模板匹配，然后对齐
 		//tbb_start = tick_count::now();
 
-		if (MatchTemplateAndTransform(ncolindex))
+		int ncaptureoffset1, ncaptureoffset2;
+		
+		bool matchstatus1 = MatchTemplateAndTransform(ncolindex, m_rectmodel[ncolindex * 2], ncaptureoffset1);
+
+		bool matchstatus2 = MatchTemplateAndTransform(ncolindex, m_rectmodel[ncolindex * 2 + 1], ncaptureoffset2);
+
+		if (matchstatus1 && matchstatus2)
 		{
-			m_bstatus[ncolindex] = true;
+			std::cout << "匹配结果: " << ncaptureoffset1 << "    " << ncaptureoffset2 << std::endl;
+			if (abs(ncaptureoffset1 - ncaptureoffset2) < 30)
+			{
+
+				kxCImageBuf bigimg;
+
+				bigimg.Init(m_ImgBigListB[ncolindex].nWidth, m_ImgBigListB[ncolindex].nHeight, 3);
+
+				ippsSet_8u(0, bigimg.buf, bigimg.nPitch*bigimg.nHeight);
+
+				IppiSize copybigsize = { m_ImgBigListB[ncolindex].nWidth, m_ImgBigListB[ncolindex].nHeight - ncaptureoffset1 };
+
+				IppStatus status = ippiCopy_8u_C3R(m_ImgBigListB[ncolindex].buf, m_ImgBigListB[ncolindex].nPitch,
+
+					bigimg.buf + ncaptureoffset1 * bigimg.nPitch, bigimg.nPitch, copybigsize);
+
+				IppiSize bigsize = { m_ImgBigListB[ncolindex].nWidth, m_ImgBigListB[ncolindex].nHeight };
+
+				status = ippiCopy_8u_C3R(bigimg.buf, bigimg.nPitch, m_ImgBigListB[ncolindex].buf, m_ImgBigListB[ncolindex].nPitch, bigsize);
+
+				m_bstatus[ncolindex] = true;
+
+			}
+			else
+			{
+				// kxprintf("上下匹配无法对应，可能出现匹配错误或图像丢图");
+				m_bstatus[ncolindex] = false;// 没匹配到是要报错的
+				return 0;
+			}
+
 		}
 		else
 		{
-			m_bstatus[ncolindex] = false;
+			// kxprintf("定位核无法匹配，查看原图确认采集情况");
+			m_bstatus[ncolindex] = false;// 没匹配到是要报错的
+			return 0;
+
 		}
 
 
@@ -121,7 +163,7 @@ void CCombineImg::appendImg(kxCImageBuf& srcimg, int nImgIndex)
 	}
 	
 
-	
+	return 1;
 
 
 }
@@ -148,31 +190,30 @@ void CCombineImg::ResetCol(int &nIndex)
 }
 
 
-bool CCombineImg::MatchTemplateAndTransform(int ncol)
+bool CCombineImg::MatchTemplateAndTransform(int ncol, kxRect<int> matchrect, int &ncaptureoffset)
 {
 	kxCImageBuf templateimg;
 
-	templateimg.Init(m_rectmodel[ncol].Width(), m_rectmodel[ncol].Height(), 3);
+	templateimg.Init(matchrect.Width(), matchrect.Height(), 3);
 
-	IppiSize copysize = { m_rectmodel[ncol].Width(), m_rectmodel[ncol].Height() };
+	IppiSize copysize = { matchrect.Width(), matchrect.Height() };
 
-	ippiCopy_8u_C3R(m_ImgBigListA[ncol].buf + m_rectmodel[ncol].top * m_ImgBigListA[ncol].nPitch + m_rectmodel[ncol].left * m_ImgBigListA[ncol].nChannel, m_ImgBigListA[ncol].nPitch, templateimg.buf, templateimg.nPitch, copysize);
+	ippiCopy_8u_C3R(m_ImgBigListA[ncol].buf + matchrect.top * m_ImgBigListA[ncol].nPitch + matchrect.left * m_ImgBigListA[ncol].nChannel, m_ImgBigListA[ncol].nPitch, templateimg.buf, templateimg.nPitch, copysize);
 
 	const int noffset = 1300;
 
-	int ntop = gMax(m_rectmodel[ncol].top - noffset, 0);
+	int ntop = gMax(matchrect.top - noffset, 0);
 
-	//int nH = m_rectmodel[ncol].bottom - ntop + 1;
-
-	int nH = noffset + m_rectmodel[ncol].Height();
+	int nH = matchrect.bottom - ntop + 1;
+	//int nH = noffset + matchrect.Height();
 
 	kxCImageBuf matchimg;
 
 	const int horizonoffset = 5;
 
-	int nleft = max(0, m_rectmodel[ncol].left - horizonoffset);
+	int nleft = max(0, matchrect.left - horizonoffset);
 
-	int nright = min(m_ImgBigListB[ncol].nWidth - 1, m_rectmodel[ncol].right + horizonoffset);
+	int nright = min(m_ImgBigListB[ncol].nWidth - 1, matchrect.right + horizonoffset);
 
 	int nw = nright - nleft + 1;
 
@@ -186,49 +227,35 @@ bool CCombineImg::MatchTemplateAndTransform(int ncol)
 
 	float frate = m_hAlg.Matchtemplate(matchpos, matchimg, templateimg);
 
-	char savepath[32];
+	
+	//----------------------------------//
+	//static int nsavenum = 0;
 
-	sprintf_s(savepath, "d:\\matchimg%d.bmp", ncol);
+	//char savepath[32];
 
-	CKxBaseFunction fun;
+	//sprintf_s(savepath, "d:\\matchimg%d.bmp", nsavenum);
 
-	fun.SaveBMPImage_h(savepath, matchimg);
+	//CKxBaseFunction fun;
 
-	sprintf_s(savepath, "d:\\templateimg%d.bmp", ncol);
+	//fun.SaveBMPImage_h(savepath, matchimg);
 
-	fun.SaveBMPImage_h(savepath, templateimg);
+	//sprintf_s(savepath, "d:\\templateimg%d.bmp", nsavenum);
+
+	//fun.SaveBMPImage_h(savepath, templateimg);
+
+	//nsavenum++;
+
+	//----------------------------------//
 
 
-	int ncaptureoffset = m_rectmodel[ncol].top - (matchpos.y + ntop);// B的位置比A往上了这么多
+	int ndata = matchrect.top - (matchpos.y + ntop);// B的位置比A往上了这么多
 
-	if (frate > 0.4 && ncaptureoffset >= 0)// ncaptureoffset 在理想的位置只应该大于0
+	if (frate > 0.4 && ndata >= 0)// ncaptureoffset 在理想的位置只应该大于0
 	{
-		//int ncaptureoffset = nH - matchpos.y - templateimg.nHeight;
-
-		kxCImageBuf bigimg;
-
-		bigimg.Init(m_ImgBigListB[ncol].nWidth, m_ImgBigListB[ncol].nHeight, 3);
-
-		ippsSet_8u(0, bigimg.buf, bigimg.nPitch*bigimg.nHeight);
-
-		IppiSize copybigsize = { m_ImgBigListB[ncol].nWidth, m_ImgBigListB[ncol].nHeight - ncaptureoffset };
-
-		IppStatus status = ippiCopy_8u_C3R(m_ImgBigListB[ncol].buf , m_ImgBigListB[ncol].nPitch,
-			
-			bigimg.buf + ncaptureoffset * bigimg.nPitch, bigimg.nPitch, copybigsize);
-
-		//m_ImgBigListB[ncol].SetImageBuf(bigimg, true);
-
-		IppiSize bigsize = { m_ImgBigListB[ncol].nWidth, m_ImgBigListB[ncol].nHeight};
-
-		status = ippiCopy_8u_C3R(bigimg.buf, bigimg.nPitch, m_ImgBigListB[ncol].buf, m_ImgBigListB[ncol].nPitch, bigsize);
-
-		if (status != 0)
-		{
-			int kk = 0;
-		}
+		ncaptureoffset = ndata;
 
 		return true;
+
 
 	}
 	else

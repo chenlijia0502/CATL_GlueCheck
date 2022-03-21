@@ -165,20 +165,7 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 
 		recimg.SetImageBuf(buf, nWidth, nHeight, nPitch, nChannel, true);
 
-		//static int nsavenum = 0;
-
-		//char savepath[128];
-
-		//memset(savepath, 0, 128);
-
-		//sprintf_s(savepath, "d:\\%d.bmp", nsavenum);
-
-		//cv::Mat imgmat = cv::Mat(recimg.nHeight, recimg.nWidth, CV_8UC(recimg.nChannel), recimg.buf);
-
-		//cv::imwrite(savepath, imgmat);
-
-		//nsavenum++;
-
+		
 		Json::Value sendresult;
 
 		sendresult["imagepath"] = Config::g_GetParameter().m_szNetBuildModelSaveImagePath;
@@ -276,6 +263,25 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 
 				m_hBaseFun.KxResizeImage(recimg, resizeimg);
 
+
+				//static int nsavenum = 0;
+
+				//char savepath[128];
+
+				//memset(savepath, 0, 128);
+
+				//sprintf_s(savepath, "F:\\img\\%d.bmp", nsavenum);
+
+				//cv::Mat imgmat = cv::Mat(resizeimg.nHeight, resizeimg.nWidth, CV_8UC(resizeimg.nChannel), resizeimg.buf);
+
+				//bool savestatus = cv::imwrite(savepath, imgmat);
+
+				//nsavenum++;
+
+				//std::cout << savestatus <<  "  " << nsavenum << std::endl;
+
+
+
 				bool m_bOpenFileStatus = g_SaveImgQueExposure.OpenFile(Config::g_GetParameter().m_szNetExposureSaveImagePath,
 					resizeimg.nWidth, resizeimg.nHeight, resizeimg.nPitch, 30);
 
@@ -308,6 +314,8 @@ void CkxGrabBuffer::Push(const unsigned char* buf, int nWidth, int nHeight, int 
 			m_CaptureQueue.GetRearElement().m_CardID = m_nNowID;
 			m_CaptureQueue.GetRearElement().m_Type = nChannel;
 			m_CaptureQueue.Push();
+
+
 
 		}
 		else

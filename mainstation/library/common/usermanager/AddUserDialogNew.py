@@ -20,7 +20,7 @@ class CAddUserDialogNew(QtWidgets.QDialog):
     MODULE_SHEET_NAME = "Sheet2" #保存等级列表的sheet名
     _CSV_SAVE_HEAD = ['name', 'ID','permission','time']
 
-    def __init__(self, list_modulename, list_levelname=['一级权限', '二级权限','三级权限', '四级权限','五级权限', '六级权限']):
+    def __init__(self, list_modulename, list_levelname=['管理员', '工程师','操作员', '','', '']):
         super(CAddUserDialogNew, self).__init__()
         self.ui = Ui_addusernew()
         self.ui.setupUi(self)

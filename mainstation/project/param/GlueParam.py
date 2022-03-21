@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtGui
-import struct
 import sys
 #为了文件的读写设置，python2不加这两句保存或者读文件时会出现解码编码问题
 
 sys.path.append("../../../")
-import xmltodict
 import json
 import cv2
-import numpy as np
-import os
 from kxpyqtgraph.kxparameterTree.KxCustomWidget import *
 from library.parametersetting.ParamItemPY.KxBaseWidget import KxBaseParamWidget, registerkxwidget
 from kxpyqtgraph.kxparameterTree.KxParameter import KxParameter
@@ -20,7 +15,7 @@ from project.other.globalparam import StaticConfigParam
 from library.common.KxImageBuf import KxImageBuf
 from project.param.MergeImg import CMergeImg, CMergeImgToList
 from PIL import Image
-from project.param.WaitDialogWithText import WaitDialogWithText
+from project.other.WaitDialogWithText import WaitDialogWithText
 import  logging
 import threading
 from library.common.readconfig import readconfig, MAINSTATION_CONFIG
@@ -38,8 +33,10 @@ class GuleParam(KxBaseParamWidget):
               涂胶项目
     """
     _SCAN_MAP_TIMES = 3 #全地图扫描次数
-    _MAX_ROI_NUM = 32
+    _MAX_ROI_NUM = 42
     _MAX_SCAN_NUM = 6
+    _LIST_GROUPNAME = ['组数一', '组数二', '组数三', '组数四', '组数五', '组数六']
+    _MAX_MASK_NUM = 20
     _BUILD_MODEL_SCALE_FACTOR = 4#建模的时候对图像进行压缩，不然会卡顿
 
     _SIG_CAPTUREBIGIMG_DONE = QtCore.pyqtSignal()# 大图采集建模完成
@@ -86,13 +83,16 @@ class GuleParam(KxBaseParamWidget):
         self.ui.h_pBtSave.clicked.connect(self.saveparameters)
         self.ui.h_pBtLoad.setText("模拟建模")
         self.ui.h_pBtLoad.clicked.connect(self._simulate2buildmodel)
+        # self.ui.h_pBtLoad.setText("载入图像")
+        # self.ui.h_pBtLoad.clicked.connect(self.loadimg)
+
 
 
     def _initparam(self):
         self.s_imgpath = None
         self.n_qualitytreenum = 0#当前已显示质量检查组数
         self.n_measurehighnum = 0#测量高度的点
-        self.n_checkarea = 0#当前检测区域
+        #self.n_checkarea = 0#当前检测区域
         self.b_connectstatus = False# 参数改变信号，是否连接状态，是则不调用disconnect
         dict_head = {'name': u'主站设置', 'type': 'group', 'visible':False, 'children': [
                 {'name': u'图像信息', 'type': 'imageinfo',
@@ -108,7 +108,7 @@ class GuleParam(KxBaseParamWidget):
                 {'name': '相机横向分辨率', 'type': 'float', 'value': 0.1, 'limits': [0, 1], 'visible':False},
                 {'name': '相机纵向像素数', 'type': 'int', 'value': 2000, 'limits': [200, 6600]},
                 {'name': '拍摄长度', 'type': 'int', 'value': 2000, 'limits': [0, StaticConfigParam.MAX_Y_LEN]},
-                {'name': '起拍位置', 'type': 'int', 'value': 0, 'limits':[0, 2000]},
+                {'name': '起拍位置', 'type': 'int', 'value': 0, 'limits':[0, 2000], 'visible':False},
                 {'name': '拍摄组数', 'type': 'int', 'value': 3, 'limits': [1, self._MAX_SCAN_NUM]},
                 {'name': '横向重叠区域', 'type': 'int', 'value': 1, 'limits': [1, 2000]},
                 {'name': '全局取图', 'type': 'action'},
@@ -116,10 +116,11 @@ class GuleParam(KxBaseParamWidget):
             ]},
             {'name': '建模图像缩放系数', 'type': 'str', 'value':str(self._BUILD_MODEL_SCALE_FACTOR),'visible':False,
              'readonly':True },
-            {'name': u'检测区域数量', 'type': 'int', 'value': 0, 'step': 1, 'limits': (0, self._MAX_ROI_NUM)},
+            #{'name': u'检测区域数量', 'type': 'int', 'value': 0, 'step': 1, 'limits': (0, self._MAX_ROI_NUM)},
             {'name': u'显示图像', 'type':'list', 'values': {'组数一': 0, '组数二': 1, '组数三':2, '组数四':3,
                                                         '组数五':4, '组数六':5}},
             {'name': '检测参数', 'type': 'group', 'children': [
+                {'name': '涂胶类型', 'type': 'list', 'values': {'弓形': 0, '涂满': 1}},
                 {'name': '检高灵敏度', 'type': 'int', 'value': 3, 'limits': [0, 25]},
                 {'name': '检低灵敏度', 'type': 'int', 'value': 3, 'limits': [0, 25]},
                 {'name': '提取异物灰度', 'type': 'int', 'value': 100, 'limits': [0, 255]},
@@ -133,17 +134,69 @@ class GuleParam(KxBaseParamWidget):
         ])
 
         self._append_scan_area(self.params)
-        self._append_checkarea_param(self.params)
+        #self._append_checkarea_param(self.params)
+        self._appendcheckparam(self.params)
         self.p = KxParameter.create(name='params', type='group', children=self.params)
         self.h_parameterTree.setParameters(self.p, showTop=False)
         self.p.param(u'主站设置', u'图像信息').add2view(self.ui.h_gVShowRealImg, self.h_imgitem)
-        for nindex in range(self._MAX_ROI_NUM):
-             self.p.param(u'检测区域' + str(nindex), u'检测区域').add2view(self.view)
+        # for nindex in range(self._MAX_ROI_NUM):
+        #      self.p.param(u'检测区域' + str(nindex), u'检测区域').add2view(self.view)
         for nindex in range(self._MAX_SCAN_NUM):
              self.p.param('扫描区域', '扫描区域' + str(nindex)).add2view(self.view)
-        for nindex in range(self._MAX_SCAN_NUM):
+        for nindex in range(self._MAX_SCAN_NUM * 2):
              self.p.param('扫描区域', '匹配位置' + str(nindex)).add2view(self.view)
+
+
+        for i in range(self._MAX_SCAN_NUM):
+            for j in range(int(self._MAX_ROI_NUM / self._MAX_SCAN_NUM)):
+                self.p.param(self._LIST_GROUPNAME[i], "检测区域"+str(j+1), "检测区域").add2view(self.view)
+
+            for j in range(int(self._MAX_MASK_NUM)):
+                self.p.param(self._LIST_GROUPNAME[i], "高灰度掩膜区域"+str(j)).add2view(self.view)
+
+            for j in range(int(self._MAX_MASK_NUM)):
+                self.p.param(self._LIST_GROUPNAME[i], "低灰度掩膜区域"+str(j)).add2view(self.view)
+
         self._initsignal()
+
+
+    def _appendcheckparam(self, dict_params):
+        list_groupname = self._LIST_GROUPNAME
+        dict_checkareanum = {'name': '检测区域数量', 'type': 'int', 'visible': True, 'value': 0, 'limits':[0, int(self._MAX_ROI_NUM / self._MAX_SCAN_NUM)]}
+        dict_highmaskareanum = {'name': '高灰度掩膜数量', 'type': 'int', 'visible': True, 'value': 0, 'limits':[0, self._MAX_MASK_NUM]}
+        dict_lowmaskareanum = {'name': '低灰度掩膜数量', 'type': 'int', 'visible': True, 'value': 0, 'limits':[0, self._MAX_MASK_NUM]}
+        list_checkchildrenitems = []
+        for i in range(0, int(self._MAX_ROI_NUM / self._MAX_SCAN_NUM)):
+            list_checkchildrenitems.append(
+                {'name': '检测区域' + str(i + 1), 'type': 'group', 'expanded': False, 'visible': False, 'children': [
+                    {'name': u'检测区域', 'type': 'roiwithtext', 'value': {"isShow": False, "pos": u"0,0,100,100"},
+                      "roi_opt": {"word": '检测区域'+ str(i + 1), "scaleable": True, 'pen':1}, "infovisible": False},
+                    {'name': '屏蔽当前检测区域', 'type': 'bool', 'value':False},
+                ]}
+            )
+
+        for i in range(0, self._MAX_MASK_NUM):
+            list_checkchildrenitems.append(
+                    {'name': u'高灰度掩膜区域'+str(i), 'type': 'roiwithtext', 'value': {"isShow": False, "pos": u"0,0,100,100"},
+                     "roi_opt": {"word": '高灰度掩膜区域' + str(i), "scaleable": True, 'pen': 4}, "infovisible": False, 'visible':False}
+            )
+
+        for i in range(0, self._MAX_MASK_NUM):
+            list_checkchildrenitems.append(
+                    {'name': u'低灰度掩膜区域'+str(i), 'type': 'roiwithtext', 'value': {"isShow": False, "pos": u"0,0,100,100"},
+                     "roi_opt": {"word": '低灰度掩膜区域' + str(i), "scaleable": True, 'pen': 5}, "infovisible": False, 'visible':False}
+            )
+        list_one_info = [dict_checkareanum, dict_highmaskareanum, dict_lowmaskareanum]
+        list_one_info.extend(list_checkchildrenitems)
+
+        list_dict_group = []
+        for groupname in list_groupname:
+            dict_group = {'name': groupname, 'type': 'group', 'expanded': False, 'visible': True, 'children':list_one_info}
+            list_dict_group.append(dict_group)
+
+        dict_params.extend(list_dict_group)
+
+
 
 
     def _connectlog(self):
@@ -151,10 +204,11 @@ class GuleParam(KxBaseParamWidget):
         self.b_connectstatus = True
         self.p.param("全局拍摄控制").sigTreeStateChanged.connect(self._logparamchange)
         self.p.param("检测参数").sigTreeStateChanged.connect(self._logparamchange)
-        self.p.param("检测区域数量").sigTreeStateChanged.connect(self._logparamchange)
+        #self.p.param("检测区域数量").sigTreeStateChanged.connect(self._logparamchange)
         self.p.param("防呆防错设置").sigTreeStateChanged.connect(self._logparamchange)
-        for i in range(0, self._MAX_ROI_NUM):
-            self.p.param('检测区域' + str(i)).sigTreeStateChanged.connect(self._logparamchange)
+        for i in range(self._MAX_SCAN_NUM):
+            self.p.param(self._LIST_GROUPNAME[i]).sigTreeStateChanged.connect(self._logparamchange)
+
 
 
     def _disconnectlog(self):
@@ -162,10 +216,10 @@ class GuleParam(KxBaseParamWidget):
         if self.b_connectstatus:
             self.p.param("全局拍摄控制").sigTreeStateChanged.disconnect(self._logparamchange)
             self.p.param("检测参数").sigTreeStateChanged.disconnect(self._logparamchange)
-            self.p.param("检测区域数量").sigTreeStateChanged.disconnect(self._logparamchange)
+            #self.p.param("检测区域数量").sigTreeStateChanged.disconnect(self._logparamchange)
             self.p.param("防呆防错设置").sigTreeStateChanged.disconnect(self._logparamchange)
-            for i in range(0, self._MAX_ROI_NUM):
-                self.p.param('检测区域' + str(i)).sigTreeStateChanged.disconnect(self._logparamchange)
+            for i in range(self._MAX_SCAN_NUM):
+                self.p.param(self._LIST_GROUPNAME[i]).sigTreeStateChanged.disconnect(self._logparamchange)
             self.b_connectstatus = False
 
 
@@ -177,7 +231,7 @@ class GuleParam(KxBaseParamWidget):
 
     def _initsignal(self):
         """初始化时负责连接关键信号槽"""
-        self.p.param('检测区域数量').sigValueChanged.connect(self._add_checkarea)
+        #self.p.param('检测区域数量').sigValueChanged.connect(self._add_checkarea)
         self.p.param('全局拍摄控制', '全局取图').sigActivated.connect(self._captureimg)
         self.p.param('全局拍摄控制', '扫描区域取图').sigActivated.connect(self._captureimg_second)
         self.p.param('显示图像').sigValueChanged.connect(self._changeshowimg)
@@ -185,10 +239,59 @@ class GuleParam(KxBaseParamWidget):
         self.p.param('防呆防错设置', '基准点数量').sigValueChanged.connect(self._addpointparam)
         self.p.param('防呆防错设置', '标定基准高度').sigActivated.connect(self._calibrate_highsensor_point)
 
+        for i in range(self._MAX_SCAN_NUM):
+            self.p.param(self._LIST_GROUPNAME[i], "检测区域数量").sigValueChanged.connect(self._addcheckarea)
+
+            self.p.param(self._LIST_GROUPNAME[i], "高灰度掩膜数量").sigValueChanged.connect(self._addmaskarea1)
+
+            self.p.param(self._LIST_GROUPNAME[i], "低灰度掩膜数量").sigValueChanged.connect(self._addmaskarea2)
+
         self.SIG_LOAD2MODEL1.connect(self._slot_simulate_recimg)
         self.SIG_LOAD2MODEL2.connect(self._slot_simulate_changcol)
         self.SIG_LOAD2MODEL3.connect(self._slot_simulate_builddone)
         self.SIG_LOAD2MODEL_ERROR.connect(self._slot_error)
+
+
+    def _addcheckarea(self, *args):
+        ncol = 0
+        for nindex, groupname in enumerate(self._LIST_GROUPNAME):
+            if args[0] == self.p.param(groupname, "检测区域数量"):
+                ncol = nindex
+                break
+        ncurimg = int(self.p.param('显示图像').value())
+        if ncol == ncurimg:
+            for n_i in range(0, int(args[1])):
+                self.p.param(self._LIST_GROUPNAME[ncol], '检测区域' + str(n_i + 1), '检测区域').isShow(True)
+            for n_i in range(int(args[1]), int(self._MAX_ROI_NUM / self._MAX_SCAN_NUM)):
+                self.p.param(self._LIST_GROUPNAME[ncol], '检测区域' + str(n_i + 1), '检测区域').isShow(False)
+
+
+    def _addmaskarea1(self, *args):
+        ncol = 0
+        for nindex, groupname in enumerate(self._LIST_GROUPNAME):
+            if args[0] == self.p.param(groupname, "高灰度掩膜数量"):
+                ncol = nindex
+                break
+        ncurimg = int(self.p.param('显示图像').value())
+        if ncol == ncurimg:
+            for n_i in range(0, int(args[1])):
+                self.p.param(self._LIST_GROUPNAME[ncol], '高灰度掩膜区域' + str(n_i)).isShow(True)
+            for n_i in range(int(args[1]), int(self._MAX_MASK_NUM)):
+                self.p.param(self._LIST_GROUPNAME[ncol], '高灰度掩膜区域' + str(n_i)).isShow(False)
+
+
+    def _addmaskarea2(self, *args):
+        ncol = 0
+        for nindex, groupname in enumerate(self._LIST_GROUPNAME):
+            if args[0] == self.p.param(groupname, "低灰度掩膜数量"):
+                ncol = nindex
+                break
+        ncurimg = int(self.p.param('显示图像').value())
+        if ncol == ncurimg:
+            for n_i in range(0, int(args[1])):
+                self.p.param(self._LIST_GROUPNAME[ncol], '低灰度掩膜区域' + str(n_i)).isShow(True)
+            for n_i in range(int(args[1]), int(self._MAX_MASK_NUM)):
+                self.p.param(self._LIST_GROUPNAME[ncol], '低灰度掩膜区域' + str(n_i)).isShow(False)
 
 
     def _addpointparam(self, *even):
@@ -202,35 +305,34 @@ class GuleParam(KxBaseParamWidget):
         self.n_measurehighnum = int(even[1])
 
 
-    def _add_checkarea(self, *even):
-        """显示或隐藏检测区域"""
-        if int(even[1]) > self.n_checkarea:
-            for n_i in range(self.n_checkarea, int(even[1])):
-                self.p.param('检测区域' + str(n_i)).show()
-                self.p.param('检测区域' + str(n_i), '检测区域').isShow(True)
-        else:
-            for n_i in range(int(even[1]), self.n_checkarea):
-                self.p.param('检测区域' + str(n_i)).hide()
-                self.p.param('检测区域' + str(n_i), '检测区域').isShow(False)
-        self.n_checkarea = int(even[1])
+    # def _add_checkarea(self, *even):
+    #     """显示或隐藏检测区域"""
+    #     if int(even[1]) > self.n_checkarea:
+    #         for n_i in range(self.n_checkarea, int(even[1])):
+    #             self.p.param('检测区域' + str(n_i)).show()
+    #             self.p.param('检测区域' + str(n_i), '检测区域').isShow(True)
+    #     else:
+    #         for n_i in range(int(even[1]), self.n_checkarea):
+    #             self.p.param('检测区域' + str(n_i)).hide()
+    #             self.p.param('检测区域' + str(n_i), '检测区域').isShow(False)
+    #     self.n_checkarea = int(even[1])
 
 
-    def _append_checkarea_param(self, dict_params):
-        """增加检测区域的参数"""
-        list_standardschildrenitems = []
-        for i in range(0, self._MAX_ROI_NUM):
-            list_standardschildrenitems.append(
-                {'name': '检测区域' + str(i), 'type': 'group', 'expanded': False, 'visible': False, 'children': [
-                    {'name': u'检测区域', 'type': 'roiwithtext', 'value': {"isShow": False, "pos": u"0,0,100,100"},
-                      "roi_opt": {"word": '检测区域'+ str(i), "scaleable": True, 'pen':1}, "infovisible": False},
-                    {'name': u'扫描组号', 'type': 'list', 'values': {'组数一': 0, '组数二': 1, '组数三':2, '组数四':3,
-                                                        '组数五':4, '组数六':5}},
-                    {'name': u'当前组ID', 'type': 'int', 'value': 0, 'limits':[0, 6], 'readonly':True},
-                    {'name': '屏蔽当前检测区域', 'type': 'bool', 'value':False},
-
-                ]}
-            )
-        dict_params.extend(list_standardschildrenitems)
+    # def _append_checkarea_param(self, dict_params):
+    #     """增加检测区域的参数"""
+    #     list_standardschildrenitems = []
+    #     for i in range(0, self._MAX_ROI_NUM):
+    #         list_standardschildrenitems.append(
+    #             {'name': '检测区域' + str(i), 'type': 'group', 'expanded': False, 'visible': False, 'children': [
+    #                 {'name': u'检测区域', 'type': 'roiwithtext', 'value': {"isShow": False, "pos": u"0,0,100,100"},
+    #                   "roi_opt": {"word": '检测区域'+ str(i), "scaleable": True, 'pen':1}, "infovisible": False},
+    #                 {'name': u'扫描组号', 'type': 'list', 'values': {'组数一': 0, '组数二': 1, '组数三':2, '组数四':3,
+    #                                                     '组数五':4, '组数六':5}},
+    #                 {'name': u'当前组ID', 'type': 'int', 'value': 0, 'limits':[0, 6], 'readonly':True},
+    #                 {'name': '屏蔽当前检测区域', 'type': 'bool', 'value':False},
+    #             ]}
+    #         )
+    #     dict_params.extend(list_standardschildrenitems)
 
 
     def _append_scan_area(self, dict_params):
@@ -247,7 +349,7 @@ class GuleParam(KxBaseParamWidget):
                 {'name': '扫描区域%d图像数量'%i, 'type' : "str", 'value':'12'},
             )
 
-        for i in range(0, self._MAX_SCAN_NUM):
+        for i in range(0, self._MAX_SCAN_NUM * 2):
             list_standardschildrenitems.append(
                 {'name': u'匹配位置' + str(i), 'type': 'roiwithtext', 'value': {"isShow": False, "pos": u"0,0,100,100"},
                  "roi_opt": {"word": '匹配位置' + str(i), "scaleable": True, 'pen': 2}, "infovisible": False},
@@ -311,8 +413,6 @@ class GuleParam(KxBaseParamWidget):
         nbigimgW = int(imgW / self._BUILD_MODEL_SCALE_FACTOR) * nXtimes
 
         self.h_mergeobj.clear()
-
-        #print("全局取图： ", ndisY, n_firstbuild_imgnum, nbigimgW, nbigimgH)
 
         self.h_mergeobj.initinfo(n_firstbuild_imgnum, nbigimgW, nbigimgH)
 
@@ -479,7 +579,9 @@ class GuleParam(KxBaseParamWidget):
         """
         for nindex, data in enumerate(list_param):
 
-            self.p.param('防呆防错设置', '防呆防错点%d' % nindex, '基准值').setValue(str(int(data)))
+            if data is not None:
+
+                self.p.param('防呆防错设置', '防呆防错点%d' % nindex, '基准值').setValue(str(int(data)))
 
         self._SIG_CAPTUREBIGIMG_DONE.emit()
 
@@ -537,7 +639,7 @@ class GuleParam(KxBaseParamWidget):
 
                 self.p.param('显示图像').setValue(nindex)
 
-        self.n_checkarea = int(self.p.param('检测区域数量').value())
+        #self.n_checkarea = int(self.p.param('检测区域数量').value())
 
         self._connectlog()
 
@@ -561,77 +663,92 @@ class GuleParam(KxBaseParamWidget):
 
     def _sortcheckpos(self):
         """
-        同一扫描列的检测框，必须按照检测框号小的在上，检测框号大的在下
+        同一扫描列的检测框，必须按照检测框左上角x、y坐标小的在上，坐标大的在下
         :return:
         """
-        nchecknum = int(self.p.param('检测区域数量').value())
-        list_pos = []
-        list_obj = []
-        ncurcol = -1
-        for i in range(nchecknum):
+        ncolnum = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
-            ncol = int(self.p.param('检测区域' + str(i), '扫描组号').value())
+        for i in range(ncolnum):
+            list_pos = []
+            list_obj = []
+            nroinum = self.p.param(self._LIST_GROUPNAME[i], "检测区域数量").value()
+            for j in range(nroinum):
+                list_pos.append(self.p.param(self._LIST_GROUPNAME[i], '检测区域' + str(j+1), '检测区域').get_list_pos())
+                list_obj.append(self.p.param(self._LIST_GROUPNAME[i], '检测区域' + str(j+1), '检测区域'))
+            if list_pos != []:
+                array = np.array(list_pos).T
+                list_sortindex = sorted(range(len(array[1])), key=lambda k: array[1][k], reverse=False)
+                for nindex in range(len(list_pos)):
+                    list_obj[nindex].set_list_pos(list_pos[list_sortindex[nindex]])
 
-            if ncurcol != ncol:
-
-                ncurcol = ncol
-
-                if list_pos != []:
-
-                    array = np.array(list_pos).T
-
-                    list_sortindex = sorted(range(len(array[1])), key=lambda k: array[1][k], reverse=False)
-
-                    for nindex in range(len(list_pos)):
-
-                        list_obj[nindex].set_list_pos(list_pos[list_sortindex[nindex]])
-
-                    list_pos = []
-
-                    list_obj = []
-
-            list_pos.append(self.p.param('检测区域'+ str(i), '检测区域' ).get_list_pos())
-
-            list_obj.append(self.p.param('检测区域'+ str(i), '检测区域' ))
+        # nchecknum = int(self.p.param('检测区域数量').value())
+        # list_pos = []
+        # list_obj = []
+        # ncurcol = -1
+        # for i in range(nchecknum):
+        #
+        #     ncol = int(self.p.param('检测区域' + str(i), '扫描组号').value())
+        #
+        #     if ncurcol != ncol:
+        #
+        #         ncurcol = ncol
+        #
+        #         if list_pos != []:
+        #
+        #             array = np.array(list_pos).T
+        #
+        #             list_sortindex = sorted(range(len(array[1])), key=lambda k: array[1][k], reverse=False)
+        #
+        #             for nindex in range(len(list_pos)):
+        #
+        #                 list_obj[nindex].set_list_pos(list_pos[list_sortindex[nindex]])
+        #
+        #             list_pos = []
+        #
+        #             list_obj = []
+        #
+        #     list_pos.append(self.p.param('检测区域'+ str(i), '检测区域' ).get_list_pos())
+        #
+        #     list_obj.append(self.p.param('检测区域'+ str(i), '检测区域' ))
 
 
     def _saveMapColRow(self):
         """
-        根据扫描列数以及检测框中属于当前列的数量，得到一张全地图应该是N*M的组成，并且取最大的ROI作为图像大小
+        根据扫描列数以及检测框中属于当前列的数量，得到一张全地图应该是N*M的组成
         :return:
         """
         # 1. 确定图像最大
-        nchecknum = int(self.p.param('检测区域数量').value())
-        if nchecknum ==0 :
-            return
+        # nchecknum = int(self.p.param('检测区域数量').value())
+        # if nchecknum ==0 :
+        #     return
         ncolnum = int(self.p.param('全局拍摄控制', '拍摄组数').value())
         list_col = [0 for i in range(ncolnum)]
         list_h = []
-        for i in range(nchecknum):
-            roipos = self.p.param('检测区域'+ str(i), '检测区域' ).get_list_pos()
-            list_h.append(roipos[3] - roipos[1] + 1)
-            ncol = int(self.p.param('检测区域' + str(i), '扫描组号').value())
-            if ncol < len(list_col):
-                list_col[ncol] += 1
+        for i in range(ncolnum):
+            nroinum = self.p.param(self._LIST_GROUPNAME[i], "检测区域数量").value()
+            list_col[i] = nroinum
+            for j in range(nroinum):
+                roipos = self.p.param(self._LIST_GROUPNAME[i], '检测区域'+ str(i+1), '检测区域' ).get_list_pos()
+                list_h.append(roipos[3] - roipos[1] + 1)
 
         nmaxrow = max(list_col)
-        #print (list_h)
-        nmaxh = max(list_h) * self._BUILD_MODEL_SCALE_FACTOR
+        #nmaxh = max(list_h) * self._BUILD_MODEL_SCALE_FACTOR
 
         self.p.param('拼图信息', '行数').setValue(nmaxrow)
         self.p.param('拼图信息', '列数').setValue(ncolnum)
         #self.p.param('拼图信息', '最大检测框高').setValue(nmaxh)
 
         #2. 设置每个检测区域的组ID，表示这个roi在当前组中属于第几个ID，便于显示检测结果的时候拼图
-        ncurcol = -1
-        ncurid = 0
-        for i in range(nchecknum):
-            ncol = int(self.p.param('检测区域' + str(i), '扫描组号').value())
-            if ncurcol != ncol:
-                ncurcol = ncol
-                ncurid = 0
-            self.p.param('检测区域' + str(i), '当前组ID').setValue(ncurid)
-            ncurid += 1
+        # TODO 2022-03-17 觉得不是很必要，所以取消
+        # ncurcol = -1
+        # ncurid = 0
+        # for i in range(nchecknum):
+        #     ncol = int(self.p.param('检测区域' + str(i), '扫描组号').value())
+        #     if ncurcol != ncol:
+        #         ncurcol = ncol
+        #         ncurid = 0
+        #     self.p.param('检测区域' + str(i), '当前组ID').setValue(ncurid)
+        #     ncurid += 1
 
 
     def _changeshowimg(self, *even):
@@ -640,25 +757,58 @@ class GuleParam(KxBaseParamWidget):
 
         if nindex < len(self.list_img):
 
+            # 1. 显示图像
             self.h_imgitem.setImage(self.list_img[nindex])
 
-            for i in range(self._MAX_SCAN_NUM):
-
+            #2. 显示匹配框
+            for i in range(self._MAX_SCAN_NUM * 2):
                 self.p.param('扫描区域', "匹配位置" + str(i)).isShow(False)
+            self.p.param('扫描区域', "匹配位置" + str(nindex*2)).isShow(True)
+            self.p.param('扫描区域', "匹配位置" + str(nindex * 2 + 1)).isShow(True)
 
-            self.p.param('扫描区域', "匹配位置" + str(nindex)).isShow(True)
+            # nchecknum = int(self.p.param('检测区域数量').value())
+            #
+            # for i in range(nchecknum):
+            #
+            #     if int(self.p.param('检测区域' + str(i), '扫描组号').value()) != nindex:
+            #
+            #         self.p.param('检测区域' + str(i), '检测区域').isShow(False)
+            #
+            #     else:
+            #
+            #         self.p.param('检测区域' + str(i), '检测区域').isShow(True)
 
-            nchecknum = int(self.p.param('检测区域数量').value())
 
-            for i in range(nchecknum):
+            #3. 屏蔽所有其它掩膜框, 显示当前框
+            ncolnum = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
-                if int(self.p.param('检测区域' + str(i), '扫描组号').value()) != nindex:
+            for ncol in range(ncolnum):
 
-                    self.p.param('检测区域' + str(i), '检测区域').isShow(False)
+                b_status = False
 
-                else:
+                if ncol == nindex:#
 
-                    self.p.param('检测区域' + str(i), '检测区域').isShow(True)
+                    b_status = True
+
+                nchecknum = int(self.p.param(self._LIST_GROUPNAME[ncol], "检测区域数量").value())
+
+                nmasknum1 = int(self.p.param(self._LIST_GROUPNAME[ncol], "高灰度掩膜数量").value())
+
+                nmasknum2 = int(self.p.param(self._LIST_GROUPNAME[ncol], "低灰度掩膜数量").value())
+
+                for i in range(nchecknum):
+
+                    self.p.param(self._LIST_GROUPNAME[ncol], "检测区域"+str(i + 1), "检测区域").isShow(b_status)
+
+                for i in range(nmasknum1):
+
+                    self.p.param(self._LIST_GROUPNAME[ncol], "高灰度掩膜区域"+str(i)).isShow(b_status)
+
+                for i in range(nmasknum2):
+
+                    self.p.param(self._LIST_GROUPNAME[ncol], "高灰度掩膜区域" + str(i)).isShow(b_status)
+
+
 
 
     def _setbaseimgpath(self):
@@ -726,6 +876,10 @@ class GuleParam(KxBaseParamWidget):
 
         self.h_bigimage = self.h_mergeobj.bigimg
 
+        for n_i in range(self._MAX_SCAN_NUM):
+
+            self.p.param('扫描区域', '扫描区域' + str(n_i)).isShow(False)
+
         nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
         for n_i in range(int(nXtimes)):
@@ -757,6 +911,8 @@ class GuleParam(KxBaseParamWidget):
         self.p.param("显示图像").setValue(0)
 
         self.p.param('扫描区域', "匹配位置0").isShow(True)
+        self.p.param('扫描区域', "匹配位置1").isShow(True)
+
 
         self._SIG_CAPTUREBIGIMG_DONE.emit()
 
@@ -768,7 +924,8 @@ class GuleParam(KxBaseParamWidget):
 
     def _adjustbigimgsize(self):
         if self.h_bigimage is not None:
-            nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
+            #nXtimes = int(self.p.param('全局拍摄控制', '拍摄组数').value())
+            nXtimes = self._SCAN_MAP_TIMES
             nOversize = int(self.p.param('全局拍摄控制', '横向重叠区域').value())
             h, w, c = self.h_bigimage.shape
             nsingleimgw = int(w / nXtimes)
@@ -803,13 +960,20 @@ class GuleParam(KxBaseParamWidget):
 
 
     def callback2getlisthead(self):
-        nchecknum = int(self.p.param('检测区域数量').value())
+        nchecknum = 0
+
+        ncolnum = int(self.p.param('全局拍摄控制', '拍摄组数').value())
+
+        for i in range(ncolnum):
+            nroinum = self.p.param(self._LIST_GROUPNAME[i], "检测区域数量").value()
+            nchecknum += nroinum
+
 
         list_shead = []
 
         for i in range(nchecknum):
 
-            list_shead.append("检测区域%d"%i)
+            list_shead.append("检测区域%d"%(i + 1))
 
         return list_shead
 
@@ -827,34 +991,75 @@ class GuleParam(KxBaseParamWidget):
         程序启动的时候，外部界面需要获取检测区域屏蔽状态，通过这个函数获取。也可提供类内函数调用
         """
 
+        # list_status = []
+        #
+        # nchecknum = int(self.p.param('检测区域数量').value())
+        #
+        # for i in range(nchecknum):
+        #
+        #     status = self.p.param('检测区域' + str(i), '屏蔽当前检测区域').value()
+        #
+        #     if status == 'True' or status == 'true' or status == True:
+        #
+        #         list_status.append(1)
+        #
+        #     else:
+        #
+        #         list_status.append(0)
+        #
+        # return list_status
+
         list_status = []
+        ncolnum = int(self.p.param('全局拍摄控制', '拍摄组数').value())
+        for i in range(ncolnum):
 
-        nchecknum = int(self.p.param('检测区域数量').value())
+            nroinum = self.p.param(self._LIST_GROUPNAME[i], "检测区域数量").value()
 
-        for i in range(nchecknum):
+            for j in range(nroinum):
 
-            status = self.p.param('检测区域' + str(i), '屏蔽当前检测区域').value()
+                status = self.p.param(self._LIST_GROUPNAME[i], '检测区域' + str(j+1), '屏蔽当前检测区域').value()
 
-            if status == 'True' or status == 'true' or status == True:
+                if status == 'True' or status == 'true' or status == True:
 
-                list_status.append(1)
+                    list_status.append(1)
 
-            else:
+                else:
 
-                list_status.append(0)
+                    list_status.append(0)
 
         return list_status
+
 
 
     def callback2changecheckstatus(self, list_data):
         """
         屏蔽检测区域界面点击保存之后，会将结果设置到这个位置
         """
-        for i, data in enumerate(list_data):
+        # for i, data in enumerate(list_data):
+        #
+        #     self.p.param('检测区域' + str(i), '屏蔽当前检测区域').setValue(bool(data))
+        #
+        # self.saveparameters()
 
-            self.p.param('检测区域' + str(i), '屏蔽当前检测区域').setValue(bool(data))
+        ncolnum = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
-        self.saveparameters()
+        ncurindex = 0
+
+        for i in range(ncolnum):
+
+            nroinum = self.p.param(self._LIST_GROUPNAME[i], "检测区域数量").value()
+
+            for j in range(nroinum):
+
+                self.p.param(self._LIST_GROUPNAME[i], "检测区域" + str(j+1), "检测区域").setValue(list_data[ncurindex])
+
+                ncurindex +=1
+
+                if ncurindex >= len(list_data):
+                    break
+
+            if ncurindex >= len(list_data):
+                break
 
 
     def sendcheckstatus(self):

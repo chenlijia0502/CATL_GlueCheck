@@ -211,20 +211,21 @@ class Ui_MainStation_lunzhuan(object):
         self.label_6.setStyleSheet("color: rgb(255, 255, 255);")
         self.label_6.setObjectName("label_6")
         self.horizontalLayout_4.addWidget(self.widget_7)
-        self.label_rootnum = QtWidgets.QLabel(self.widget_top)
-        self.label_rootnum.setMinimumSize(QtCore.QSize(100, 0))
-        font = QtGui.QFont()
-        font.setPointSize(36)
-        font.setBold(True)
-        font.setWeight(75)
-        self.label_rootnum.setFont(font)
-        self.label_rootnum.setStyleSheet("color: rgb(255, 10, 14);")
-        self.label_rootnum.setText("")
-        self.label_rootnum.setAlignment(QtCore.Qt.AlignCenter)
-        self.label_rootnum.setObjectName("label_rootnum")
-        self.horizontalLayout_4.addWidget(self.label_rootnum)
         spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_4.addItem(spacerItem1)
+
+
+        self.label_rootnum = QtWidgets.QLabel(self.widget_top)
+        self.label_rootnum.setMinimumSize(150, 50)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(30)
+        font.setBold(True)
+        self.label_rootnum.setFont(font)
+        self.label_rootnum.setStyleSheet("color: rgb(255, 0, 0);")
+        self.horizontalLayout_4.addWidget(self.label_rootnum)
+
+
         self.toolButton_userlevel = QtWidgets.QToolButton(self.widget_top)
         self.toolButton_userlevel.setMinimumSize(QtCore.QSize(60, 60))
         self.toolButton_userlevel.setMaximumSize(QtCore.QSize(60, 60))
@@ -485,6 +486,7 @@ class Ui_MainStation_lunzhuan(object):
         self.labelwidget.raise_()
         self.widget_top.raise_()
         self.horizontalLayout_3.addWidget(self.widget_2)
+
 
         self.retranslateUi(MainStation_lunzhuan)
         QtCore.QMetaObject.connectSlotsByName(MainStation_lunzhuan)

@@ -437,6 +437,7 @@ class KXBaseMainWidget(QtWidgets.QWidget):
         if respond == QtWidgets.QMessageBox.Cancel:
             event.ignore()
         else:
+            ipc_tool.kxlog("MAIN", logging.INFO, "————————————————关闭程序————————————————————")
             self._stopcheck()
             for pos in range(len(self.list_handle)):
                 self.sendmsg(0, imc_msg.GlobalMsgSend.MSG_CLOSECAMERA)
@@ -448,7 +449,7 @@ class KXBaseMainWidget(QtWidgets.QWidget):
                         except Exception as e:
                             self.changestausword(u"有子站提前关闭", n_ErrorLevel=imc_msg.LOGLEVEL.ERR)
             # self.widget_runlog.savelastlog()
-            ipc_tool.kxlog("main", logging.INFO, u"关闭程序")
+            #ipc_tool.kxlog("main", logging.INFO, u"关闭程序")
             os.system('taskkill /f /im ' + self._getcurprocessname())  # 将当前进程强制关闭（可以啊姚老板）
 
     def _init_msgthread(self):

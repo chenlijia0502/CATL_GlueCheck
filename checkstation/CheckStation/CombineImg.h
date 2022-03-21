@@ -22,7 +22,7 @@ public:
 
 	void Init(int nW, int nH, int ncol, int* nnums, kxRect<int>* modelroi);// ncol是扫描组数，后面数组的大小跟之匹配
 
-	void appendImg(kxCImageBuf& srcimg, int nImgIndex);// 这个nImgIndex是图像ID，每次换新的车会清零
+	int appendImg(kxCImageBuf& srcimg, int nImgIndex);// 这个nImgIndex是图像ID，每次换新的车会清零. 返回0为发生匹配错误，返回1为正常
 
 	bool IsColFull(int &nIndex);// 判断是否有列数满了，拿出来检测，返回nIndex代表那一列
 
@@ -43,7 +43,7 @@ private:
 
 	int				m_nEveryColImgnum[_MAX_SCAN_NUM];//每一列扫描区域的图像数量
 
-	kxRect<int>		m_rectmodel[_MAX_SCAN_NUM];
+	kxRect<int>		m_rectmodel[_MAX_SCAN_NUM * 2];
 	
 	int				m_nSingleH;
 
@@ -58,5 +58,5 @@ private:
 	bool			m_bisinit;
 
 
-	bool MatchTemplateAndTransform(int ncol);
+	bool MatchTemplateAndTransform(int ncol, kxRect<int> matchrect, int &ncaptureoffset);
 };

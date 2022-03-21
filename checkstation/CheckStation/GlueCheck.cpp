@@ -108,7 +108,7 @@ void CGlueCheck::checkcolordiff(const kxCImageBuf& SrcImg)
 void CGlueCheck::checkyiwu(const kxCImageBuf& SrcImg, Json::Value &checkresult)
 {
 	//1，创建基础模板
-	CreateBaseModel(SrcImg);
+	//CreateBaseModel(SrcImg);
 
 	IppiSize imgsize = { SrcImg.nWidth, SrcImg.nHeight };
 
@@ -172,167 +172,6 @@ void CGlueCheck::checkyiwu(const kxCImageBuf& SrcImg, Json::Value &checkresult)
 }
 
 
-void CGlueCheck::ParallelBlob(Json::Value &checkresult)
-{
-	parallel_for(blocked_range<int>(0, m_nblobimgnum),
-	[&](const blocked_range<int>& range)
-	{
-		for (int index = range.begin(); index != range.end(); index++)
-		{
-			m_phblob[index].ToBlobByCV(m_pBLOBIMG[index], CKxBlobAnalyse::_SORT_BYDOTS, 100);
-		}
-	}, auto_partitioner());
-
-	checkresult["defect num"] = 0;
-
-	int nsingleimgstep = _SINGLE_BLOBIMG_H - _IMG_OVERLAP;// 将分图坐标转换成全局坐标
-
-	int nblobindex = 0;
-
-	for (int nimgindex = 0; nimgindex < m_nblobimgnum; nimgindex++)
-	{
-		if (m_phblob[nimgindex].GetBlobCount() > 0)
-		{
-			for (int i = 0; i < m_phblob[nimgindex].GetBlobCount(); i++)
-			{
-				CKxBlobAnalyse::SingleBlobInfo blobinfo;
-
-				blobinfo = m_phblob[nimgindex].GetSortSingleBlob(i);
-
-				if (blobinfo.m_nDots > m_param.m_ndefectdots)
-				{
-					Json::Value single;
-					single["Dots"] = blobinfo.m_nDots;
-					single["Energy"] = 0;
-					char defectid[32];
-					sprintf_s(defectid, "%d_%d", m_nID, nblobindex);
-					std::cout << defectid << std::endl;
-					nblobindex++;
-					single["defectid"] = defectid;
-					single["pos"].append(blobinfo.m_rc.left);
-					single["pos"].append(blobinfo.m_rc.top + nsingleimgstep * nimgindex);
-					single["pos"].append(blobinfo.m_rc.Width());
-					single["pos"].append(blobinfo.m_rc.Height());
-					checkresult["defect feature"].append(single);
-					checkresult["defect num"] = checkresult["defect num"].asInt() + 1;
-				}
-			}
-		}
-	}
-
-
-	if (m_param.m_nGrabTimes == 0 && m_param.m_nCurGrabID == 0)
-	{
-		Json::Value single;
-		single["Dots"] = 200;
-		single["Energy"] = 0;
-		char defectid[32];
-		sprintf_s(defectid, "%d_%d", m_nID, nblobindex);
-		std::cout << defectid << std::endl;
-		nblobindex++;
-		single["defectid"] = defectid;
-		single["pos"].append(2720);
-		single["pos"].append(2990);
-		single["pos"].append(400);
-		single["pos"].append(200);
-		checkresult["defect feature"].append(single);
-		checkresult["defect num"] = checkresult["defect num"].asInt() + 1;
-	}
-
-
-	std::cout << " 第 " << m_nID << " 检测到缺陷数量： " << checkresult["defect num"].asInt() << std::endl;
-
-}
-
-
-void CGlueCheck::CreateBaseModel(const kxCImageBuf& CheckImg)
-{
-	
-	/* 方案一：  设定一个基础范围，检测高低
-
-
-	// 1. 以下的值后面从主界面设置获取
-	
-
-
-	const unsigned char Rrange[2] = { 10, 40 };
-
-	const unsigned char Grange[2] = { 20, 60 };
-
-	const unsigned char Brange[2] = { 10, 50 };
-
-
-	// 2.赋值上下限图
-
-	kxCImageBuf ImgR[2], ImgB[2], ImgG[2];
-	
-	for (int i = 0; i < 2; i++)
-	{
-		ImgR[i].Init(CheckImg.nWidth, CheckImg.nHeight);
-
-		ImgG[i].Init(CheckImg.nWidth, CheckImg.nHeight);
-
-		ImgB[i].Init(CheckImg.nWidth, CheckImg.nHeight);
-
-		ippsSet_8u(Rrange[i], ImgR[i].buf, ImgR[i].nPitch * ImgR[i].nHeight);
-
-		ippsSet_8u(Grange[i], ImgG[i].buf, ImgG[i].nPitch * ImgG[i].nHeight);
-
-		ippsSet_8u(Brange[i], ImgB[i].buf, ImgB[i].nPitch * ImgB[i].nHeight);
-		
-	}
-
-	unsigned char * pbuf1[3] = { ImgR[0].buf,  ImgG[0].buf, ImgB[0].buf};
-
-	unsigned char * pbuf2[3] = { ImgR[1].buf,  ImgG[1].buf, ImgB[1].buf };
-
-	m_ImgTemplateLow.Init(CheckImg.nWidth, CheckImg.nHeight, CheckImg.nChannel);
-
-	m_ImgTemplateHigh.Init(CheckImg.nWidth, CheckImg.nHeight, CheckImg.nChannel);
-
-	IppiSize imgsize = { m_ImgTemplateLow.nWidth, m_ImgTemplateLow.nHeight};
-
-	ippiCopy_8u_P3C3R(pbuf1, ImgR[0].nPitch, m_ImgTemplateLow.buf, m_ImgTemplateLow.nPitch, imgsize);
-
-	ippiCopy_8u_P3C3R(pbuf2, ImgR[1].nPitch, m_ImgTemplateHigh.buf, m_ImgTemplateHigh.nPitch, imgsize);
-
-	*/
-
-	/*
-		方案二：设定基础色，然后残差结果减去灵敏度
-	*/
-	
-	const unsigned char Rbase = 45;
-
-	const unsigned char Gbase = 55;
-
-	const unsigned char Bbase = 30;
-
-	kxCImageBuf ImgR, ImgB, ImgG;
-
-	ImgR.Init(CheckImg.nWidth, CheckImg.nHeight);
-
-	ImgG.Init(CheckImg.nWidth, CheckImg.nHeight);
-
-	ImgB.Init(CheckImg.nWidth, CheckImg.nHeight);
-
-	ippsSet_8u(Rbase, ImgR.buf, ImgR.nPitch * ImgR.nHeight);
-
-	ippsSet_8u(Gbase, ImgG.buf, ImgG.nPitch * ImgG.nHeight);
-
-	ippsSet_8u(Bbase, ImgB.buf, ImgB.nPitch * ImgB.nHeight);
-
-	unsigned char * pbuf1[3] = { ImgR.buf,  ImgG.buf, ImgB.buf };
-
-	m_ImgBaseTemplate.Init(CheckImg.nWidth, CheckImg.nHeight, CheckImg.nChannel);
-
-	IppiSize imgsize = { m_ImgBaseTemplate.nWidth, m_ImgBaseTemplate.nHeight };
-
-	ippiCopy_8u_P3C3R(pbuf1, ImgR.nPitch, m_ImgBaseTemplate.buf, m_ImgBaseTemplate.nPitch, imgsize);
-
-	ippiAnd_8u_C3IR(m_ImgColorGlueMask.buf, m_ImgColorGlueMask.nPitch, m_ImgBaseTemplate.buf, m_ImgBaseTemplate.nPitch, imgsize);
-
-}
 
 
 void CGlueCheck::checkqipao(const kxCImageBuf& SrcImg)
@@ -534,6 +373,7 @@ void CGlueCheck::GetEdgePoints(const kxCImageBuf& GrayImg, int nDir, int nthresh
 
 		m_hFun.KxParallelBoxFilterImage(filterimg, blurimg, 1, 7);
 
+
 		int nstep = blurimg.nHeight / nnums;
 
 		for (int i = 0; i < nnums; i++)
@@ -567,6 +407,20 @@ void CGlueCheck::GetEdgePoints(const kxCImageBuf& GrayImg, int nDir, int nthresh
 		m_hFun.KxGeneralFilterImage8u(GrayImg, filterimg, 5, 1, pMasks);
 
 		m_hFun.KxParallelBoxFilterImage(filterimg, blurimg, 1, 7);
+
+		/*char savepath[64];
+
+		memset(savepath, 0, sizeof(savepath));
+
+		sprintf_s(savepath, "d:\\img\\grayimg1.bmp");
+
+		m_hFun.SaveBMPImage_h(savepath, GrayImg);
+
+		memset(savepath, 0, sizeof(savepath));
+
+		sprintf_s(savepath, "d:\\img\\blurimg1.bmp");
+
+		m_hFun.SaveBMPImage_h(savepath, blurimg);*/
 
 		int nstep = blurimg.nHeight / nnums;
 
@@ -814,18 +668,6 @@ void CGlueCheck::GetGlueMask(const kxCImageBuf* RGB)
 //	return 1;
 //}
 
-void CGlueCheck::GetMaxGray(const kxCImageBuf& ColorImg, kxCImageBuf& DstGrayImg)
-{
-	kxCImageBuf gray[3];
-	
-	m_hAlg.SplitRGB(ColorImg, gray);
-
-	m_hFun.KxMaxEvery(gray[0], gray[1]);
-
-	m_hFun.KxMaxEvery(gray[1], gray[2]);
-
-	DstGrayImg.SetImageBuf(gray[2], true);
-}
 
 
 void CGlueCheck::MergeImg(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg)
@@ -876,46 +718,6 @@ void CGlueCheck::MergeImg(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB
 	ippiAnd_8u_C3IR(m_ImgColorGlueMask.buf, m_ImgColorGlueMask.nPitch, DstImg.buf, DstImg.nPitch, imgsize);
 
 
-}
-
-
-void CGlueCheck::CutImg2MulImg(const kxCImageBuf& CheckImg)
-{
-	/*
-		将一张大图分成N张有重叠区域的图，方便进行blob分析
-	*/
-
-	// -1 后 +1是向上取整
-	m_nblobimgnum = int((CheckImg.nHeight - _IMG_OVERLAP - 1) / (_SINGLE_BLOBIMG_H - _IMG_OVERLAP)) + 1;// 向上取整
-
-	if (m_nblobimgnum > _MAX_BLOBIMG)
-	{
-		printf_s("roi框的大小超过设置的参数！！！！");
-		// KXPRINTF(); 先不做处理
-		m_nblobimgnum = _MAX_BLOBIMG;
-	}
-
-	int nh2copy = (_SINGLE_BLOBIMG_H - _IMG_OVERLAP) * m_nblobimgnum + _IMG_OVERLAP;
-
-
-	m_ImgZero2split.Init(CheckImg.nWidth, nh2copy, 1);
-
-	ippsSet_8u(0, m_ImgZero2split.buf, m_ImgZero2split.nPitch * m_ImgZero2split.nHeight);
-
-	IppiSize copysize = {CheckImg.nWidth, CheckImg.nHeight};
-
-	ippiCopy_8u_C1R(CheckImg.buf, CheckImg.nPitch, m_ImgZero2split.buf, m_ImgZero2split.nPitch, copysize);
-
-	for (int i = 0; i < m_nblobimgnum; i++)
-	{
-		unsigned char *copybuf = m_ImgZero2split.buf + i * (_SINGLE_BLOBIMG_H - _IMG_OVERLAP) * m_ImgZero2split.nPitch;
-
-		m_pBLOBIMG[i].Init(CheckImg.nWidth, _SINGLE_BLOBIMG_H);
-
-		IppiSize smallsize = { CheckImg.nWidth, _SINGLE_BLOBIMG_H };
-
-		ippiCopy_8u_C1R(copybuf, m_ImgZero2split.nPitch, m_pBLOBIMG[i].buf, m_pBLOBIMG[i].nPitch, smallsize);
-	}
 }
 
 void CGlueCheck::ExtractGreen(const kxCImageBuf* RGB, kxRect<int> roi, kxCImageBuf& DstImg)
@@ -1261,7 +1063,6 @@ void CGlueCheck::SliderMatch(kxCImageBuf& SrcImg, kxCImageBuf& Templateimg)
 
 }
 
-
 void CGlueCheck::CheckLow(kxCImageBuf& SrcImg)
 {
 	//这里的检低，是检测涂胶内部的情况
@@ -1321,8 +1122,148 @@ void CGlueCheck::CheckLow(kxCImageBuf& SrcImg)
 
 
 
-
 // ---------- 2022.2.28 再次新写，认为有用的 ------------------//
+
+void CGlueCheck::ParallelBlob(Json::Value &checkresult)
+{
+
+	// TODO opencv blob有个bug，太多缺陷的时候会崩溃
+	parallel_for(blocked_range<int>(0, m_nblobimgnum),
+		[&](const blocked_range<int>& range)
+	{
+		for (int index = range.begin(); index != range.end(); index++)
+		{
+			m_phblob[index].ToBlobByCV(m_pBLOBIMG[index], CKxBlobAnalyse::_SORT_BYDOTS, 100);
+		}
+	}, auto_partitioner());
+
+
+	int nsingleimgstep = _SINGLE_BLOBIMG_H - _IMG_OVERLAP;// 将分图坐标转换成全局坐标
+
+	int nblobindex = 0;
+	checkresult["defectarea"] = 0;
+	checkresult["qipaoarea"] = 0;
+
+
+	for (int nimgindex = 0; nimgindex < m_nblobimgnum; nimgindex++)
+	{
+		if (m_phblob[nimgindex].GetBlobCount() > 0)
+		{
+			for (int i = 0; i < m_phblob[nimgindex].GetBlobCount(); i++)
+			{
+				CKxBlobAnalyse::SingleBlobInfo blobinfo;
+
+				blobinfo = m_phblob[nimgindex].GetSortSingleBlob(i);
+
+				kxCImageBuf smallblobimg;
+
+				m_phblob[nimgindex].GetBlobImage(blobinfo.m_nLabel, blobinfo.m_rc, smallblobimg);
+
+				if (blobinfo.m_nDots > m_param.m_ndefectdots)
+				{
+					Json::Value single;
+					single["Dots"] = blobinfo.m_nDots;
+					single["Energy"] = 0;
+					char defectid[32];
+					sprintf_s(defectid, "%d_%d", m_nID, nblobindex);
+					std::cout << defectid << std::endl;
+					nblobindex++;
+					single["defectid"] = defectid;
+					single["pos"].append(blobinfo.m_rc.left);
+					single["pos"].append(blobinfo.m_rc.top + nsingleimgstep * nimgindex);
+					single["pos"].append(blobinfo.m_rc.Width());
+					single["pos"].append(blobinfo.m_rc.Height());
+
+
+					kxRect<int> defectrect = blobinfo.m_rc;
+					defectrect.offset(0, nsingleimgstep * nimgindex);
+					//defectrect.top = defectrect.top + nsingleimgstep * nimgindex;
+
+					if (JudgeDefectType(smallblobimg, defectrect))
+					{
+						single["defecttype"] = 1;//气泡
+						checkresult["qipaoarea"] = checkresult["qipaoarea"].asInt() + blobinfo.m_nDots;
+
+					}
+					else
+					{
+						single["defecttype"] = 0;
+						checkresult["defectarea"] = checkresult["defectarea"].asInt() + blobinfo.m_nDots;
+
+					}
+					checkresult["defect feature"].append(single);
+					checkresult["defect num"] = checkresult["defect num"].asInt() + 1;
+
+
+				}
+			}
+		}
+	}
+
+
+	//if (m_param.m_nGrabTimes == 0 && m_param.m_nCurGrabID == 0)
+	//{
+	//	Json::Value single;
+	//	single["Dots"] = 200;
+	//	single["Energy"] = 0;
+	//	char defectid[32];
+	//	sprintf_s(defectid, "%d_%d", m_nID, nblobindex);
+	//	std::cout << defectid << std::endl;
+	//	nblobindex++;
+	//	single["defectid"] = defectid;
+	//	single["pos"].append(2720);
+	//	single["pos"].append(2990);
+	//	single["pos"].append(400);
+	//	single["pos"].append(200);
+	//	checkresult["defect feature"].append(single);
+	//	checkresult["defect num"] = checkresult["defect num"].asInt() + 1;
+	//}
+
+
+	std::cout << " 第 " << m_nID << " 检测到缺陷数量： " << checkresult["defect num"].asInt() << "  " << checkresult["defectarea"].asInt() << std::endl;
+
+}
+
+
+void CGlueCheck::CutImg2MulImg(const kxCImageBuf& CheckImg)
+{
+	/*
+		将一张大图分成N张有重叠区域的图，方便进行blob分析
+	*/
+
+	// -1 后 +1是向上取整
+	m_nblobimgnum = int((CheckImg.nHeight - _IMG_OVERLAP - 1) / (_SINGLE_BLOBIMG_H - _IMG_OVERLAP)) + 1;// 向上取整
+
+	if (m_nblobimgnum > _MAX_BLOBIMG)
+	{
+		printf_s("roi框的大小超过设置的参数！！！！");
+		// KXPRINTF(); 先不做处理
+		m_nblobimgnum = _MAX_BLOBIMG;
+	}
+
+	int nh2copy = (_SINGLE_BLOBIMG_H - _IMG_OVERLAP) * m_nblobimgnum + _IMG_OVERLAP;
+
+
+	m_ImgZero2split.Init(CheckImg.nWidth, nh2copy, 1);
+
+	ippsSet_8u(0, m_ImgZero2split.buf, m_ImgZero2split.nPitch * m_ImgZero2split.nHeight);
+
+	IppiSize copysize = { CheckImg.nWidth, CheckImg.nHeight };
+
+	ippiCopy_8u_C1R(CheckImg.buf, CheckImg.nPitch, m_ImgZero2split.buf, m_ImgZero2split.nPitch, copysize);
+
+	for (int i = 0; i < m_nblobimgnum; i++)
+	{
+		unsigned char *copybuf = m_ImgZero2split.buf + i * (_SINGLE_BLOBIMG_H - _IMG_OVERLAP) * m_ImgZero2split.nPitch;
+
+		m_pBLOBIMG[i].Init(CheckImg.nWidth, _SINGLE_BLOBIMG_H);
+
+		IppiSize smallsize = { CheckImg.nWidth, _SINGLE_BLOBIMG_H };
+
+		ippiCopy_8u_C1R(copybuf, m_ImgZero2split.nPitch, m_pBLOBIMG[i].buf, m_pBLOBIMG[i].nPitch, smallsize);
+	}
+}
+
 
 void CGlueCheck::GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kxRect<int>& targetrect)
 {
@@ -1356,25 +1297,47 @@ void CGlueCheck::GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kx
 
 	m_hAlg.SplitRGB(targetimg, RGB);
 
+	/*char savepath[64];
 
-	int edge1 = gMin(offset * 2 - 1, RGB[1].nWidth - 1);
+	memset(savepath, 0, sizeof(savepath));
 
-	IppiSize cutsize = { edge1 + 1, RGB[1].nHeight };
+	sprintf_s(savepath, "d:\\img\\R.bmp");
+
+	m_hFun.SaveBMPImage_h(savepath, RGB[0]);
+
+	memset(savepath, 0, sizeof(savepath));
+
+	sprintf_s(savepath, "d:\\img\\G.bmp");
+
+	m_hFun.SaveBMPImage_h(savepath, RGB[1]);
+
+	memset(savepath, 0, sizeof(savepath));
+
+	sprintf_s(savepath, "d:\\img\\B.bmp");
+
+	m_hFun.SaveBMPImage_h(savepath, RGB[2]);*/
+
+	// 左边缘线(0开始索引)
+	int edge1 = gMin(offset * 2, RGB[1].nWidth);
+
+	IppiSize cutsize = { edge1, RGB[1].nHeight };
 
 	edgeimg1.Init(cutsize.width, cutsize.height);
 
 	ippiCopy_8u_C1R(RGB[1].buf, RGB[1].nPitch, edgeimg1.buf, edgeimg1.nPitch, cutsize);
 
-
+	// 右边缘线(0开始索引)
 	int edge2 = gMax(0, RGB[1].nWidth - offset * 2);
 
-	cutsize = { RGB[1].nWidth - edge2, RGB[1].nHeight };
+	int nedge2width = RGB[1].nWidth - edge2;
+
+	cutsize = { nedge2width, RGB[1].nHeight };
 
 	edgeimg2.Init(cutsize.width, cutsize.height);
 
-	ippiCopy_8u_C1R(RGB[1].buf, RGB[1].nPitch, edgeimg2.buf, edgeimg2.nPitch, cutsize);
+	ippiCopy_8u_C1R(RGB[1].buf + edge2, RGB[1].nPitch, edgeimg2.buf, edgeimg2.nPitch, cutsize);
 
-	const int npointnum = 20;
+	const int npointnum = 40;
 
 	kxPoint<int> leftpoint[npointnum];
 
@@ -1388,16 +1351,20 @@ void CGlueCheck::GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kx
 
 	int naverageright = 0;
 
-	for (int i = 0; i < npointnum; i++)
+	int offsetpoint = 5;
+
+	for (int i = offsetpoint; i < npointnum - offsetpoint; i++)
 	{
 		naverageleft += leftpoint[i].x;
 
 		naverageright += rightpoint[i].x;
 	}
 
+	
+
 	const int nextend = 10;//再往里缩一点，临时方案
 
-	naverageleft = naverageleft / npointnum + nextend;
+	naverageleft = naverageleft / (npointnum - 2 * offsetpoint) + nextend;
 
 	naverageright = edgeimg2.nWidth - naverageright / npointnum - nextend;
 
@@ -1412,31 +1379,36 @@ void CGlueCheck::GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kx
 
 	SearchEdge(RGB[0], _Horizontal_Project_Dir, 150, ntargettop, ntargetbottom);
 
-	ntargettop += nextend;
+	const int nvertical_extend = 250;
 
-	ntargetbottom -= nextend;
+	ntargettop += nvertical_extend;
+
+	ntargetbottom -= nvertical_extend;
 
 	// （3）算相对SrcImg的偏移，从而得到检测区域
 	
 	targetrect.setup(ntargetleft, ntargettop, ntargetright, ntargetbottom);
 
-	targetrect.offset(rcCheck.left, rcCheck.top);
+	targetrect.offset(cutroi.left, cutroi.top);
 
 
 }
+
 
 void CGlueCheck::MergeImgNew(const kxCImageBuf& SrcImg1, const kxCImageBuf& SrcImg2, kxRect<int> targetrect, kxCImageBuf& DstImg)
 {
 	// 裁剪区域，进行合并两张图像操作。合并方法是将图1过曝区域换成图2
 	kxCImageBuf SrcImgA, SrcImgB;
 
-	SrcImgA.Init(targetrect.Width(), targetrect.Height());
+	SrcImgA.Init(targetrect.Width(), targetrect.Height(), SrcImg1.nChannel);
 
-	SrcImgB.Init(targetrect.Width(), targetrect.Height());
+	SrcImgB.Init(targetrect.Width(), targetrect.Height(), SrcImg1.nChannel);
 
 	m_hFun.KxCopyImage(SrcImg1, SrcImgA, targetrect);
 
 	m_hFun.KxCopyImage(SrcImg2, SrcImgB, targetrect);
+
+
 
 	kxCImageBuf gray1, threshimg, dilateimg;
 
@@ -1484,12 +1456,13 @@ void CGlueCheck::MergeImgNew(const kxCImageBuf& SrcImg1, const kxCImageBuf& SrcI
 
 	ippiAdd_8u_C3RSfs(img1.buf, img1.nPitch, img2.buf, img2.nPitch, mergeresult.buf, mergeresult.nPitch, imgsize, 0);
 
-	ippiAnd_8u_C3IR(m_ImgColorGlueMask.buf, m_ImgColorGlueMask.nPitch, mergeresult.buf, mergeresult.nPitch, imgsize);
+	//ippiAnd_8u_C3IR(m_ImgColorGlueMask.buf, m_ImgColorGlueMask.nPitch, mergeresult.buf, mergeresult.nPitch, imgsize);
 
 	ippiCopy_8u_C3R(mergeresult.buf, mergeresult.nPitch, DstImg.buf, DstImg.nPitch, imgsize);
 }
 
-void CGlueCheck::ExtractGreenNew(const kxCImageBuf* RGB, kxRect<int> roi, kxCImageBuf& DstImg)
+
+void CGlueCheck::ExtractGreenNew(const kxCImageBuf* RGB, kxCImageBuf& DstImg)
 {
 	// 检测是对图像进行2G - R - B的提取
 	kxCImageBuf G_R, G_B;
@@ -1521,13 +1494,28 @@ void CGlueCheck::ExtractGreenNew(const kxCImageBuf* RGB, kxRect<int> roi, kxCIma
 
 	// 下面方法备用
 	////先开运算去除散点
-	m_hFun.KxOpenImage(mask, openimg, 5, 5);
+	m_hFun.KxOpenImage(mask, openimg, 5, 5);// 滤除非涂胶区域散点
+
+	char savepath[64];
+
+	memset(savepath, 0, sizeof(savepath));
+
+	sprintf_s(savepath, "d:\\img\\openimg.bmp");
+
+	m_hFun.SaveBMPImage_h(savepath, openimg);
 
 	////闭运算闭合小孔
-	m_hFun.KxCloseImage(openimg, closeimg, 21, 11);
+	m_hFun.KxCloseImage(openimg, closeimg, 7, 7);
 
+	memset(savepath, 0, sizeof(savepath));
 
+	sprintf_s(savepath, "d:\\img\\closeimg.bmp");
+
+	m_hFun.SaveBMPImage_h(savepath, closeimg);
+
+	ippiCopy_8u_C1R(closeimg.buf, closeimg.nPitch, DstImg.buf, DstImg.nPitch, imgsize);
 }
+
 
 void CGlueCheck::SliderMatchNew(kxCImageBuf& SrcImg, int ntargetw, int ntargeth, kxCImageBuf& Templateimg, kxCImageBuf& blobimg)
 {
@@ -1561,10 +1549,12 @@ void CGlueCheck::SliderMatchNew(kxCImageBuf& SrcImg, int ntargetw, int ntargeth,
 
 	m_hAlg.ZSErodeImage(Templateimg, erodetemplate, 9, 9, NULL, ippBorderConst, 0);
 
-	for (int i = 0; i < 1; i++)
-	{
-		m_hAlg.ZSErodeImage(erodetemplate, erodetemplate, 9, 9, NULL, ippBorderConst, 0);
-	}
+	m_hAlg.ZSErodeImage(erodetemplate, erodetemplate, 9, 9, NULL, ippBorderConst, 0);
+
+
+	//for (int i = 0; i < 1; i++)
+	//{
+	//}
 
 	//kxCImageBuf subresult;
 
@@ -1576,17 +1566,17 @@ void CGlueCheck::SliderMatchNew(kxCImageBuf& SrcImg, int ntargetw, int ntargeth,
 
 
 	// 在模板图上、下边缘填充黑色
-	kxCImageBuf bigtemplate;
+	//kxCImageBuf bigtemplate;
 
-	const int headbotextend = 100;
+	//const int headbotextend = 100;
 
-	bigtemplate.Init(erodetemplate.nWidth, erodetemplate.nHeight + headbotextend * 2);
+	//bigtemplate.Init(erodetemplate.nWidth, erodetemplate.nHeight + headbotextend * 2);
 
-	ippsSet_8u(0, bigtemplate.buf, bigtemplate.nPitch * bigtemplate.nHeight);
+	//ippsSet_8u(0, bigtemplate.buf, bigtemplate.nPitch * bigtemplate.nHeight);
 
-	IppiSize templatesize = { erodetemplate.nWidth, erodetemplate.nHeight };
+	//IppiSize templatesize = { erodetemplate.nWidth, erodetemplate.nHeight };
 
-	ippiCopy_8u_C1R(erodetemplate.buf, erodetemplate.nPitch, bigtemplate.buf + bigtemplate.nPitch * headbotextend, bigtemplate.nPitch, templatesize);
+	//ippiCopy_8u_C1R(erodetemplate.buf, erodetemplate.nPitch, bigtemplate.buf + bigtemplate.nPitch * headbotextend, bigtemplate.nPitch, templatesize);
 
 	
 	//4. 重点部分，对检测图进行N次分割成小图（单向分割）,再用这N张小图在模板图上进行滑动对减
@@ -1613,29 +1603,29 @@ void CGlueCheck::SliderMatchNew(kxCImageBuf& SrcImg, int ntargetw, int ntargeth,
 
 		cutrect.setup(0, nstep * i, resizesrc.nWidth - 1, nstep * (i + 1) - 1);
 
-		smallimg.Init(cutrect.Width(), cutrect.Height());
+		kxRect<int> extendrect = cutrect;
 
-		m_hFun.KxCopyImage(resizesrc, smallimg, cutrect);
+		const int nextend = 50;
+
+		extendrect.top = max(0, extendrect.top - nextend);
+
+		extendrect.bottom = min(resizesrc.nHeight - 1, extendrect.top + nextend);
+		
+		smallimg.Init(extendrect.Width(), extendrect.Height());
+
+		m_hFun.KxCopyImage(resizesrc, smallimg, extendrect);
 
 		// (2) 裁剪模板图，模板图进行了上下扩充
 
 		kxCImageBuf smalltemplate;
 
-		const int nextend = 100;
-
-		int ntemplatetop = gMax(0, nstep * i - nextend);
-
-		int ntemplatebottom = gMin(bigtemplate.nHeight - 1, nstep * (i + 1) - 1 + nextend);
-
-		cutrect.setup(0, ntemplatetop, bigtemplate.nWidth - 1, ntemplatebottom);
-
 		smalltemplate.Init(cutrect.Width(), cutrect.Height());
 
-		m_hFun.KxCopyImage(bigtemplate, smalltemplate, cutrect);
+		m_hFun.KxCopyImage(erodetemplate, smalltemplate, cutrect);
 
 		kxCImageBuf CCImg;
 
-		CCImg.Init(smallimg.nWidth, smallimg.nHeight);
+		CCImg.Init(smalltemplate.nWidth, smalltemplate.nHeight);
 
 		SliderSub(smallimg, smalltemplate, CCImg, 5);
 
@@ -1648,59 +1638,45 @@ void CGlueCheck::SliderMatchNew(kxCImageBuf& SrcImg, int ntargetw, int ntargeth,
 
 }
 
+
 void CGlueCheck::SliderSub(kxCImageBuf& SrcImg, kxCImageBuf& TemplateImg, kxCImageBuf& dstCCImg, int nscalefactor)
 {
 
-	/*
-	// 旧格式
-		经过特殊编辑的滑动残差。
-		（1）首先是 TemplateImg的高度 > SrcImg的高度
-		（2）目标是TemplateImg - SrcImg
-		（3）并且是在TemplateImg上截取一部分 - SrcImg
-		（4）但是TemplateImg的宽度很可能 < SrcImg的宽度
-
-		综上，必须先对TemplateImg的高度进行保护扩充，宽度进行滑动范围扩充，保证补 0 之后的 TemplateImg 尺寸大于SrcImg
-
-	// 新格式 2022.03.01
-		
-		先想想怎么处理，包括对哪个模板大哪个图像小，还有边缘怎么赋值的问题
-
-	*/
 	//1 .扩充图像
 
-	if (SrcImg.nHeight > TemplateImg.nHeight || SrcImg.nWidth < TemplateImg.nWidth)
-	{
-		std::cout << "原图尺寸不符合要求，无法进行滑动残差" << std::endl;
+	//if (SrcImg.nHeight > TemplateImg.nHeight || SrcImg.nWidth < TemplateImg.nWidth)
+	//{
+	//	std::cout << "原图尺寸不符合要求，无法进行滑动残差" << std::endl;
 
-		return;//先暴力的把不符合要求的直接返回
-	}
+	//	return;//先暴力的把不符合要求的直接返回
+	//}
 
-	int nexpand = (SrcImg.nWidth - TemplateImg.nWidth) / 2 + 40;// 20是暂定的数字, 单侧扩展大小
+	//int nexpand = (SrcImg.nWidth - TemplateImg.nWidth) / 2 + 40;
 
-	kxCImageBuf bigtemplateimg;
+	const int nexpand = 50;
 
-	bigtemplateimg.Init(nexpand * 2 + TemplateImg.nWidth, TemplateImg.nHeight);
+	kxCImageBuf bigsrc;
 
-	ippsSet_8u(0, bigtemplateimg.buf, bigtemplateimg.nPitch * bigtemplateimg.nHeight);
+	bigsrc.Init(nexpand * 2 + SrcImg.nWidth, SrcImg.nHeight);
 
-	IppiSize templatesize = { TemplateImg.nWidth, TemplateImg.nHeight };
+	ippsSet_8u(0, bigsrc.buf, bigsrc.nPitch * bigsrc.nHeight);
 
-	ippiCopy_8u_C1R(TemplateImg.buf, TemplateImg.nPitch, bigtemplateimg.buf + nexpand, bigtemplateimg.nPitch, templatesize);
+	IppiSize templatesize = { SrcImg.nWidth, SrcImg.nHeight };
+
+	ippiCopy_8u_C1R(SrcImg.buf, SrcImg.nPitch, bigsrc.buf + nexpand, bigsrc.nPitch, templatesize);
 
 
 
 	//1. 压缩图像
 	kxCImageBuf resize1, resize2;
 
-	resize1.Init(SrcImg.nWidth / nscalefactor, SrcImg.nHeight / nscalefactor);
+	resize1.Init(bigsrc.nWidth / nscalefactor, bigsrc.nHeight / nscalefactor);
 
-	resize2.Init(bigtemplateimg.nWidth / nscalefactor, bigtemplateimg.nHeight / nscalefactor);
+	resize2.Init(TemplateImg.nWidth / nscalefactor, TemplateImg.nHeight / nscalefactor);
 
-	m_hFun.KxResizeImage(SrcImg, resize1);
+	m_hFun.KxResizeImage(bigsrc, resize1);
 
-	m_hFun.KxResizeImage(bigtemplateimg, resize2);
-
-
+	m_hFun.KxResizeImage(TemplateImg, resize2);
 
 	int nxtimes = gMax(0, resize2.nWidth - resize1.nWidth);
 
@@ -1712,9 +1688,9 @@ void CGlueCheck::SliderSub(kxCImageBuf& SrcImg, kxCImageBuf& TemplateImg, kxCIma
 
 	kxCImageBuf subresult, minsubresult;
 
-	subresult.Init(resize1.nWidth, resize1.nHeight);
+	subresult.Init(resize2.nWidth, resize2.nHeight);
 
-	IppiSize size = { resize1.nWidth, resize1.nHeight };
+	IppiSize size = { resize2.nWidth, resize2.nHeight };
 
 	IppiPoint minpos = { 0, 0 };
 
@@ -1728,11 +1704,11 @@ void CGlueCheck::SliderSub(kxCImageBuf& SrcImg, kxCImageBuf& TemplateImg, kxCIma
 		}
 		for (int j = 0; j <= nytimes; j++)
 		{
-			buf = resize2.buf + i * resize2.nChannel + j * resize2.nPitch;
+			buf = resize1.buf + i * resize1.nChannel + j * resize1.nPitch;
 
 			ippiSet_8u_C1R(0, subresult.buf, subresult.nPitch, size);
 
-			ippiSub_8u_C1RSfs(resize1.buf, resize1.nPitch, buf, resize2.nPitch, subresult.buf, subresult.nPitch, size, 0);
+			ippiSub_8u_C1RSfs(buf, resize1.nPitch, resize2.buf, resize2.nPitch, subresult.buf, subresult.nPitch, size, 0);
 
 			Ipp64f sum;
 
@@ -1758,7 +1734,7 @@ void CGlueCheck::SliderSub(kxCImageBuf& SrcImg, kxCImageBuf& TemplateImg, kxCIma
 	}
 
 
-	dstCCImg.Init(SrcImg.nWidth, SrcImg.nHeight);
+	dstCCImg.Init(TemplateImg.nWidth, TemplateImg.nHeight);
 
 	if (zerostatus)// 全零则 对结果直接赋0
 	{
@@ -1770,16 +1746,396 @@ void CGlueCheck::SliderSub(kxCImageBuf& SrcImg, kxCImageBuf& TemplateImg, kxCIma
 
 		minpos.y *= nscalefactor;
 
-		buf = bigtemplateimg.buf + minpos.x + minpos.y * bigtemplateimg.nPitch;
+		buf = bigsrc.buf + minpos.x + minpos.y * bigsrc.nPitch;
 
 		IppiSize orisize = { SrcImg.nWidth, SrcImg.nHeight };
 
-		ippiSub_8u_C1RSfs(SrcImg.buf, SrcImg.nPitch, buf, bigtemplateimg.nPitch, dstCCImg.buf, dstCCImg.nPitch, orisize, 0);
+		ippiSub_8u_C1RSfs(SrcImg.buf, SrcImg.nPitch, buf, bigsrc.nPitch, dstCCImg.buf, dstCCImg.nPitch, orisize, 0);
 
 	}
 
 }
 
+
+void CGlueCheck::ModelFillholes(kxCImageBuf& SrcImg, kxCImageBuf& DstImg)
+{
+	//填充孔洞
+
+	//1. 填充孔洞
+	kxCImageBuf fillholes, subimg;
+
+	fillholes.Init(SrcImg.nWidth, SrcImg.nHeight);
+
+	m_hAlg.FillHoles(SrcImg, fillholes);
+
+	if (1)// 这个位置后续需要界面设置一个变量，是否需要滤除自身漏胶
+	{
+		const int nduanjiaonum = 100;
+
+		const int duanjiaowidth = 400;
+
+		const int nduanjiaoheight = 20;
+		
+
+		// 2. 获取差值
+		IppiSize imgsize = { SrcImg.nWidth, SrcImg.nHeight};
+
+		CKxBlobAnalyse blob;
+
+		subimg.Init(fillholes.nWidth, fillholes.nHeight);
+
+		ippiSub_8u_C1RSfs(SrcImg.buf, SrcImg.nPitch, fillholes.buf, fillholes.nPitch, subimg.buf, subimg.nPitch, imgsize, 0);
+
+		// 3. blob分析
+		blob.ToBlobByCV(subimg, CKxBlobAnalyse::_SORT_BYDOTS, 100);
+
+		int nblobcount = blob.GetBlobCount();
+
+		int ntargetblob = 0;
+
+		for (int i = 0; i < blob.GetBlobCount(); i++)
+		{
+			CKxBlobAnalyse::SingleBlobInfo blobinfo;
+
+			blobinfo = blob.GetSortSingleBlob(i);
+			//std::cout << blobinfo.m_rc.left << blobinfo.m_rc.top << blobinfo.m_rc.right << blobinfo.m_rc.bottom << std::endl;
+
+			if (blobinfo.m_rc.Width() > duanjiaowidth && blobinfo.m_rc.Height() > nduanjiaoheight )
+			{
+				kxCImageBuf roiimg;
+
+				blobinfo.m_rc.left = gMax(blobinfo.m_rc.left - 50, 0);
+
+				blobinfo.m_rc.right = gMin(blobinfo.m_rc.right + 50, subimg.nWidth - 1);
+
+				blob.GetBlobImage(blobinfo.m_nLabel, blobinfo.m_rc, roiimg);
+
+				kxCImageBuf dilatesmallimg;
+
+				dilatesmallimg.Init(roiimg.nWidth, roiimg.nHeight);
+
+				m_hFun.KxDilateImage(roiimg, dilatesmallimg, 21, 21);
+
+				IppiSize roisize = { roiimg.nWidth, roiimg.nHeight };
+
+				kxCImageBuf subresult;
+
+				subresult.Init(roiimg.nWidth, roiimg.nHeight);
+
+				ippiSub_8u_C1IRSfs(dilatesmallimg.buf, dilatesmallimg.nPitch, fillholes.buf + blobinfo.m_rc.left + blobinfo.m_rc.top * fillholes.nPitch, fillholes.nPitch, roisize, 0);
+
+				ntargetblob += 1;
+
+				if (ntargetblob > nduanjiaonum)
+				{
+					break;
+				}
+			}
+		}
+
+	}
+
+
+	//kxCImageBuf erodeimg;
+	//m_hFun.KxErodeImage(fillholes, erodeimg, 15, 15);
+	DstImg.SetImageBuf(fillholes, true);
+
+}
+
+
+void CGlueCheck::checkwithmodel(const kxCImageBuf& SrcImg, const kxCImageBuf& gluearea, kxCImageBuf& dsthigh, kxCImageBuf& dstlow)
+{
+	// 根据标准模板，对减得到色差。将高低结果赋予dsthigh, dstlow
+	
+	//1，创建基础模板
+	CreateBaseModel(SrcImg, gluearea, m_ImgTemplateHigh, m_ImgTemplateLow);
+
+	char savepath[64];
+
+	IppiSize imgsize = { SrcImg.nWidth, SrcImg.nHeight };
+
+	kxCImageBuf CheckImg;
+
+	CheckImg.Init(SrcImg.nWidth, SrcImg.nHeight, SrcImg.nChannel);
+
+	Ipp8u* pbuf[3] = { gluearea.buf, gluearea.buf, gluearea.buf};
+
+	m_ImgColorGlueMask.Init(SrcImg.nWidth, SrcImg.nHeight, 3);
+
+	ippiCopy_8u_P3C3R(pbuf, gluearea.nPitch, m_ImgColorGlueMask.buf, m_ImgColorGlueMask.nPitch, imgsize);
+
+	ippiAnd_8u_C3R(SrcImg.buf, SrcImg.nPitch, m_ImgColorGlueMask.buf, m_ImgColorGlueMask.nPitch, CheckImg.buf, CheckImg.nPitch, imgsize);
+
+
+	
+	// 2. 读取灵敏度
+	unsigned char poffsetlow[3] = { m_param.m_noffsetlow, m_param.m_noffsetlow, m_param.m_noffsetlow };// 从模板读，RGB
+
+	unsigned char poffsethigh[3] = { m_param.m_noffsethigh, m_param.m_noffsethigh, m_param.m_noffsethigh };// 从模板读，RGB
+
+	
+	//3, 得到高值
+	m_ImgCheckHigh.Init(CheckImg.nWidth, CheckImg.nHeight, CheckImg.nChannel);
+
+	ippiSub_8u_C3RSfs(m_ImgTemplateHigh.buf, m_ImgTemplateHigh.nPitch, CheckImg.buf, CheckImg.nPitch, m_ImgCheckHigh.buf, m_ImgCheckHigh.nPitch, imgsize, 0);
+
+	ippiSubC_8u_C3IRSfs(poffsethigh, m_ImgCheckHigh.buf, m_ImgCheckHigh.nPitch, imgsize, 0);
+
+	//4，得到低值。低值通过测试发现H通道检测低效果比较好, 用H -  标准色.并且要考虑亮值的影响
+	cv::Mat img;
+
+	m_hFun.KxImageBufToMat(CheckImg, img);
+
+	cv::Mat hsv[3], hsvimg;
+
+	cv::cvtColor(img, hsvimg, cv::COLOR_RGB2HSV);
+
+	cv::split(hsvimg, hsv);
+
+	kxCImageBuf himg;
+
+	m_hFun.MatToKxImageBuf(hsv[0], himg, true);
+
+	// H图像主要用于检测暗缺陷，但是一些高亮的也会造成问题，所以这里对高亮的进行滤除
+	kxCImageBuf maskhimg;
+
+	GetHmask(CheckImg, maskhimg);
+
+	memset(savepath, 0, sizeof(savepath));
+
+	sprintf_s(savepath, "d:\\img\\CheckImg.bmp");
+
+	m_hFun.SaveBMPImage_h(savepath, CheckImg);
+
+	memset(savepath, 0, sizeof(savepath));
+
+	sprintf_s(savepath, "d:\\img\\himg.bmp");
+
+	m_hFun.SaveBMPImage_h(savepath, himg);
+
+	ippiSub_8u_C1IRSfs(maskhimg.buf, himg.nPitch, himg.buf, himg.nPitch, imgsize, 0);
+	memset(savepath, 0, sizeof(savepath));
+
+	sprintf_s(savepath, "d:\\img\\maskhimg.bmp");
+
+	m_hFun.SaveBMPImage_h(savepath, maskhimg);
+
+	m_ImgCheckLow.Init(CheckImg.nWidth, CheckImg.nHeight);
+
+	ippiSub_8u_C1RSfs(m_ImgTemplateLow.buf, m_ImgTemplateLow.nPitch, himg.buf, himg.nPitch, m_ImgCheckLow.buf, m_ImgCheckLow.nPitch, imgsize, 0);
+
+	ippiSubC_8u_C1IRSfs(poffsetlow[0], m_ImgCheckLow.buf, m_ImgCheckLow.nPitch, imgsize, 0);
+
+
+	//5, 彩色图转换为灰度图,取最大
+	dsthigh.Init(m_ImgCheckHigh.nWidth, m_ImgCheckHigh.nHeight);
+
+	dstlow.Init(m_ImgCheckLow.nWidth, m_ImgCheckLow.nHeight);
+
+	kxCImageBuf openimg, closeimg;
+
+	openimg.Init(m_ImgCheckHigh.nWidth, m_ImgCheckHigh.nHeight);
+
+	GetMaxGray(m_ImgCheckHigh, openimg);
+
+	//GetMaxGray(m_ImgCheckLow, dstlow);
+
+	m_hFun.KxCloseImage(m_ImgCheckLow, dstlow, 7, 7);// 检低用闭运算
+
+	memset(savepath, 0, sizeof(savepath));
+
+	sprintf_s(savepath, "d:\\img\\dstlow.bmp");
+
+	m_hFun.SaveBMPImage_h(savepath, dstlow);
+
+	//dstlow.SetImageBuf(m_ImgCheckLow, true);
+
+	m_hFun.KxOpenImage(openimg, dsthigh, 1, 7);// 开运算消除反光位置
+
+
+
+
+
+	//memset(savepath, 0, sizeof(savepath));
+
+	//sprintf_s(savepath, "d:\\img\\dsthigh.bmp");
+
+	//m_hFun.SaveBMPImage_h(savepath, dsthigh);
+
+}
+
+
+void CGlueCheck::CreateBaseModel(const kxCImageBuf& CheckImg, const kxCImageBuf& gluemask, kxCImageBuf& DstHigh, kxCImageBuf& DstLow)
+{
+	/*
+		方案二：设定基础色，然后残差结果减去灵敏度
+	*/
+	//RGB
+	const unsigned char Rbase = 45;
+
+	const unsigned char Gbase = 55;
+
+	const unsigned char Bbase = 30;
+	//HSV
+	//const unsigned char Rbase = 52;
+
+	//const unsigned char Gbase = 127;
+
+	//const unsigned char Bbase = 83;
+
+	DstHigh.Init(CheckImg.nWidth, CheckImg.nHeight, CheckImg.nChannel);
+	
+
+	IppiSize imgsize = { DstHigh.nWidth, DstHigh.nHeight };
+
+	kxCImageBuf ImgR, ImgB, ImgG;
+
+	ImgR.Init(CheckImg.nWidth, CheckImg.nHeight);
+
+	ImgG.Init(CheckImg.nWidth, CheckImg.nHeight);
+
+	ImgB.Init(CheckImg.nWidth, CheckImg.nHeight);
+
+	ippsSet_8u(Rbase, ImgR.buf, ImgR.nPitch * ImgR.nHeight);
+
+	ippsSet_8u(Gbase, ImgG.buf, ImgG.nPitch * ImgG.nHeight);
+
+	ippsSet_8u(Bbase, ImgB.buf, ImgB.nPitch * ImgB.nHeight);
+
+	ippiAnd_8u_C1IR(gluemask.buf, gluemask.nPitch, ImgR.buf, ImgR.nPitch, imgsize);
+
+	ippiAnd_8u_C1IR(gluemask.buf, gluemask.nPitch, ImgG.buf, ImgG.nPitch, imgsize);
+
+	ippiAnd_8u_C1IR(gluemask.buf, gluemask.nPitch, ImgB.buf, ImgB.nPitch, imgsize);
+
+	unsigned char * pbuf1[3] = { ImgR.buf,  ImgG.buf,  ImgB.buf };
+
+	ippiCopy_8u_P3C3R(pbuf1, ImgR.nPitch, DstHigh.buf, DstHigh.nPitch, imgsize);
+
+
+	kxCImageBuf Erodemask;
+
+	Erodemask.Init(gluemask.nWidth, gluemask.nHeight);
+
+	m_hFun.KxErodeImage(gluemask, Erodemask, 9, 9);
+
+
+
+
+	const int H = 40;
+
+	ippsSet_8u(H, ImgR.buf, ImgR.nPitch * ImgR.nHeight);
+
+	//ippsSet_8u(Gbase, ImgG.buf, ImgG.nPitch * ImgG.nHeight);
+	//ippsSet_8u(Bbase, ImgB.buf, ImgB.nPitch * ImgB.nHeight);
+
+	ippiAnd_8u_C1IR(Erodemask.buf, Erodemask.nPitch, ImgR.buf, ImgR.nPitch, imgsize);
+
+	//ippiAnd_8u_C1IR(Erodemask.buf, Erodemask.nPitch, ImgG.buf, ImgG.nPitch, imgsize);
+
+	//ippiAnd_8u_C1IR(Erodemask.buf, Erodemask.nPitch, ImgB.buf, ImgB.nPitch, imgsize);
+
+	//unsigned char * pbuf2[3] = { ImgR.buf,  ImgG.buf,  ImgB.buf };
+
+	//ippiCopy_8u_P3C3R(pbuf2, ImgR.nPitch, DstLow.buf, DstLow.nPitch, imgsize);
+	DstLow.Init(CheckImg.nWidth, CheckImg.nHeight);
+
+	ippiCopy_8u_C1R(ImgR.buf, ImgR.nPitch, DstLow.buf, DstLow.nPitch, imgsize);
+
+	
+}
+
+
+void CGlueCheck::GetMaxGray(const kxCImageBuf& ColorImg, kxCImageBuf& DstGrayImg)
+{
+	kxCImageBuf gray[3];
+
+	m_hAlg.SplitRGB(ColorImg, gray);
+
+	m_hFun.KxMaxEvery(gray[0], gray[1]);
+
+	m_hFun.KxMaxEvery(gray[1], gray[2]);
+
+	DstGrayImg.SetImageBuf(gray[2], true);
+}
+
+
+int CGlueCheck::JudgeDefectType(kxCImageBuf& blobimg,  kxRect<int>rect)
+{
+	//kxCImageBuf ;
+	kxCImageBuf smallsrcimg;
+
+	smallsrcimg.Init(rect.Width(), rect.Height(), 3);
+
+	m_hFun.KxCopyImage(m_ImgCheck, smallsrcimg, rect);
+
+	kxCImageBuf maskimg;
+
+	maskimg.Init(blobimg.nWidth, blobimg.nHeight);
+
+	m_hFun.KxThreshImage(blobimg, maskimg, 1, 255);
+
+	kxCImageBuf rgb[3];
+
+	m_hAlg.SplitRGB(smallsrcimg, rgb);
+
+	int average[3];
+
+	for (int i = 0; i < 3; i++)
+	{
+		kxCImageBuf targetimg;
+
+		targetimg.Init(maskimg.nWidth, maskimg.nHeight);
+
+		IppiSize smallsize = { maskimg.nWidth, maskimg.nHeight };
+
+		ippiAnd_8u_C1R(maskimg.buf, maskimg.nPitch, rgb[i].buf, rgb[i].nPitch, targetimg.buf, targetimg.nPitch, smallsize);
+
+		Ipp64f sum, alldots;
+
+		ippiSum_8u_C1R(targetimg.buf, targetimg.nPitch, smallsize, &sum);
+
+		ippiSum_8u_C1R(maskimg.buf, maskimg.nPitch, smallsize, &alldots);
+
+		alldots = alldots / 255;
+
+		average[i] = sum / alldots;
+
+	}
+
+	static int nsavenum = 0;
+
+	std::cout << nsavenum << "    平均灰度值： " << average[0] << "   " << average[1] << "   " << average[2] << std::endl;
+
+	nsavenum++;
+
+	
+	if (average[0] > 180)
+	{
+		return 1;// 气泡
+	}
+	else
+	{
+		return 0;
+	}
+
+
+}
+
+
+void CGlueCheck::GetHmask(const kxCImageBuf& SrcImg, kxCImageBuf& DstMask)
+{
+	kxCImageBuf maximg;
+
+	GetMaxGray(SrcImg, maximg);
+
+	DstMask.Init(SrcImg.nWidth, SrcImg.nHeight);
+
+	m_hFun.KxThreshImage(maximg, DstMask, 80, 255);
+
+
+
+}
 
 
 int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg, Json::Value &checkresult)
@@ -1803,104 +2159,70 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 
 	m_ImgCheck.Init(DstImg.nWidth, DstImg.nHeight, SrcImgA.nChannel);
 
+	ippsSet_8u(0, m_ImgCheck.buf, m_ImgCheck.nHeight * m_ImgCheck.nPitch);
+
 	MergeImgNew(SrcImgA, SrcImgB, checkarea, m_ImgCheck);
 
+	char savepath[64];
 
-	// 3.提取涂胶区域，只做了简单的提取，以及开运算滤散点、闭运算填充大blob
+
+	// 3.提取涂胶区域, 包括减掉本来就有的漏胶
 	m_hAlg.SplitRGB(m_ImgCheck, m_ImgRGB);
 
 	m_ImgGlueMask.Init(m_ImgRGB[0].nWidth, m_ImgRGB[0].nHeight, m_ImgRGB[0].nChannel);
 
-	ExtractGreenNew(m_ImgRGB, checkarea, m_ImgGlueMask);
+	ExtractGreenNew(m_ImgRGB, m_ImgGlueMask);
+	
 
 
-	// 4.检测严重断胶
-	kxCImageBuf blobimg1;
-
-	blobimg1.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight);
-
-	SliderMatchNew(m_ImgGlueMask, checkarea.Width(), checkarea.Height(), m_param.m_ImgTemplate, blobimg1);
 
 
-	/*
-	tick_count tbb_start, tbb_end;
+	// 4.检测严重断胶, 不用单纯的残差对减是因为涂胶非规则,边缘区域的处理比较特殊(一种方法是模板做处理,缩细点)
 
+	m_Blobimg1.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight);
+
+	ippsSet_8u(0, m_Blobimg1.buf, m_Blobimg1.nPitch * m_Blobimg1.nHeight);
+	//SliderMatchNew(m_ImgGlueMask, checkarea.Width(), checkarea.Height(), m_param.m_ImgTemplate, blobimg1);
+
+
+	// 5. 对模板进行填充孔洞操作, 这是因为考虑有些缺陷不会被当作涂胶提取出来,所以需要闭合出一个模板
+	m_ImgGlueMaskFillholes.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight);
+
+	ModelFillholes(m_ImgGlueMask, m_ImgGlueMaskFillholes);
+	//m_ImgGlueMaskFillholes.SetImageBuf(m_ImgGlueMask, true);// 2022.3.20 直接用
+
+
+	// 6. 检测颜色不同的异物
+
+	checkwithmodel(m_ImgCheck, m_ImgGlueMaskFillholes, m_Blobimg2, m_Blobimg3);
+
+	memset(savepath, 0, sizeof(savepath));
+
+
+	// 7. 将三个通道的残差图放到一起。 blobimg1 是大面积涂胶缺的缺陷需要自行blob，blobimg2、blobimg3是检高检低所得图像，可以合并后blob
 	checkresult["defect num"] = 0;
 
-	m_hAlg.SplitRGB(SrcImgA, m_ImgRGB);
+	m_hFun.KxAddImage(m_Blobimg1, m_Blobimg2);
 
-	tbb_start = tick_count::now();
-
-	GetGlueMask(m_ImgRGB);
-
-	tbb_end = tick_count::now();
-
-	printf_s("getmask cost : %f ms\n", (tbb_end - tbb_start).seconds() * 1000);
-
-	tbb_start = tick_count::now();
+	m_hFun.KxAddImage(m_Blobimg2, m_Blobimg3);
 
 
-	cv::Mat targetimg = cv::Mat(m_ImgGlueMask.nHeight, m_ImgGlueMask.nWidth, CV_8UC1, m_ImgGlueMask.buf, m_ImgGlueMask.nPitch);
-
-	int narea = cv::countNonZero(targetimg);
-
-	checkresult["area"] = narea;
-
-	MergeImg(SrcImgA, SrcImgB, m_ImgCheck);
-
-	tbb_end = tick_count::now();
-
-	printf_s("mergeimg cost : %f ms\n", (tbb_end - tbb_start).seconds() * 1000);
-
-	tbb_start = tick_count::now();
-
-
-	//static int nindex = 0;
-	//char savepath[64];
-	//sprintf_s(savepath, "d:\\%d.bmp", nindex++);
-	//m_hFun.SaveBMPImage_h(savepath, m_ImgCheck);
-
-
-	kxCImageBuf RGBNEW[3];
-
-	m_hAlg.SplitRGB(m_ImgCheck, RGBNEW);
-
-	kxCImageBuf dstimg;
-
-	ExtractGreen(RGBNEW, m_recttarget, m_ImgGlueMask);
-
-
-
-	m_ImgColorGlueMask.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight, 3);
-
-	unsigned char *pbuf[3] = { m_ImgGlueMask.buf , m_ImgGlueMask.buf , m_ImgGlueMask.buf };
-
-	IppiSize imgsize = { m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight };
-
-	ippiCopy_8u_P3C3R(pbuf, m_ImgGlueMask.nPitch, m_ImgColorGlueMask.buf, m_ImgColorGlueMask.nPitch, imgsize);
-
-	kxCImageBuf finalcheckimg;
-
-	finalcheckimg.Init(m_ImgCheck.nWidth, m_ImgCheck.nHeight, m_ImgCheck.nChannel);
-
-
-	ippiAnd_8u_C3R(m_ImgColorGlueMask.buf, m_ImgColorGlueMask.nPitch, m_ImgCheck.buf, m_ImgCheck.nPitch, finalcheckimg.buf, finalcheckimg.nPitch, imgsize);
-
-
-	// 检测涂胶的。
-	//kxCImageBuf cutimg;
-
-	//cutimg.Init(m_recttarget.Width(), m_recttarget.Height(), m_ImgCheck.nChannel);
-
- //	m_hFun.KxCopyImage(m_ImgCheck, cutimg, m_recttarget);
-
-	//SliderMatch(cutimg, m_param.m_ImgTemplate);
-	//CheckLow(cutimg);
-
-
-	checkyiwu(finalcheckimg, checkresult);
+	CutImg2MulImg(m_Blobimg3);
 	
-	*/
+	ParallelBlob(checkresult);
+
+	checkresult["blockarea"] = checkarea.Width() * checkarea.Height();
+
+	cv::Mat notzeromat;
+
+	m_hFun.KxImageBufToMat(m_ImgGlueMask, notzeromat);
+
+	int nresult = cv::countNonZero(notzeromat);
+
+	checkresult["area"] = nresult;
+
+
+
 	DstImg.SetImageBuf(m_ImgCheck, true);
 	
 	return 1;

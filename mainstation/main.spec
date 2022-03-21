@@ -1,11 +1,10 @@
-# -*- mode: python ; coding: utf-8 -*-
-
+# -*- mode: python -*-
 
 block_cipher = None
 
 
 a = Analysis(['main.py'],
-             pathex=['E:\\ZSDEMO\\project\\nd-gulecheck\\mainstation\\'],
+             pathex=['D:\\software\\project\\nd-gulecheck\\mainstation'],
              binaries=[],
              datas=[],
              hiddenimports=[],
@@ -18,9 +17,8 @@ a = Analysis(['main.py'],
              noarchive=False)
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
-
 exe = EXE(pyz,
-          a.scripts, 
+          a.scripts,
           [],
           exclude_binaries=True,
           name='main',
@@ -28,16 +26,11 @@ exe = EXE(pyz,
           bootloader_ignore_signals=False,
           strip=False,
           upx=True,
-          console=True,
-          disable_windowed_traceback=False,
-          target_arch=None,
-          codesign_identity=None,
-          entitlements_file=None , uac_admin=True, icon='logo.ico')
+          console=True , uac_admin=True, icon='logo.ico')
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
-               a.datas, 
+               a.datas,
                strip=False,
                upx=True,
-               upx_exclude=[],
                name='main')

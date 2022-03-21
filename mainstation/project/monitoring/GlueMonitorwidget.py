@@ -11,6 +11,9 @@ import imc_msg
 import json
 import numpy as np
 import cv2
+import time
+from project.other.ExcelManager import CExcelManager
+from project.other.globalparam import SYSPATH
 
 
 class GlueMonitorWidget(KxBaseMonitoringWidget):
@@ -30,6 +33,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.h_defectinfo = DefectClass()
         self.nrow, self.ncol = 0, 0# 大图拼成的行列
         self.n_curid = 0
+        self._setexcelinfo(SYSPATH.PATH_CHECKDATA, "Sheet", ["SFC", "气泡数量", "气泡尺寸", "异物数量", "异物尺寸", "涂胶面积", "block面积", "异物面积", "气泡面积"])
 
 
     def _initui(self):
@@ -72,6 +76,33 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         self.horizonlayout.addWidget(self.widget_map, 2)
         self.horizonlayout.addWidget(self.widget_right, 3)
         self.horizonlayout.setContentsMargins(0, 0, 0, 0)
+
+
+    def _setexcelinfo(self, exceldir_path, sheet_name, head):
+        self.basedir = exceldir_path
+        self.basesheet_name = sheet_name
+        self.basehead = head
+        self.curpath = time.strftime('%Y-%m-%d', time.localtime(time.time())) + ".xlsx"
+        self.excel_checkdata = CExcelManager(self.basedir + "\\" + self.curpath, self.basesheet_name, self.basehead)
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.__timeout2createnewexccel)
+        self.timer.start(1000 * 60 * 5)
+
+
+    def __timeout2createnewexccel(self):
+        """
+        定时器五分钟更新一次当前日期，如果日期更新则改变文件名
+        """
+        curpath = time.strftime('%Y-%m-%d', time.localtime(time.time())) + ".xlsx"
+        if curpath != self.curpath:
+            self.curpath = curpath
+            while 1:
+                if not self.excel_checkdata.b_iswriting:  # 只要不是正在写入
+                    self.excel_checkdata = CExcelManager(self.basedir + "\\" + self.curpath, self.basesheet_name,
+                                                   self.basehead)
+                    break
+                else:
+                    time.sleep(5)
 
 
     def _slotCellClick(self, img, ndefectID, pos):
@@ -135,8 +166,18 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
             ncurcol = dict_result['curcol']
 
+            blockarea = round(int(dict_result['blockarea']) * self.f_resolution * self.f_resolution, 2)
 
-            self.h_defectinfo.append_blockinfo(resizeimg, int(dict_result['area']) * self.f_resolution * self.f_resolution, ncurrow,  ncurcol)
+            gulearea = round(int(dict_result['area']) * self.f_resolution * self.f_resolution, 2)
+
+            defectarea = round(int(dict_result['defectarea']) * self.f_resolution * self.f_resolution, 2)
+
+            qipaoarea = round(int(dict_result['qipaoarea']) * self.f_resolution * self.f_resolution, 2)
+
+
+            print ("各个面积: ", blockarea, gulearea, defectarea)
+
+            self.h_defectinfo.append_blockinfo(resizeimg, blockarea, gulearea, defectarea, qipaoarea, ncurrow,  ncurcol)
 
             if ndefectnum != 0:
 
@@ -158,7 +199,14 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
                     newpos = self._transformpos(expandpos, w, h, ncurrow, ncurcol)
 
-                    self.h_defectinfo.append_defectinfo(smallimg, newpos, sdefectid, ndots,
+                    defecttype = int(singledefect['defecttype'])
+
+                    if defecttype == 1:
+                        sdefecttype = "气泡"
+                    else:
+                        sdefecttype = "异物"
+
+                    self.h_defectinfo.append_defectinfo(sdefecttype, smallimg, newpos, sdefectid, ndots,
                                                         [round(pos[2] * self.f_resolution, 2), round(pos[3] * self.f_resolution, 2)],
                                                         round(ndots * self.f_resolution * self.f_resolution, 2))
 
@@ -169,7 +217,16 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
             self.imgitem.setImage(self.h_defectinfo.getbigimg())
 
-            self.widget_edgepos.setdata(self.h_defectinfo.list_narea, 4)
+            #self._writedata2excel()
+
+            self.widget_edgepos.setdata(self.h_defectinfo.list_narea, 0)
+
+            self.widget_edgepos.setdata(self.h_defectinfo.list_ngulearea, 1)
+
+            self.widget_edgepos.setdata(self.h_defectinfo.list_ndefectarea, 2)
+
+            self.widget_edgepos.setdata(self.h_defectinfo.list_nqipaoarea, 3)
+
 
             for roi in self.h_defectinfo.list_roi:
 
@@ -179,7 +236,7 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
 
                 self.view.addItem(roi)
 
-            self.h_parentwidget.callback2uploaddata(0)#都弹框，确认是否放行
+            self.h_parentwidget.callback2uploaddata(1)#都弹框，确认是否放行
 
 
                 #self.h_parentwidget.callback2autorun()
@@ -240,7 +297,8 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
     def _showinfo(self, nid):
         if nid > self.h_defectinfo.size():
             return
-        s_word = "缺陷块位置：" + str(self.h_defectinfo.list_defectword[nid]) + '\n'
+        s_word = "缺陷块缺陷类型：" + str(self.h_defectinfo.list_defecttype[nid]) + '\n'
+        s_word = s_word + "缺陷块位置：" + str(self.h_defectinfo.list_defectword[nid]) + '\n'
         s_word = s_word + "缺陷宽：" + str(self.h_defectinfo.list_defectwh[nid][0]) + ' mm\n'
         s_word = s_word + "缺陷高：" + str(self.h_defectinfo.list_defectwh[nid][1]) + ' mm\n'
         s_word = s_word + "缺陷面积：" + str(self.h_defectinfo.list_defectarea[nid]) + ' mm²\n'
@@ -279,6 +337,34 @@ class GlueMonitorWidget(KxBaseMonitoringWidget):
         #self.view_small.autoRange()
 
 
+    def _writedata2excel(self):
+        """
+        往excel表格里写数据
+        """
+        #["SFC", "气泡数量", "气泡尺寸", "异物数量", "异物尺寸", "涂胶面积", "block面积", "异物面积", "气泡面积"]
+
+        sfc = self.h_parentwidget.getspackid()
+
+        list_qipao = []
+        list_yiwu = []
+
+        list_defect = self.h_defectinfo.list_defectarea
+        list_defecttype = self.h_defectinfo.list_defecttype
+        for nindex, stype in enumerate(list_defecttype):
+            if stype == "气泡":
+                list_qipao.append(list_defect[nindex])
+            else:
+                list_yiwu.append(list_defect[nindex])
+        list_gulearea = self.h_defectinfo.list_ngulearea
+        list_blockarea = self.h_defectinfo.list_narea
+        list_yiwuarea = self.h_defectinfo.list_ndefectarea
+        list_qipaoarea = self.h_defectinfo.list_nqipaoarea
+
+        self.excel_checkdata.writeExcel([[sfc, str(len(list_qipao)), str(list_qipao), str(len(list_yiwu)), str(list_yiwu),
+                                         str(list_gulearea), str(list_blockarea), str(list_yiwuarea), str(list_qipaoarea)]])
+
+
+
 
 registerkxmointorwidget("GlueMonitorWidget", GlueMonitorWidget)
 
@@ -304,8 +390,12 @@ class DefectClass(object):
         self.list_defectwh = [] #缺陷宽高
         self.list_defectarea = []#缺陷面积
         self.list_defectword = []#缺陷位置名称
+        self.list_defecttype = []#缺陷类型
         self.list_bigimg = []   #每个块原图
         self.list_narea = []    #每个块面积
+        self.list_ndefectarea = []#异物面积
+        self.list_nqipaoarea = []#气泡面积
+        self.list_ngulearea = []#涂胶面积
         self.nrow = 0#大图是由这么多行列组成
         self.ncol = 0
         self.bigimg = None
@@ -316,9 +406,10 @@ class DefectClass(object):
         self.ncol = col
 
 
-    def append_defectinfo(self, defectimg, pos, sdefectword, dots, list_wh, ndefectarea):
+    def append_defectinfo(self, sdefecttype, defectimg, pos, sdefectword, dots, list_wh, ndefectarea):
         """
         存储检测结果，针对单个缺陷
+        :param sdefecttype:   缺陷类型
         :param defectimg:   单张缺陷图
         :param pos:         单个缺陷坐标
         :param sdefectword: 缺陷名称（格式： 块号_缺陷号）
@@ -327,6 +418,7 @@ class DefectClass(object):
         :param ndefectarea: 缺陷面积
         :return:
         """
+        self.list_defecttype.append(sdefecttype)
         self.list_defectimg.append(defectimg)
         self.list_defectpos.append(pos)
         self.list_dots.append(dots)
@@ -337,11 +429,14 @@ class DefectClass(object):
         self.list_defectword.append(sdefectword)
 
 
-    def append_blockinfo(self, bigimg, narea, nrowid, ncolid):
+    def append_blockinfo(self, bigimg, narea, ngulearea, ndefectarea, nqipaoarea, nrowid, ncolid):
         """
         存储检测结果，针对单个block的信息
         :param bigimg: block原图压缩图
         :param narea:  block面积
+        :param ndefectarea:  缺陷面积
+        :param ngulearea:  涂胶区域面积
+        :param nqipaoarea: 气泡面积
         :param nrowid:  当前图是大图的第几行
         :param ncolid:  当前图是大图的第几列
         :return:
@@ -353,6 +448,9 @@ class DefectClass(object):
 
         self.list_bigimg.append(bigimg)
         self.list_narea.append(narea)
+        self.list_ndefectarea.append(ndefectarea)
+        self.list_ngulearea.append(ngulearea)
+        self.list_nqipaoarea.append(nqipaoarea)
         self.bigimg[nrowid*h:(nrowid + 1) * h, ncolid*w:(ncolid + 1) * w] = bigimg
 
 
@@ -387,9 +485,12 @@ class DefectClass(object):
         self.list_roi = []      #缺陷roi对象
         self.list_bigimg = []   #每个块原图
         self.list_narea = []    #每个块面积
+        self.list_ndefectarea = []#异物面积
+        self.list_ngulearea = []#涂胶面积
         self.list_defectwh = [] #缺陷宽高
         self.list_defectarea = []#缺陷面积
         self.list_defectword = []#缺陷位置名称
+        self.list_nqipaoarea = []
 
 
 

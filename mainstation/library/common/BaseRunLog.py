@@ -112,7 +112,22 @@ class KxBaseRunLog(QtWidgets.QWidget):
         self.ui.h_tableWidget.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.ui.h_tableWidget.selectRow(self.n_currentrow%self.MAX_ROW_NUM)
         self.ui.h_tableWidget.horizontalHeader().setStretchLastSection(True)  #不留空后
+        self.setcurrentcolor(self.n_currentrow)
         self.n_currentrow += 1
+
+    def setcurrentcolor(self, ncurrow):
+        try:
+            for i in range(1, 4):
+                item = self.ui.h_tableWidget.item(ncurrow % self.MAX_ROW_NUM, i)  # QtGui.QTableWidgetItem()
+                item.setBackground(QtGui.QBrush(QtGui.QColor(177, 254, 250)))
+            if ncurrow > 0:
+                for i in range(1, 4):
+                    lastrow = (ncurrow - 1 )%self.MAX_ROW_NUM
+                    item = self.ui.h_tableWidget.item(lastrow, i)  # QtGui.QTableWidgetItem()
+                    item.setBackground(QtGui.QBrush(QtCore.Qt.white))
+        except Exception as e:
+            print ('日志变色不管', e)
+
 
 
     def setrowdata(self, row, data):

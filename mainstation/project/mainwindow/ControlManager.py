@@ -7,6 +7,8 @@ from library.ipc import ipc_tool
 import logging
 import numpy as np
 from library.common.readconfig import readconfig, MAINSTATION_CONFIG
+from library.common.globalparam import LogInfo
+
 
 
 def translatedis2hex(nmovedis):
@@ -61,12 +63,20 @@ class ControlManager(object):
         self.z_camerapos = int(readconfig(MAINSTATION_CONFIG)['CAMERAZ_POS'])
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(level=logging.INFO)
-        handler = logging.FileHandler("D:\\log\\control_%s.txt"%time.strftime("%Y-%m-%d"))
-        handler.setLevel(logging.INFO)
+        self.handler = logging.FileHandler("D:\\log\\control_%s.txt"%time.strftime("%Y-%m-%d"))
+        self.handler.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s - %(message)s')
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
+        self.handler.setFormatter(formatter)
+        self.logger.addHandler(self.handler)
 
+
+    def updatelog(self):
+        self.logger.removeHandler(self.handler)
+        self.handler = logging.FileHandler(LogInfo.PATH_SAVE_LOG + 'control_%s.log' % time.strftime("%Y-%m-%d"))
+        self.handler.setLevel(logging.INFO)
+        self.formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
+        self.handler.setFormatter(self.formatter)
+        self.logger.addHandler(self.handler)
 
 
     def setserial(self, serial:SerialManager):
@@ -154,6 +164,8 @@ class ControlManager(object):
             self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_MOVE)
 
             self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_ARRIVE)
+
+            if not self.b_checkstatus: return# 以防是因为停止检测而导致的顺利往下执行
             #
             self.b_zmovestatus = True
 
@@ -334,6 +346,7 @@ class ControlManager(object):
         测试接收数据时间，如果超过
         超时时间，以1s为单位
         """
+        self.logger.log(logging.INFO, '_recmsgwithruntimeerror hope rec: '+ str(info))
         print('_recmsgwithruntimeerror hope rec: ', info)
         curtime = time.time()
 
@@ -361,8 +374,32 @@ class ControlManager(object):
                         list_status[nindex] = True
                         break
             b_rectargetstatus = (np.sum(list_status) == len(list_status))
+            print ("超时部分： ", int(time.time() - curtime), time.time(), curtime)
 
         return b_rectargetstatus
+
+
+    def _waitformsgwithonlyone(self, list_info):
+        """
+        当接收到 list_info 中一个值的时候，就可结束这个等待
+        """
+        while self.b_checkstatus:
+            data = self.mySeria.read().hex()
+            print('read ori data: ', data)
+            self.logger.log(logging.INFO, 'read ori data: ' + str(data))
+
+            data = str_to_hex(data)
+            bfind = False
+            for info in list_info:
+                if data != info:
+                    pass
+                else:
+                    bfind = True
+            if bfind:
+                break
+            else:
+                continue
+
 
 
     def waitforstart(self, bisfirst):
@@ -419,6 +456,10 @@ class ControlManager(object):
 
         self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_REC_START)
 
+        # 把机构伸出去
+        self._sendhardwaremsg([0x01, 0x03, 0x08, 0x01, 0x00, 0x00, 0x00])
+
+        self._waitfor_hardware_queue_result([0x01, 0x02, 0x01, 0x21, 0x00, 0x00, 0x00 ])
         # 1. 复位
 
         self._rebackZERO()
@@ -470,6 +511,12 @@ class ControlManager(object):
         time.sleep(1)
 
         self.h_parent.callback2stopdotcheck()
+
+        #把机构收回去
+
+        self._sendhardwaremsg([0x01, 0x03, 0x08, 0x02, 0x00, 0x00, 0x00])
+
+        self._waitfor_hardware_queue_result([0x01, 0x02, 0x01, 0x22, 0x00, 0x00, 0x00])
 
         self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CLOSE_ALL_LIGHT)
 
@@ -576,6 +623,7 @@ class ControlManager(object):
             self.MakeEveryposFuwei()
 
             #self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_CONTROL_ALARM)
+            self.h_parent.callback2lockwindow()
 
             self.h_parent.callback2showerror("！！！！托盘未到位，无法检测！！！！")
 
@@ -940,3 +988,86 @@ class ControlManager(object):
         self.logger.log(logging.INFO, '--------------- 结束二次取图建模 -------------------')
 
         ipc_tool.kxlog("ControlManager", logging.INFO, "结束二次取图建模")
+
+
+
+    def testcamera(self):
+        """
+        20220313 测试相机采集图像
+        """
+        print("jinru")
+        self._clear_hardware_recqueue()
+
+        self.h_parent.closeCamera()
+
+        self._rebackZERO()
+
+        if not self.b_checkstatus: return False
+
+        self._rebackXY()
+
+        self.b_zerostatus = False
+
+        self._clear_hardware_recqueue()
+        print("1")
+
+
+        movemsgx = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_BASEMOVE
+
+        movemsgy = imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_BASEMOVE
+
+        print("2")
+
+        self.h_parent.onlyopencamera()
+
+        while self.b_checkstatus:
+
+            y = 2400
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_LIGHT1)
+
+            self._waitfor_hardware_queue_result()
+
+            self.h_parent.onlyopencamera()
+
+            time.sleep(1)
+
+            movemsgy[3:] = translatedis2hex(y / self._DIS2PULSE)
+
+            self._sendhardwaremsg(movemsgy)
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+            if not self.b_checkstatus:  return False
+
+            time.sleep(2)#
+
+            self.h_parent.closeCamera()
+
+            self.h_parent.changeCameraCapturedirection()
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_OPEN_LIGHT2)
+
+            self._waitfor_hardware_queue_result()
+
+            self.h_parent.onlyopencamera()
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_REBACKMOTOR_Y)
+
+            self._sendhardwaremsg(imc_msg.HARDWAREBASEMSG.MSG_STARTMOTOR_Y)
+
+            self._waitfor_hardware_queue_result(imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE)
+
+            if not self.b_checkstatus:  return False
+
+            time.sleep(2)
+
+            self.h_parent.closeCamera()
+
+            self.h_parent.changeCameraCapturedirection(True)
+
+
+
+        return True

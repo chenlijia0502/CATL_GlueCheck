@@ -684,7 +684,11 @@ class KxRoiParameterItem(WidgetParameterItem):
 
 
         ParameterItem.valueChanged(self, param, val)
-        self.widget.sigChanged.disconnect(self.widgetValueChanged)
+        #if self.widget.sigChanged.
+        try:
+            self.widget.sigChanged.disconnect(self.widgetValueChanged)
+        except Exception as e:
+            pass
 
         try:
             if force or val != self.kx_value():

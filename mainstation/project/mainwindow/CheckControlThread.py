@@ -33,6 +33,47 @@ class CheckControlThread(threading.Thread):
         self.b_nextstatus = False #进入下一个站点
         self.__initlog()
 
+    def sendagvmsg(self, msgtype):
+        """
+        发送agv小车信息，msgtype = 0为放小车进站，其余为出站
+        """
+        if not self.b_runstaus:
+
+            if msgtype == 0:
+                ipc_tool.kxlog("AGV", logging.INFO, "手动控制小车进站")
+
+                MSG_CONTROL_AGV = imc_msg.AGVMSG.MSG_BASE_CONTROL_STATION_STATUS
+
+                MSG_CONTROL_AGV[5] = self.nid1
+
+                self.tcp_agvclient.send(bytes(MSG_CONTROL_AGV))
+
+                self.logger.log(logging.INFO, "send: " + str(MSG_CONTROL_AGV))
+
+                sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
+
+                self.logger.log(logging.INFO, "rec: " + sreaddata)
+
+                ipc_tool.kxlog("AGV", logging.INFO, "手动控制小车进站成功")
+
+            else:
+                ipc_tool.kxlog("AGV", logging.INFO, "手动控制小车出站")
+
+                MSG_CONTROL_AGV = imc_msg.AGVMSG.MSG_BASE_CONTROL_STATION_STATUS
+
+                MSG_CONTROL_AGV[5] = self.nid2
+
+                self.tcp_agvclient.send(bytes(MSG_CONTROL_AGV))
+
+                self.logger.log(logging.INFO, "send: " + str(MSG_CONTROL_AGV))
+
+                sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
+
+                self.logger.log(logging.INFO, "recv: " + sreaddata)
+
+                ipc_tool.kxlog("AGV", logging.INFO, "手动控制小车出站成功")
+
+
 
     def setrootmode(self, status):
         """
@@ -40,16 +81,24 @@ class CheckControlThread(threading.Thread):
         """
         self.b_rootmode = status
 
+
     def __initlog(self):
-        self.s_time = time.strftime("%Y-%m-%d")
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(level=logging.INFO)
-        self.handler = logging.FileHandler(LogInfo.PATH_SAVE_LOG + 'AGV_%s.log' %  self.s_time)
+        self.handler = logging.FileHandler(LogInfo.PATH_SAVE_LOG + 'AGV_%s.log' %  time.strftime("%Y-%m-%d"))
         self.handler.setLevel(logging.INFO)
         self.formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
 
+
+    def updatelog(self):
+        self.logger.removeHandler(self.handler)
+        self.handler = logging.FileHandler(LogInfo.PATH_SAVE_LOG + 'AGV_%s.log' % time.strftime("%Y-%m-%d"))
+        self.handler.setLevel(logging.INFO)
+        self.formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
+        self.handler.setFormatter(self.formatter)
+        self.logger.addHandler(self.handler)
 
 
     def setstatus(self, bstatus):
@@ -75,7 +124,6 @@ class CheckControlThread(threading.Thread):
 
 
     def setControlmanger(self, serials:ControlManager):
-
         self.controlmanger = serials
 
 
@@ -137,31 +185,41 @@ class CheckControlThread(threading.Thread):
 
                 MSG_GET_PACKID[5] = nagvid
 
-                while self.b_runstaus:
+                try:
 
-                    self.tcp_agvclient.send(bytes(MSG_GET_PACKID))
+                    while self.b_runstaus:
 
-                    self.logger.log(logging.INFO, "send: " + str(MSG_GET_PACKID))
+                        self.tcp_agvclient.send(bytes(MSG_GET_PACKID))
 
-                    sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
+                        self.logger.log(logging.INFO, "send: " + str(MSG_GET_PACKID))
 
-                    self.logger.log(logging.INFO, "recv: " + sreaddata)
+                        sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
 
-                    list_readdata = self.str_to_hex(sreaddata)
+                        self.logger.log(logging.INFO, "recv: " + sreaddata)
 
-                    if len(list_readdata) > 5 and list_readdata[4] == 0xB1:
+                        list_readdata = self.str_to_hex(sreaddata)
 
-                        nidlen = list_readdata[3]
+                        if len(list_readdata) > 5 and list_readdata[4] == 0xB1:
 
-                        list_packid = list_readdata[6:6 + nidlen - 2]
+                            nidlen = list_readdata[3]
 
-                        self.s_packid = self.list_hex_to_str(list_packid)
+                            list_packid = list_readdata[6:6 + nidlen - 2]
 
-                        self.logger.log(logging.INFO, "小车 ID:  " + self.s_packid)
+                            self.s_packid = self.list_hex_to_str(list_packid)
 
-                        return 1
+                            self.logger.log(logging.INFO, "PACK ID:  " + self.s_packid)
 
-                    time.sleep(1)
+                            return 1
+
+                        time.sleep(1)
+
+                except Exception as e:
+
+                    ipc_tool.kxlog("AGV", logging.ERROR, "！！！AGV错误 获取小车%d pack号失败, 疑似空车，请排查！！！" % nagvid)
+
+                    self.h_parent.callback2showerror("AGV 交互错误，请查收AGV日志查看具体原因")
+
+                    return 0
 
             else:
 
@@ -173,7 +231,8 @@ class CheckControlThread(threading.Thread):
 
             self.logger.log(logging.ERROR, "AGV错误  _get_status_and_packid %s"%str(e))
 
-            self.h_parent.callback2showerror("AGV 交互错误，请查收AGV日志查看具体原因")
+            #self.h_parent.callback2showerror("AGV 交互错误，请查收AGV日志查看具体原因")
+            ipc_tool.kxlog("AGV", logging.ERROR, "AGV 获取站点状态超时报警，查看AGV中控系统是否异常")# 考虑AGV有概率会不回消息，故不直接关闭检测
 
             return 0
                 #print('等待AGV错误', e)
@@ -213,6 +272,8 @@ class CheckControlThread(threading.Thread):
 
                 if not self.b_runstaus: return 1
 
+                ipc_tool.kxlog("CHECKCONTROLTHREAD", logging.INFO, "AGV小车开始进站")# 加这一行是为了方便判断时间
+
                 self.logger.log(logging.INFO, "4. 得到小车信息， 关闭光栅")
                 # 4. 关闭光栅放入小车
                 self.controlmanger.control_guangshan(1)
@@ -224,6 +285,10 @@ class CheckControlThread(threading.Thread):
                 self.tcp_agvclient.send(bytes(MSG_CONTROL_AGV))
 
                 self.logger.log(logging.INFO, "send: " + str(MSG_CONTROL_AGV))
+
+                sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
+
+                self.logger.log(logging.INFO, "rec: " + sreaddata)
 
                 self.logger.log(logging.INFO, "5. 等待小车进入中间工位 %d"%self.nid2)
                 # 5. 检测小车到位中间站点
@@ -249,6 +314,9 @@ class CheckControlThread(threading.Thread):
 
                     time.sleep(1)
 
+                if not self.b_runstaus:
+                    return 0
+
                 # 6. 打开光栅
                 self.logger.log(logging.INFO, "6. 小车已进入中间工位，打开光栅")
                 self.controlmanger.control_guangshan(0)
@@ -272,11 +340,16 @@ class CheckControlThread(threading.Thread):
 
                 time.sleep(1)
 
+            if not self.b_runstaus:
+                return 0
+
             self.b_nextstatus = False
 
             if not self.b_runstaus: return
 
             self.logger.log(logging.INFO, "2. 检测结果已出，等待站点 %d 出站口没有小车状态"%self.nid3)
+
+            ncycletime = 0
 
             while self.b_runstaus:
 
@@ -299,7 +372,17 @@ class CheckControlThread(threading.Thread):
 
                     break
 
+                else:
+                    ncycletime += 1
+
+                    if ncycletime % 10 == 0:#长时间等待，提示一下
+
+                        ipc_tool.kxlog("AGV", logging.WARNING, "长时间等待AGV出站点，请查看状态， 接收到的数据为: %s"%sreaddata)
+
                 time.sleep(5)
+
+            if not self.b_runstaus:
+                return 0
 
             self.logger.log(logging.INFO, "3. 出站口没有小车，关闭出站光栅，将小车送出 %d 号站点"%self.nid2)
 
@@ -314,6 +397,10 @@ class CheckControlThread(threading.Thread):
             self.tcp_agvclient.send(bytes(MSG_CONTROL_AGV))
 
             self.logger.log(logging.INFO, "send: " + str(MSG_CONTROL_AGV))
+
+            sreaddata = self.tcp_agvclient.recv(self._MAX_AGV_BUFFERLEN).hex()
+
+            self.logger.log(logging.INFO, "recv: " + sreaddata)
 
             #监听送出小车状态
             self.logger.log(logging.INFO, "4. 监听小车是否到达出站站点 %d"%self.nid3)
@@ -339,6 +426,10 @@ class CheckControlThread(threading.Thread):
                     break
 
                 time.sleep(5)
+
+            if not self.b_runstaus:
+
+                return 0
 
             self.logger.log(logging.INFO, "5. 小车已到达出站站点 %d，打开光栅"%self.nid3)
 
