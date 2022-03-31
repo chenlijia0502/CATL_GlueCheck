@@ -319,6 +319,7 @@ class CheckControlThread(threading.Thread):
 
                 # 6. 打开光栅
                 self.logger.log(logging.INFO, "6. 小车已进入中间工位，打开光栅")
+
                 self.controlmanger.control_guangshan(0)
 
                 return 1
@@ -425,7 +426,7 @@ class CheckControlThread(threading.Thread):
 
                     break
 
-                time.sleep(5)
+                time.sleep(2)
 
             if not self.b_runstaus:
 

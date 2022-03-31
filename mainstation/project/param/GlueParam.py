@@ -36,7 +36,7 @@ class GuleParam(KxBaseParamWidget):
     _MAX_ROI_NUM = 42
     _MAX_SCAN_NUM = 6
     _LIST_GROUPNAME = ['组数一', '组数二', '组数三', '组数四', '组数五', '组数六']
-    _MAX_MASK_NUM = 20
+    _MAX_MASK_NUM = 50
     _BUILD_MODEL_SCALE_FACTOR = 4#建模的时候对图像进行压缩，不然会卡顿
 
     _SIG_CAPTUREBIGIMG_DONE = QtCore.pyqtSignal()# 大图采集建模完成
@@ -123,8 +123,15 @@ class GuleParam(KxBaseParamWidget):
                 {'name': '涂胶类型', 'type': 'list', 'values': {'弓形': 0, '涂满': 1}},
                 {'name': '检高灵敏度', 'type': 'int', 'value': 3, 'limits': [0, 25]},
                 {'name': '检低灵敏度', 'type': 'int', 'value': 3, 'limits': [0, 25]},
-                {'name': '提取异物灰度', 'type': 'int', 'value': 100, 'limits': [0, 255]},
+                {'name': '标准色调', 'type': 'int', 'value': 80, 'limits': [0, 255]},
+                {'name': '色差灵敏度', 'type': 'int', 'value': 2, 'limits': [0, 25]},
                 {'name': '异物最小点数', 'type': 'int', 'value': 20, 'limits': [0, 20000]},
+            ]},
+            {'name': '反光校正', 'type': 'group', 'children': [
+                {'name': '左右校正偏移量', 'type': 'int', 'value': 300, 'limits': [0, 1500]},
+                {'name': '上下校正偏移量', 'type': 'int', 'value': 3, 'limits': [0, 1500]},
+                {'name': '灰度偏移系数', 'type': 'int', 'value': 1, 'limits': [0, 25]},
+                {'name': '色调偏移系数', 'type': 'int', 'value': 3, 'limits': [0, 25]},
             ]},
             {'name': '拼图信息', 'type': 'group', 'visible':False,'children': [
                 {'name': '行数', 'type': 'int', 'value': 0, 'limits': [0, self._MAX_SCAN_NUM]},
@@ -145,7 +152,6 @@ class GuleParam(KxBaseParamWidget):
              self.p.param('扫描区域', '扫描区域' + str(nindex)).add2view(self.view)
         for nindex in range(self._MAX_SCAN_NUM * 2):
              self.p.param('扫描区域', '匹配位置' + str(nindex)).add2view(self.view)
-
 
         for i in range(self._MAX_SCAN_NUM):
             for j in range(int(self._MAX_ROI_NUM / self._MAX_SCAN_NUM)):
@@ -760,25 +766,13 @@ class GuleParam(KxBaseParamWidget):
             # 1. 显示图像
             self.h_imgitem.setImage(self.list_img[nindex])
 
-            #2. 显示匹配框
+            # #2. 显示匹配框
             for i in range(self._MAX_SCAN_NUM * 2):
                 self.p.param('扫描区域', "匹配位置" + str(i)).isShow(False)
             self.p.param('扫描区域', "匹配位置" + str(nindex*2)).isShow(True)
             self.p.param('扫描区域', "匹配位置" + str(nindex * 2 + 1)).isShow(True)
 
-            # nchecknum = int(self.p.param('检测区域数量').value())
             #
-            # for i in range(nchecknum):
-            #
-            #     if int(self.p.param('检测区域' + str(i), '扫描组号').value()) != nindex:
-            #
-            #         self.p.param('检测区域' + str(i), '检测区域').isShow(False)
-            #
-            #     else:
-            #
-            #         self.p.param('检测区域' + str(i), '检测区域').isShow(True)
-
-
             #3. 屏蔽所有其它掩膜框, 显示当前框
             ncolnum = int(self.p.param('全局拍摄控制', '拍摄组数').value())
 
@@ -806,7 +800,7 @@ class GuleParam(KxBaseParamWidget):
 
                 for i in range(nmasknum2):
 
-                    self.p.param(self._LIST_GROUPNAME[ncol], "高灰度掩膜区域" + str(i)).isShow(b_status)
+                    self.p.param(self._LIST_GROUPNAME[ncol], "低灰度掩膜区域" + str(i)).isShow(b_status)
 
 
 
@@ -1051,7 +1045,7 @@ class GuleParam(KxBaseParamWidget):
 
             for j in range(nroinum):
 
-                self.p.param(self._LIST_GROUPNAME[i], "检测区域" + str(j+1), "检测区域").setValue(list_data[ncurindex])
+                self.p.param(self._LIST_GROUPNAME[i], "检测区域" + str(j+1),  '屏蔽当前检测区域').setValue(bool(list_data[ncurindex]))
 
                 ncurindex +=1
 
@@ -1060,6 +1054,7 @@ class GuleParam(KxBaseParamWidget):
 
             if ncurindex >= len(list_data):
                 break
+        self.saveparameters()
 
 
     def sendcheckstatus(self):

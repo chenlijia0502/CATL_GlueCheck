@@ -113,11 +113,14 @@ int CkxEnvironment::ClearAllObj()
 
 int CkxEnvironment::StartCheck()
 {
+	// 2022.3.24 改成开始检测不会打开相机，以防相机一直处于打开等待状态，造成误触发
 	m_bIsSimulate = false;
 	Thread::g_GetThreadManage().startAllThread();
-	int startstatus  = Graber::g_GetGrabPack().Start();
-	
-	return startstatus;
+	//int startstatus  = Graber::g_GetGrabPack().Start();
+	//
+	//return startstatus;
+
+	return 1;
 }
 
 int CkxEnvironment::StopCheck()

@@ -239,7 +239,7 @@ class CMesParamTreeWidget(QtWidgets.QWidget):
 
                 #版本2 待测试
                 self.machineIntegrationParametricData = []
-                self.machineIntegrationParametricData.append({'name':'JSGJJCJG', 'value':data, 'dataType': "NUMBER"})
+                self.machineIntegrationParametricData.append({'value':data, 'dataType': "NUMBER"})
 
                 dict_senddata = {}
                 for key in self.dict_param['PARAM']:

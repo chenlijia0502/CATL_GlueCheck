@@ -676,17 +676,18 @@ class kxmainwindow(KXBaseMainWidget):
         判断是否存在屏蔽检测区域的情况，有则弹框等待确认。如果不继续检测则停止检测.
         注意：不管如何都会触发线程的函数，目的是不让线程卡死
         """
-        list_data = self.widget_maskcheckarea.getcheckarea()
+        if self.modeobj.debugmode == DebugStatus.STATUS1:
+            list_data = self.widget_maskcheckarea.getcheckarea()
 
-        if sum(list_data) > 0:
+            if sum(list_data) > 0:
 
-            respond = QtWidgets.QMessageBox.warning(self, u"警告", u"存在屏蔽检测区域的情况，是否继续检测？",
-                                         QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
-            if respond == QtWidgets.QMessageBox.Cancel:
+                respond = QtWidgets.QMessageBox.warning(self, u"警告", u"存在屏蔽检测区域的情况，是否继续检测？",
+                                             QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+                if respond == QtWidgets.QMessageBox.Cancel:
 
-                self.ui.toolbtn_onlinerun.setChecked(False)
+                    self.ui.toolbtn_onlinerun.setChecked(False)
 
-                self._onlinerun()
+                    self._onlinerun()
 
         self.h_checkcontrolthread.emitselected()
 

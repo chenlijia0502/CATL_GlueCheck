@@ -9,6 +9,7 @@
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range2d.h"
 #include "tbb/partitioner.h"
+#include "ZSFittingLine.h"
 using namespace tbb;
 
 
@@ -36,7 +37,7 @@ public:
 		_MAX_BLOBIMG = 30,// 最大连通域分析数量
 		_SINGLE_BLOBIMG_H = 2000,//每个进入分析的图像大小
 		_IMG_OVERLAP = 20, // 图像重叠大小
-		_MAX_MASK_NUM = 20, // 高亮掩膜最大数量
+		//_MAX_MASK_NUM = 50, // 掩膜最大数量，高亮、暗
 	};
 
 	struct SingleParam
@@ -55,10 +56,19 @@ public:
 		int				m_ndefectthresh;
 		int				m_ndefectdots;//缺陷点数
 
-		int				m_noffsethigh;//高灵敏度偏移，从主站读取结果直接乘以25，目的是统一到255的灰阶
-		int				m_noffsetlow;//低灵敏度偏移，从主站读取结果直接乘以25，目的是统一到255的灰阶
+		int				m_noffsethigh;//高灵敏度偏移，从主站读取结果直接乘以10，目的是统一到255的灰阶
+		int				m_noffsetlow;//低灵敏度偏移，从主站读取结果直接乘以10，目的是统一到255的灰阶
+		int				m_noffsetcolor;//色差灵敏度，也即H值的灵敏度，从主站读取结果直接乘以10，目的是统一到255的灰阶
+		int				m_nstandardH;//标准色调H 值
 
-		kxCImageBuf		m_ImgTemplate;//压缩的模板，专门用于检测涂胶是否大面积缺的，压缩系数看建模
+		kxCImageBuf		m_ImgTemplate;//压缩的模板，专门用于检测涂胶是否大面积缺的，压缩系数看建模  20220324 暂时没用了
+
+
+		// 反光校正参数
+		int				m_nveroffsetpos;//垂直偏移距离
+		int				m_nhoroffsetpos;//水平偏移距离
+		int				m_ngrayoffset;//偏移灰度值, 只针对检高
+		int				m_nHoffset;// 偏移色调值，只针对检低。因为实验得到的结果
 
 	};
 
@@ -105,9 +115,11 @@ private:
 	kxCImageBuf				 m_ImgCheckLow;
 	kxCImageBuf				 m_ImgCheckHigh;
 
+
 	kxCImageBuf				 m_ImgCheckLowGray;
 	kxCImageBuf				 m_ImgCheckHighGray;
 
+	kxCImageBuf				 m_ImgMerge;
 	kxCImageBuf				 m_ImgCheck;
 
 	kxCImageBuf				 m_ImgSrcA;
@@ -121,10 +133,20 @@ private:
 	int						 m_nID;//当前是第几个blob，用于存储缺陷图片信息
 	kxRect<int>				 m_recttarget;
 
-	kxCImageBuf				 m_Blobimg1;
-	kxCImageBuf				 m_Blobimg2;
-	kxCImageBuf				 m_Blobimg3;
+	kxCImageBuf				 m_Blobimg1;// 检测断胶结果
+	kxCImageBuf				 m_Blobimg2;// 检测灰度高结果
+	kxCImageBuf				 m_Blobimg3;// 检测灰度低结果
+	kxCImageBuf				 m_Blobimg4;// 检测 H通道色差结果
 
+	CZSFittingLine			 m_hfitline;
+
+	kxCImageBuf				 m_ImgEdgeGrayMask;
+	kxCImageBuf				 m_ImgEdgeHMask;
+
+//public:
+//	void SaveDebugImg(const char* name, kxCImageBuf& saveimg);// 保存图像
+//
+//
 
 private:
 	void checkcolordiff(const kxCImageBuf& SrcImg);// 检色差
@@ -165,7 +187,7 @@ private:
 
 
 	//2022.02.28 
-	void GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kxRect<int>& targetrect);//根据建模ROI搜出来的目标区域
+	void GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kxRect<int>& targetrect, float& rotateangle);//根据建模ROI搜出来的目标区域
 
 	void MergeImgNew(const kxCImageBuf& SrcImg1, const kxCImageBuf& SrcImg2, kxRect<int> targetrect, kxCImageBuf& DstImg);
 
@@ -185,4 +207,11 @@ private:
 
 	void GetHmask(const kxCImageBuf& SrcImg, kxCImageBuf& DstMask);// 获取不并入的H检测的掩膜
 
+	void checkwithmodelNew(const kxCImageBuf& SrcImg, const kxCImageBuf& gluearea, kxRect<int> ROI, kxCImageBuf& dsthigh, kxCImageBuf& dstlow, kxCImageBuf& dstH);// RGB 检高低, H检色差
+
+	void GetMaskHL(kxCImageBuf& maskhigh, kxCImageBuf& masklow);// 获取高低掩膜图案
+
+	void MaskEdge(kxCImageBuf& SrcDstImg, kxRect<int> roi, int nedge);// 掩膜边缘，暴力去除边缘干扰
+
+	void GetEdgeCorrectionMask(const kxCImageBuf& SrcImg, kxRect<int> roi, kxCImageBuf& dstmaskgray, kxCImageBuf& dstmaskH);// 获取边缘校正用的模板
 };

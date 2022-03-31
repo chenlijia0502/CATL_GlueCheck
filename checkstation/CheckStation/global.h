@@ -174,6 +174,8 @@ extern GrabStatus  g_Grabstatus;					//采集状态
 extern bool g_bdotcheckstatus;//点检状态
 
 
+
+
 class CKxCaptureImage
 {
 public:
@@ -216,3 +218,4 @@ const Translator g_hTranslator[nTranslatormapNum] = { { "开始检测",             
 
 };
 
+extern void Global_SaveDebugImg(const char* name, kxCImageBuf& saveimg);

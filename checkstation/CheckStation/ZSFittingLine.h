@@ -46,8 +46,23 @@ public:
 	*/
 	float FitLineByRansac(float* pX, float* pY, int nArrayStart, int nLen, int nSampleCount, int nFitLineDots, float& fBestAngle, float& fBesta, float& fBestb);
 
-private:
+
+	/*
+		ptFit		: x值 y值数组
+		nArrayStart : 起始点位置
+		nLen		: 数组长度
+		nSampleCount: 采样集，这里使用均分数组，间隔取点
+		nFitLineDots: 拟合点数
+		fBestAngle  : 拟合结果-角度
+		fBesta		: 拟合结果-A
+		fBestb		: 拟合结果-B
+
+		y = ax + b （angle是对线的补充	）
+	*/
 	float FitLineByRansac(kxPoint<float>* ptFit, int nSampleCount, int nFitLineDots, float& fBestAngle, float& fBesta, float& fBestb);
+	float FitLineByRansac(kxPoint<int>* ptFit, int nSampleCount, int nFitLineDots, float& fBestAngle, float& fBesta, float& fBestb);
+
+private:
 
 	bool FiltLine(Ipp32f* pX, Ipp32f* pY, int n, float& fAngle, float& a, float& b);
 	bool FiltLine2D(kxPoint<float>* pts, int n, float& fAngle, float& a, float& b);

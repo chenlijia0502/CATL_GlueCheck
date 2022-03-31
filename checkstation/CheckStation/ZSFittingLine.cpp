@@ -170,6 +170,7 @@ float CZSFittingLine::FitLineByRansac(kxPoint<float>* ptFit, int nSampleCount, i
 				if (abs(ptFit[k].x - pFitArray[0].x) < 2)
 				{
 					nVoteCount++;
+					b = ptFit[k].x;//2022.3.23 总要给b赋个值
 				}
 			}
 
@@ -187,7 +188,6 @@ float CZSFittingLine::FitLineByRansac(kxPoint<float>* ptFit, int nSampleCount, i
 		nIterCount++;
 	}
 
-	delete[]ptFit;
 	delete[]pFitArray;
 	delete[]arr;
 	delete[]pTmp;
@@ -199,4 +199,20 @@ float CZSFittingLine::FitLineByRansac(kxPoint<float>* ptFit, int nSampleCount, i
 	delete[] result;
 
 	return fInliersPercentage;
+}
+
+
+float CZSFittingLine::FitLineByRansac(kxPoint<int>* ptFit, int nSampleCount, int nFitLineDots, float& fBestAngle, float& fBesta, float& fBestb)
+{
+	kxPoint<float>* pf = new kxPoint<float>[nSampleCount];
+
+	for (int i = 0; i < nSampleCount; i++)
+	{
+		pf[i] = ptFit[i];
+	}
+
+	float percent = FitLineByRansac(pf, nSampleCount, nFitLineDots, fBestAngle, fBesta, fBestb);
+
+	delete[] pf;
+	return percent;
 }

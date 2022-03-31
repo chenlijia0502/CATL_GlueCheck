@@ -614,6 +614,17 @@ class KxActionParameter(KxParameter):
 
 kxregisterParameterType('action', KxActionParameter, override=True)
 
+
+class ZScheckbox(QtWidgets.QCheckBox):
+    sigvaluechange = QtCore.pyqtSignal()
+    def __init__(self):
+        super(ZScheckbox, self).__init__()
+        self.stateChanged.connect(self.sig)
+
+    def sig(self):
+        self.sigvaluechange.emit()
+
+
 class KxRoiParameterItem(WidgetParameterItem):
     """
     WidgetParameterItem subclass providing comboBox that lets the user select from a list of options.
@@ -624,9 +635,11 @@ class KxRoiParameterItem(WidgetParameterItem):
 
     def __init__(self, param, depth):
         self.h_checkbox = QtWidgets.QCheckBox()
+        #self.h_checkbox = ZScheckbox()
         self.h_label = QtWidgets.QLineEdit("roi_pos")
         WidgetParameterItem.__init__(self, param, depth)
         self.init_info_visible()
+
 
     def makeWidget(self):
         """
@@ -659,12 +672,13 @@ class KxRoiParameterItem(WidgetParameterItem):
         layout.addWidget(self.h_label)
         h_widget.setLayout(layout)
         h_widget.sigChanged = self.h_checkbox.toggled
+        #h_widget.sigChanged = self.h_checkbox.sigvaluechange# HYH 20220324 改动
         h_widget.value = self.kx_value
         h_widget.setValue = self.kx_setvalue
 
         self.hideWidget = False
-
         return h_widget
+
 
     def init_info_visible(self, bool_visible=False):
         """
@@ -681,14 +695,12 @@ class KxRoiParameterItem(WidgetParameterItem):
         ## called when the parameter's value has changed
         #         ParameterItem.valueChanged(self, param, val)
         #         self.widget.sigChanged.disconnect(self.widgetValueChanged)
-
-
         ParameterItem.valueChanged(self, param, val)
         #if self.widget.sigChanged.
         try:
             self.widget.sigChanged.disconnect(self.widgetValueChanged)
-        except Exception as e:
-            pass
+        except TypeError as e:
+            print(e)
 
         try:
             if force or val != self.kx_value():
@@ -704,6 +716,7 @@ class KxRoiParameterItem(WidgetParameterItem):
         finally:
             self.widget.sigChanged.connect(self.widgetValueChanged)
         self.updateDefaultBtn()
+
 
     def widgetValueChanged(self):
         ## called when the widget's value has been changed by the user

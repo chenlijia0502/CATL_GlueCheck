@@ -277,6 +277,10 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 
 	int nlowoffset = 0;
 
+	int ncoloroffset = 0;
+
+	int nstandardHvalue = 0;
+
 	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测参数", "检高灵敏度", szResult);
 	if (!nSearchStatus)
 	{
@@ -289,8 +293,6 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 	{
 		return false;
 	}
-
-	nhighoffset *= 10;
 
 	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测参数", "检低灵敏度", szResult);
 	if (!nSearchStatus)
@@ -305,25 +307,38 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 		return false;
 	}
 
-	nlowoffset *= 10;
 
-	int ndefectthresh = 0;
-
-	int ndefectdots = 0;
-
-	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测参数", "提取异物灰度", szResult);
-
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测参数", "标准色调", szResult);
 	if (!nSearchStatus)
 	{
-		sprintf_s(ErrorInfo, 256, "提取异物灰度");
+		sprintf_s(ErrorInfo, 256, "标准色调");
 		return false;
 	}
 
-	nStatus = KxXmlFun2::FromStringToInt(szResult, ndefectthresh);
+	nStatus = KxXmlFun2::FromStringToInt(szResult, nstandardHvalue);
 	if (!nStatus)
 	{
 		return false;
 	}
+
+
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测参数", "色差灵敏度", szResult);
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "色差灵敏度");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, ncoloroffset);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+
+	int ndefectdots = 0;
+
 
 	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "检测参数", "异物最小点数", szResult);
 
@@ -340,11 +355,71 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 	}
 
 
+	int nvalue1 = 0;
+	int nvalue2 = 0;
+	int nvalue3 = 0;
+	int nvalue4 = 0;
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "反光校正", "左右校正偏移量", szResult);
+
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "左右校正偏移量");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, nvalue1);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "反光校正", "上下校正偏移量", szResult);
+
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "上下校正偏移量");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, nvalue2);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "反光校正", "灰度偏移系数", szResult);
+
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "灰度偏移系数");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, nvalue3);
+	if (!nStatus)
+	{
+		return false;
+	}
+
+	nSearchStatus = KxXmlFun2::SearchXmlGetValue(filePath, "反光校正", "色调偏移系数", szResult);
+
+	if (!nSearchStatus)
+	{
+		sprintf_s(ErrorInfo, 256, "色调偏移系数");
+		return false;
+	}
+
+	nStatus = KxXmlFun2::FromStringToInt(szResult, nvalue4);
+	if (!nStatus)
+	{
+		return false;
+	}
+
 	std::string groupword[6] = { "组数一", "组数二", "组数三", "组数四", "组数五", "组数六" };
 
 	m_param.m_nROINUM = 0;
 
-	//int ncurcheckroiid = 0;
 	// 读取检测框
 	for (int i = 0; i < m_param.m_nscantimes; i++)
 	{
@@ -417,6 +492,19 @@ bool CKxCheck::ReadParamXml(const char* filePath, char *ErrorInfo)
 			m_param.params[m_param.m_nROINUM].m_noffsethigh = nhighoffset * 10;
 
 			m_param.params[m_param.m_nROINUM].m_noffsetlow = nlowoffset * 10;
+
+			m_param.params[m_param.m_nROINUM].m_noffsetcolor = ncoloroffset * 10;
+
+			m_param.params[m_param.m_nROINUM].m_nstandardH = nstandardHvalue;
+
+			m_param.params[m_param.m_nROINUM].m_nhoroffsetpos = nvalue1;
+
+			m_param.params[m_param.m_nROINUM].m_nveroffsetpos = nvalue2;
+
+			m_param.params[m_param.m_nROINUM].m_ngrayoffset = nvalue3 *10;
+
+			m_param.params[m_param.m_nROINUM].m_nHoffset = nvalue4 * 10;
+
 
 			m_param.m_nROINUM++;
 
@@ -740,15 +828,15 @@ void CKxCheck::GetRealmaskpos(kxRect<int> CheckRect, kxRect<int>* MaskRect, int 
 			
 			int nright = gMin(CheckRect.right, MaskRect[i].right);
 			
-			int ntop = gMax(CheckRect.top, CheckRect.top);
+			int ntop = gMax(CheckRect.top, MaskRect[i].top);
 			
 			int nbottom = gMin(CheckRect.bottom, MaskRect[i].bottom);
 
 			kxRect<int> rcrect;
 
-			rcrect.setup(nleft, nright, ntop, nbottom);
+			rcrect.setup(nleft, ntop, nright, nbottom);
 
-			rcrect.offset(CheckRect.left, CheckRect.top);
+			rcrect.offset(-CheckRect.left, -CheckRect.top);
 
 			vecrect.push_back(rcrect);
 		}
@@ -1416,6 +1504,7 @@ int CKxCheck::Check(const CKxCaptureImage& SrcCapImg)
 	{
 
 		int nresult = m_hcombineimg.appendImg(m_TransferImage, m_nCurPackIDimgindex);
+		// TODO 测试时不开
 		if (nresult == 0)
 		{
 			// 发送消息告知子站检测异常

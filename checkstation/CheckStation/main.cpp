@@ -185,6 +185,11 @@ int _tmain(int argc, _TCHAR* argv[])
 	//::SetUnhandledExceptionFilter(GPTUnhandledExceptionFilter);
 	//ShowWindow(hwnd, SW_MINIMIZE);//设置窗口最小化
 
+
+	//auto daily_logger = spdlog::daily_logger_mt("daily_logger", "logs/daily.txt", 2, 30);
+
+
+
 	g_Environment.ReadSystemParam();
 	g_bdotcheckstatus = false;
 

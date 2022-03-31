@@ -13,8 +13,7 @@ from PIL import Image
 import cv2
 
 
-
-class KxGlobal(KxBaseParamWidget):
+class ZSImageTool(KxBaseParamWidget):
     """
               该类用于设置全局参数接口
     """
@@ -28,10 +27,10 @@ class KxGlobal(KxBaseParamWidget):
         self.imageori = None
         self.params.extend([
             {'name': u'图像信息', 'type': 'imageinfo',
-             'value': {"isShow": True}, "infovisible": True, 'visible': False},
+             'value': {"isShow": True}, "infovisible": True, 'visible':False},
             {'name': u'载入图片', 'type': 'action'},
             {'name': u'显示图像', 'type': 'list', 'values': {'RGB': 0, 'R': 1, 'G': 2, 'B': 3,
-                                                         'HSV': 4, 'H': 5, 'S': 6, 'V': 7}},
+                                                         'HSV': 4, 'H': 5, 'S':6, 'V':7}},
             {'name': '阈值', 'type': 'int', 'value': 100, 'limits': [0, 255]},
 
         ])
@@ -63,36 +62,34 @@ class KxGlobal(KxBaseParamWidget):
 
     def _getshowimg(self, nindex):
         if self.imageori is not None:
-            if len(self.imageori.shape) == 2:
+            if nindex == 0:
                 return self.imageori
-            else:
-                if nindex == 0:
-                    return self.imageori
-                elif nindex == 1:
-                    rgb = cv2.split(self.imageori)
-                    return rgb[0]
-                elif nindex == 2:
-                    rgb = cv2.split(self.imageori)
-                    return rgb[1]
-                elif nindex == 3:
-                    rgb = cv2.split(self.imageori)
-                    return rgb[2]
-                elif nindex == 4:
-                    hsv = cv2.cvtColor(self.imageori, cv2.COLOR_RGB2HSV)
-                    cv2.imwrite("d:\\img\\hsvnew.bmp", hsv)
-                    return hsv
-                elif nindex == 5:
-                    hsv = cv2.cvtColor(self.imageori, cv2.COLOR_RGB2HSV)
-                    phsv = cv2.split(hsv)
-                    return phsv[0]
-                elif nindex == 6:
-                    hsv = cv2.cvtColor(self.imageori, cv2.COLOR_RGB2HSV)
-                    phsv = cv2.split(hsv)
-                    return phsv[1]
-                elif nindex == 7:
-                    hsv = cv2.cvtColor(self.imageori, cv2.COLOR_RGB2HSV)
-                    phsv = cv2.split(hsv)
-                    return phsv[2]
+            elif nindex == 1:
+                rgb = cv2.split(self.imageori)
+                return rgb[0]
+            elif nindex == 2:
+                rgb = cv2.split(self.imageori)
+                return rgb[1]
+            elif nindex == 3:
+                rgb = cv2.split(self.imageori)
+                return rgb[2]
+            elif nindex == 4:
+                hsv = cv2.cvtColor(self.imageori, cv2.COLOR_RGB2HSV)
+                cv2.imwrite("d:\\img\\hsvnew.bmp", hsv)
+                return hsv
+            elif nindex == 5:
+                hsv = cv2.cvtColor(self.imageori, cv2.COLOR_RGB2HSV)
+                phsv = cv2.split(hsv)
+                return phsv[0]
+            elif nindex == 6:
+                hsv = cv2.cvtColor(self.imageori, cv2.COLOR_RGB2HSV)
+                phsv = cv2.split(hsv)
+                return phsv[1]
+            elif nindex == 7:
+                hsv = cv2.cvtColor(self.imageori, cv2.COLOR_RGB2HSV)
+                phsv = cv2.split(hsv)
+                return phsv[2]
+
 
 
     def _initui(self):
@@ -113,7 +110,7 @@ class KxGlobal(KxBaseParamWidget):
     def recmsg(self, n_stationid, n_msgtype, tuple_data):
         '''
         接收子站发送过来的消息
-        '''   
+        '''
         # import imc_msg
         # if n_msgtype == imc_msg.MSG_SEND_REAL_TIME_IMAGE:
         #     self.ReceiveImages(tuple_data[0])
@@ -127,14 +124,14 @@ class KxGlobal(KxBaseParamWidget):
     def _loadimg(self, file_name):
         with open(file_name, 'rb') as curfp:
             self.imageori = np.array(copy.copy(Image.open(curfp)))
-            self.img.setImage(self.imageori, autoLevels=False)
+            self.img.setImage(np.array(self.imageori), autoLevels=False)
 
 
-registerkxwidget(name='KxGlobal', cls=KxGlobal, override=True)
+registerkxwidget(name='ZSImageTool', cls=ZSImageTool, override=True)
 
 
 if __name__ == '__main__':
     app = QtGui.QApplication([])
-    w = KxGlobal(None, 1, 2 ,3)
-    w.show() 
-    app.exec_()       
+    w = ZSImageTool(None, 1, 2 ,3)
+    w.show()
+    app.exec_()

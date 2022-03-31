@@ -17,3 +17,14 @@ GrabStatus     g_Grabstatus;						//采集方向
 bool g_bdotcheckstatus;//点检状态
 
 
+void Global_SaveDebugImg(const char* name, kxCImageBuf& saveimg)
+{
+	if (1)// 后面这里需要设置为一个bool量
+	{
+		CKxBaseFunction fun;
+		char savepath[128];
+		memset(savepath, 0, sizeof(savepath));
+		sprintf_s(savepath, "d:\\img\\%s.bmp", name);
+		fun.SaveBMPImage_h(savepath, saveimg);
+	}
+}
