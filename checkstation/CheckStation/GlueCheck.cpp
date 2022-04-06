@@ -2,6 +2,7 @@
 #include "GlueCheck.h"
 #include "global.h"
 #include "KxReadXml2.h"
+#include "Logger.h"
 
 
 CGlueCheck::CGlueCheck()
@@ -372,19 +373,7 @@ void CGlueCheck::GetEdgePoints(const kxCImageBuf& GrayImg, int nDir, int nthresh
 		m_hFun.KxGeneralFilterImage8u(GrayImg, filterimg, 5, 1, pMasks);
 
 		m_hFun.KxParallelBoxFilterImage(filterimg, blurimg, 1, 7);
-		char savepath[64];
-
-		memset(savepath, 0, sizeof(savepath));
-
-		sprintf_s(savepath, "d:\\img\\grayimg2.bmp");
-
-		m_hFun.SaveBMPImage_h(savepath, GrayImg);
-
-		memset(savepath, 0, sizeof(savepath));
-
-		sprintf_s(savepath, "d:\\img\\blurimg2.bmp");
-
-		m_hFun.SaveBMPImage_h(savepath, blurimg);
+		
 
 		int nstep = blurimg.nHeight / nnums;
 
@@ -412,27 +401,13 @@ void CGlueCheck::GetEdgePoints(const kxCImageBuf& GrayImg, int nDir, int nthresh
 
 
 	}
-	else
+	else if (nDir == 1)
 	{
 		Ipp16s pMasks[5] = { 1, 0, 0, 0, -1 };
 
 		m_hFun.KxGeneralFilterImage8u(GrayImg, filterimg, 5, 1, pMasks);
 
 		m_hFun.KxParallelBoxFilterImage(filterimg, blurimg, 1, 7);
-
-		char savepath[64];
-
-		memset(savepath, 0, sizeof(savepath));
-
-		sprintf_s(savepath, "d:\\img\\grayimg1.bmp");
-
-		m_hFun.SaveBMPImage_h(savepath, GrayImg);
-
-		memset(savepath, 0, sizeof(savepath));
-
-		sprintf_s(savepath, "d:\\img\\blurimg1.bmp");
-
-		m_hFun.SaveBMPImage_h(savepath, blurimg);
 
 		int nstep = blurimg.nHeight / nnums;
 
@@ -457,6 +432,70 @@ void CGlueCheck::GetEdgePoints(const kxCImageBuf& GrayImg, int nDir, int nthresh
 			}
 		}
 	}
+	else if (nDir == 2)
+	{
+		Ipp16s pMasks[7] = { 1, 0, 0, 0, 0,0, -1 };
+
+		m_hFun.KxGeneralFilterImage8u(GrayImg, filterimg, 1, 7, pMasks);
+
+		m_hFun.KxParallelBoxFilterImage(filterimg, blurimg, 9, 1);
+
+
+		int nstep = blurimg.nWidth / nnums;
+
+		for (int i = 0; i < nnums; i++)
+		{
+			int x = i * nstep;
+
+			searchresult[i].x = x;
+
+			searchresult[i].y = 0;
+
+			for (int y = blurimg.nHeight - 1; y >= 0; y--)
+			{
+				if (blurimg.buf[y * blurimg.nPitch + x] > nthresh)
+				{
+					searchresult[i].x = x;
+
+					searchresult[i].y = y;
+
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		Ipp16s pMasks[5] = { -1, 0, 0, 0, 1 };
+
+		m_hFun.KxGeneralFilterImage8u(GrayImg, filterimg, 1, 5, pMasks);
+
+		int nstep = filterimg.nWidth / nnums;
+
+		for (int i = 0; i < nnums; i++)
+		{
+			int x = i * nstep;
+
+			searchresult[i].x = x;
+
+			searchresult[i].y = 0;
+
+			for (int y = 0; y < filterimg.nHeight; y--)
+			{
+				if (filterimg.buf[y * filterimg.nPitch + x] > nthresh)
+				{
+					searchresult[i].x = x;
+
+					searchresult[i].y = y;
+
+					break;
+				}
+			}
+		}
+	}
+
+
+	Global_SaveDebugImg(filterimg, "fiterimg%d", nDir);
 
 }
 
@@ -598,88 +637,6 @@ void CGlueCheck::GetGlueMask(const kxCImageBuf* RGB)
 
 
 }
-
-//int CGlueCheck::Check(const kxCImageBuf& SrcImg, kxCImageBuf& DstImg, Json::Value &checkresult)
-//{
-//
-//
-//	/*
-//	checkcolordiff(SrcImg);
-//
-//	cv::Mat srcmat;
-//
-//	m_hFun.KxImageBufToMat(SrcImg, srcmat, false);
-//
-//	cv::split(srcmat, m_matarraybgr);
-//
-//	m_hFun.MatToKxImageBuf(m_matarraybgr[2], m_ImgGray);
-//
-//	IppiSize zerosize = {2000, m_ImgGray.nHeight};
-//
-//	ippiSet_8u_C1R(0, m_ImgGray.buf, m_ImgGray.nPitch, zerosize);
-//
-//	m_hFun.KxThreshImage(m_ImgGray, m_ImgThresh, m_param.m_ndefectthresh, 255);
-//
-//	m_hFun.KxOpenImage(m_ImgThresh, m_ImgOpen, 11, 11);
-//
-//	m_hBlobFun.ToBlobByCV(m_ImgOpen);
-//
-//	checkresult["defect num"] = 0;
-//
-//	if (m_hBlobFun.GetBlobCount() > 0)
-//	{
-//		for (int i = 0; i < m_hBlobFun.GetBlobCount(); i++)
-//		{
-//			CKxBlobAnalyse::SingleBlobInfo blobinfo;
-//
-//			blobinfo = m_hBlobFun.GetSortSingleBlob(i);
-//
-//			if (blobinfo.m_nDots > m_param.m_ndefectthresh)
-//			{
-//				Json::Value single;
-//				single["Dots"] = blobinfo.m_nDots;
-//				single["Energy"] = 0;
-//				single["pos"].append(blobinfo.m_rc.left);
-//				single["pos"].append(blobinfo.m_rc.top);
-//				single["pos"].append(blobinfo.m_rc.Width());
-//				single["pos"].append(blobinfo.m_rc.Height());
-//				checkresult["defect feature"].append(single);
-//				checkresult["defect num"] = checkresult["defect num"].asInt() + 1;
-//			}
-//		}
-//
-//	}
-//	*/
-//
-//	m_hAlg.SplitRGB(SrcImg, m_ImgRGB);
-//
-//	GetGlueMask();
-//
-//	//checkEdge(SrcImg);
-//
-//	/*
-//	kxCImageBuf colorimg, andimg, otherimg;
-//
-//	colorimg.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight, 3);
-//
-//	andimg.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight, 3);
-//
-//	otherimg.Init(m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight, 3);
-//
-//	IppiSize imgsize = { m_ImgGlueMask.nWidth, m_ImgGlueMask.nHeight };
-//
-//	ippiCopy_8u_C1C3R(m_ImgGlueMask.buf, m_ImgGlueMask.nPitch, colorimg.buf, colorimg.nPitch, imgsize);
-//
-//	ippiSub_8u_C3RSfs(colorimg.buf, colorimg.nPitch, SrcImg.buf, SrcImg.nPitch, otherimg.buf, otherimg.nPitch, imgsize, 0);
-//
-//	ippiSub_8u_C3RSfs(otherimg.buf, otherimg.nPitch, SrcImg.buf, SrcImg.nPitch, andimg.buf, andimg.nPitch, imgsize, 0);
-//
-//	*/
-//	DstImg = SrcImg;
-//	 
-//	return 1;
-//}
-
 
 
 void CGlueCheck::MergeImg(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg)
@@ -1397,6 +1354,7 @@ void CGlueCheck::CutImg2MulImg(const kxCImageBuf& CheckImg)
 }
 
 
+/*
 void CGlueCheck::GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kxRect<int>& targetrect, float& rotateangle)
 {
 	//根据建模ROI搜出来的目标区域
@@ -1428,26 +1386,6 @@ void CGlueCheck::GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kx
 	kxCImageBuf RGB[3], edgeimg1, edgeimg2;
 
 	m_hAlg.SplitRGB(targetimg, RGB);
-
-	/*char savepath[64];
-
-	memset(savepath, 0, sizeof(savepath));
-
-	sprintf_s(savepath, "d:\\img\\R.bmp");
-
-	m_hFun.SaveBMPImage_h(savepath, RGB[0]);
-
-	memset(savepath, 0, sizeof(savepath));
-
-	sprintf_s(savepath, "d:\\img\\G.bmp");
-
-	m_hFun.SaveBMPImage_h(savepath, RGB[1]);
-
-	memset(savepath, 0, sizeof(savepath));
-
-	sprintf_s(savepath, "d:\\img\\B.bmp");
-
-	m_hFun.SaveBMPImage_h(savepath, RGB[2]);*/
 
 	// 左边缘线(0开始索引)
 	int edge1 = gMin(offset * 2, RGB[1].nWidth);
@@ -1565,7 +1503,22 @@ void CGlueCheck::GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kx
 
 
 }
+*/
 
+void CGlueCheck::GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kxRect<int>& targetrect)
+{
+
+	// 对roi框进行扩充，目的是为了后面搜边
+	//targetrect = rcCheck;
+
+	const int noffset = 200;// 两百是为了搜边而存在
+	targetrect.left = gMax(0, rcCheck.left - noffset);
+	targetrect.right = gMin(SrcImg.nWidth - 1, rcCheck.right + noffset);
+	targetrect.top = gMax(0, rcCheck.top - noffset);
+	targetrect.bottom = gMin(SrcImg.nHeight - 1, rcCheck.bottom + noffset);
+
+
+}
 
 void CGlueCheck::MergeImgNew(const kxCImageBuf& SrcImg1, const kxCImageBuf& SrcImg2, kxRect<int> targetrect, kxCImageBuf& DstImg)
 {
@@ -1668,13 +1621,9 @@ void CGlueCheck::ExtractGreenNew(const kxCImageBuf* RGB, kxCImageBuf& DstImg)
 	////先开运算去除散点
 	m_hFun.KxOpenImage(mask, openimg, 5, 5);// 滤除非涂胶区域散点
 
-	Global_SaveDebugImg("openimg", openimg);
-
-
 	////闭运算闭合小孔
 	m_hFun.KxCloseImage(openimg, closeimg, 7, 7);
 
-	Global_SaveDebugImg("closeimg", closeimg);
 
 	ippiCopy_8u_C1R(closeimg.buf, closeimg.nPitch, DstImg.buf, DstImg.nPitch, imgsize);
 }
@@ -2224,11 +2173,6 @@ void CGlueCheck::checkwithmodelNew(const kxCImageBuf& SrcImg, const kxCImageBuf&
 	ippiSubC_8u_C3IRSfs(poffsetlow, m_ImgCheckLow.buf, m_ImgCheckLow.nPitch, imgsize, 0);
 
 
-	Global_SaveDebugImg("m_ImgCheckHigh", m_ImgCheckHigh);
-	
-	Global_SaveDebugImg("m_ImgCheckLow", m_ImgCheckLow);
-
-
 	//5. 用H 与标准色的对比，得到不同色调的缺陷（一般是用于检测暗缺陷，HSV中 V 比较暗的而色调H不同，这种RGB最容易漏掉）
 	// TODO 改成二值化方式
 
@@ -2271,15 +2215,15 @@ void CGlueCheck::checkwithmodelNew(const kxCImageBuf& SrcImg, const kxCImageBuf&
 	ippiSub_8u_C1RSfs(h2.buf, h2.nPitch, himg.buf, himg.nPitch, hdiff2.buf, hdiff2.nPitch, imgsize, 0);
 
 
-	Global_SaveDebugImg("himg", himg);
+	Global_SaveDebugImg(himg, "himg");
 
-	Global_SaveDebugImg("h1", h1);
+	Global_SaveDebugImg(h1, "h1");
 
-	Global_SaveDebugImg("h2", h2);
+	Global_SaveDebugImg(h2, "h2");
 
-	Global_SaveDebugImg("hdiff1", hdiff1);
+	Global_SaveDebugImg(hdiff1, "hdiff1");
 
-	Global_SaveDebugImg("hdiff2", hdiff2);
+	Global_SaveDebugImg(hdiff2, "hdiff2");
 
 
 	//5, 彩色图转换为灰度图,取最大
@@ -2306,9 +2250,9 @@ void CGlueCheck::checkwithmodelNew(const kxCImageBuf& SrcImg, const kxCImageBuf&
 	GetMaskHL(maskhigh, masklow);
 
 
-	Global_SaveDebugImg("maskhigh", maskhigh);
+	Global_SaveDebugImg(maskhigh, "maskhigh");
 
-	Global_SaveDebugImg("masklow", masklow);
+	Global_SaveDebugImg(masklow, "masklow");
 
 	ippiSub_8u_C1IRSfs(masklow.buf, masklow.nPitch, maxlowimg.buf, maxlowimg.nPitch, imgsize, 0);
 
@@ -2320,9 +2264,9 @@ void CGlueCheck::checkwithmodelNew(const kxCImageBuf& SrcImg, const kxCImageBuf&
 
 	GetEdgeCorrectionMask(SrcImg, ROI, m_ImgEdgeGrayMask, m_ImgEdgeHMask);
 
-	Global_SaveDebugImg("m_ImgEdgeGrayMask", m_ImgEdgeGrayMask);
+	Global_SaveDebugImg(m_ImgEdgeGrayMask, "m_ImgEdgeGrayMask");
 
-	Global_SaveDebugImg("m_ImgEdgeHMask", m_ImgEdgeHMask);
+	Global_SaveDebugImg(m_ImgEdgeHMask, "m_ImgEdgeHMask");
 
 
 	dstH.Init(CheckImg.nWidth, CheckImg.nHeight);
@@ -2337,11 +2281,11 @@ void CGlueCheck::checkwithmodelNew(const kxCImageBuf& SrcImg, const kxCImageBuf&
 	ippiSub_8u_C1IRSfs(masklow.buf, masklow.nPitch, dstH.buf, dstH.nPitch, imgsize, 0);
 
 
-	Global_SaveDebugImg("dstH", dstH);
+	Global_SaveDebugImg(dstH, "dstH");
 
-	Global_SaveDebugImg("maxlowimg", maxlowimg);
+	Global_SaveDebugImg(maxlowimg, "maxlowimg");
 
-	Global_SaveDebugImg("maxhighimg", maxhighimg);
+	Global_SaveDebugImg(maxhighimg, "maxhighimg");
 
 
 	//7. 做些开闭运算
@@ -2465,59 +2409,364 @@ void CGlueCheck::GetEdgeCorrectionMask(const kxCImageBuf& SrcImg, kxRect<int> ro
 }
 
 
+void CGlueCheck::GetTargetImg(const kxCImageBuf& SrcImg, int nCheckROIW, int nCheckROIH, kxCImageBuf& DstImg, kxRect<int>& targetrect)
+{
+	// 搜索上下边，旋转之后搜索左右边
+	
+	//1. 获取扩充检测区域的图像，目的是为了检测效果
+
+	kxCImageBuf RGB[3], edgeimg1, edgeimg2;
+
+	m_hAlg.SplitRGB(SrcImg, RGB);
+	
+	kxRect<int> cutroi;
+
+	const int searchrange = 400;
+
+	cutroi.setup(0, 0, SrcImg.nWidth-1, gMin(searchrange, SrcImg.nHeight) - 1);
+
+	kxCImageBuf targetimg;
+
+	targetimg.Init(cutroi.Width(), cutroi.Height(), RGB[2].nChannel);
+
+	m_hFun.KxCopyImage(RGB[2], targetimg, cutroi);
+
+	const int npointnum = 20;
+
+	kxPoint<int> ptoppoints[npointnum];
+
+	GetEdgePoints(targetimg, 2, 40, ptoppoints, npointnum);
+
+	float bestangle1 = 0;
+
+	float a1, b1;
+
+	float percent = m_hfitline.FitLineByRansac(ptoppoints, npointnum, 3, bestangle1, a1, b1);
+
+	int nmiddlex = SrcImg.nWidth / 2;
+
+	int nmiddley1, nmiddley2;
+
+	int nnewy1, nnewy2;
+
+	/*获取旋转之后的Y值
+		图片上任意点(x,y)，绕一个坐标点(rx0,ry0)逆时针旋转a角度后的新的坐标设为(x0, y0)，公式：
+
+		x0= (x - rx0)*cos(a) - (y - ry0)*sin(a) + rx0 ;
+
+		y0= (x - rx0)*sin(a) + (y - ry0)*cos(a) + ry0 ;
+		链接： https://jingyan.baidu.com/article/2c8c281dfbf3dd0009252a7b.html
+	*/
+
+	if (abs(percent - 0.5) < 1e-6)
+	{
+		WARN("上边缘搜边失败");
+		
+		cutroi.setup(0, SrcImg.nHeight - searchrange, SrcImg.nWidth - 1, SrcImg.nHeight - 1);
+
+		targetimg.Init(cutroi.Width(), cutroi.Height(), RGB[2].nChannel);
+
+		m_hFun.KxCopyImage(RGB[2], targetimg, cutroi);
+
+		GetEdgePoints(targetimg, 3, 40, ptoppoints, npointnum);
+
+		percent = m_hfitline.FitLineByRansac(ptoppoints, npointnum, 3, bestangle1, a1, b1);
+
+		if (abs(percent - 0.5) < 1e-6)
+		{
+			ERROR("上下边缘都搜边失败");
+			return;// 要做异常处理
+		}
+		else
+		{
+			nmiddley2 = a1 * nmiddlex + b1;
+
+			nnewy2 = nmiddlex * std::sin(-bestangle1 * PI / 180) + nmiddley2 * std::cos(-bestangle1 * PI / 180);
+
+			nnewy1 = nnewy2 - nCheckROIH;
+		}
+
+	}
+	else
+	{
+		nmiddley1 = a1 * nmiddlex + b1;
+
+		nnewy1 = nmiddlex * std::sin(-bestangle1 * PI / 180) + nmiddley1 * std::cos(-bestangle1 * PI / 180);
+
+		nnewy2 = nnewy1 + nCheckROIH;
+	}
+	
+
+	cv::Mat src = cv::Mat(SrcImg.nHeight, SrcImg.nWidth, CV_8UC(SrcImg.nChannel), SrcImg.buf, SrcImg.nPitch);
+
+	cv::Mat rotatematri;
+
+	rotatematri = cv::getRotationMatrix2D(cv::Point2f(0, 0), bestangle1, 1);
+
+	cv::Mat dst;
+
+	cv::warpAffine(src, dst, rotatematri, cv::Size(src.cols, src.rows));
+
+	kxCImageBuf RotateImg;
+
+	m_hFun.MatToKxImageBuf(dst, RotateImg, true);
+
+	
+	//// 左边缘线(0开始索引)
+	int edge1 = gMin(searchrange, RGB[1].nWidth);
+
+	IppiSize cutsize = { edge1, RGB[1].nHeight };
+
+	edgeimg1.Init(cutsize.width, cutsize.height);
+
+	ippiCopy_8u_C1R(RGB[1].buf, RGB[1].nPitch, edgeimg1.buf, edgeimg1.nPitch, cutsize);
+
+
+
+	//// 右边缘线(0开始索引)
+	int edge2 = gMax(0, RGB[1].nWidth - searchrange);
+
+	int nedge2width = RGB[1].nWidth - edge2;
+
+	cutsize = { nedge2width, RGB[1].nHeight };
+
+	edgeimg2.Init(cutsize.width, cutsize.height);
+
+	ippiCopy_8u_C1R(RGB[1].buf + edge2, RGB[1].nPitch, edgeimg2.buf, edgeimg2.nPitch, cutsize);
+
+
+	kxPoint<int> leftpoint[npointnum];
+
+	kxPoint<int> rightpoint[npointnum];
+
+	GetEdgePoints(edgeimg1, 1, 10, leftpoint, npointnum);
+
+	GetEdgePoints(edgeimg2, 0, 10, rightpoint, npointnum);
+
+	float bestangle2, a2, b2;
+
+	float percent1 = m_hfitline.FitLineByRansac(leftpoint, npointnum, 3, bestangle1, a1, b1);
+
+	float percent2 = m_hfitline.FitLineByRansac(rightpoint, npointnum, 3, bestangle2, a2, b2);
+
+	int newx1, newx2;
+
+	if (percent1 > percent2 && percent2 > 0.5)
+	{
+		if (abs(bestangle1 - 90) < 1e-6)
+		{
+			newx1 = b1;
+			
+		}
+		else
+		{
+			int x1 = (nnewy1 - b1) / a1;
+
+			int x2 = (nnewy2 - b1) / a1;
+
+			newx1 = gMax(x1, x2);
+		}
+
+		newx2 = gMin(newx1 + nCheckROIW, SrcImg.nWidth);
+
+		LOG("搜索左边框相似度%f大于右边框相似度%f", percent1, percent2);
+	}
+	else if (percent2 > percent1 && percent1 > 0.5)
+	{
+		if (abs(bestangle2 - 90) < 1e-6)
+		{
+			newx2 = b2;
+		}
+		else
+		{
+			int x1 = (nnewy1 - b2) / a2;
+
+			int x2 = (nnewy2 - b2) / a2;
+
+			newx2 = gMax(x1, x2);
+		}
+
+		newx1 = gMax(newx2 + edge2 - nCheckROIW, 0);
+
+		LOG("搜索左边框相似度%f小于右边框相似度%f", percent1, percent2);
+
+	}
+	else
+	{
+		newx1 = searchrange / 2;
+		
+		newx2 = newx1 + nCheckROIH;
+		
+		WARN("两个水平搜索框相似度 %f %f 都小于0.5， 已启用默认设置", percent1, percent2);
+	}
+
+	
+
+	targetrect.setup(newx1, nnewy1, newx2, nnewy2);
+
+	//// 这里要考虑如果为90度的时候怎么处理?
+
+	//float bestangle1 = 0;
+
+	//float bestangle2 = 0;
+
+	//float a1, b1, a2, b2;
+
+	//m_hfitline.FitLineByRansac(leftpoint, npointnum, 3, bestangle1, a1, b1);
+
+	//m_hfitline.FitLineByRansac(rightpoint, npointnum, 3, bestangle2, a2, b2);
+
+	//rotateangle = bestangle1;
+
+
+
+	//std::cout << bestangle1;
+
+	/*
+	//2. 裁剪图像，搜索上下左右四个边
+
+	//（1）左右
+	kxCImageBuf RGB[3], edgeimg1, edgeimg2;
+
+	m_hAlg.SplitRGB(targetimg, RGB);
+
+	// 左边缘线(0开始索引)
+	int edge1 = gMin(offset * 2, RGB[1].nWidth);
+
+	IppiSize cutsize = { edge1, RGB[1].nHeight };
+
+	edgeimg1.Init(cutsize.width, cutsize.height);
+
+	ippiCopy_8u_C1R(RGB[1].buf, RGB[1].nPitch, edgeimg1.buf, edgeimg1.nPitch, cutsize);
+
+	// 右边缘线(0开始索引)
+	int edge2 = gMax(0, RGB[1].nWidth - offset * 2);
+
+	int nedge2width = RGB[1].nWidth - edge2;
+
+	cutsize = { nedge2width, RGB[1].nHeight };
+
+	edgeimg2.Init(cutsize.width, cutsize.height);
+
+	ippiCopy_8u_C1R(RGB[1].buf + edge2, RGB[1].nPitch, edgeimg2.buf, edgeimg2.nPitch, cutsize);
+
+	const int npointnum = 20;
+
+	kxPoint<int> leftpoint[npointnum];
+
+	kxPoint<int> rightpoint[npointnum];
+
+	GetEdgePoints(edgeimg1, 1, 10, leftpoint, npointnum);
+
+	GetEdgePoints(edgeimg2, 0, 10, rightpoint, npointnum);
+
+
+	// 这里要考虑如果为90度的时候怎么处理?
+
+	float bestangle1 = 0;
+
+	float bestangle2 = 0;
+
+	float a1, b1, a2, b2;
+
+	m_hfitline.FitLineByRansac(leftpoint, npointnum, 3, bestangle1, a1, b1);
+
+	m_hfitline.FitLineByRansac(rightpoint, npointnum, 3, bestangle2, a2, b2);
+
+	rotateangle = bestangle1;
+
+	// （2）上下
+	int ntargettop = 0;
+
+	int ntargetbottom = 0;
+
+	SearchEdge(RGB[0], _Horizontal_Project_Dir, 150, ntargettop, ntargetbottom);
+
+
+	int ntargetleft, ntargetright;
+	if (abs(bestangle1 - 90.0) < 1e-6)
+	{
+		ntargetleft = b1;
+	}
+	else
+	{
+		ntargetleft = min((ntargettop - b1) / a1, (ntargetbottom - b1) / a1);
+
+	}
+
+	if (abs(bestangle2 - 90.0) < 1e-6)
+	{
+		ntargetright = edge2 + b2;
+	}
+	else
+	{
+		ntargetright = edge2 + max((ntargettop - b2) / a2, (ntargetbottom - b2) / a2);
+	}
+
+
+	// （3）算相对SrcImg的偏移，从而得到检测区域
+
+	targetrect.setup(ntargetleft, ntargettop, ntargetright, ntargetbottom);
+
+	targetrect.offset(cutroi.left, cutroi.top);
+	*/
+}
+
 int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kxCImageBuf& DstImg, Json::Value &checkresult)
 {
 
 	
 	// 1. 找到检测位置
 
-	kxRect <int> checkarea;
+	kxRect <int> mergearea;
 
 	float frotateangle = 0;
 
-	GetTargetROI(SrcImgA, m_param.m_rcCheckROI, checkarea, frotateangle);
+	GetTargetROI(SrcImgA, m_param.m_rcCheckROI, mergearea);
 
-	if (checkarea.Width() > DstImg.nWidth || checkarea.Height() > DstImg.nHeight)
-	{
-		std::cout << "搜边结果显示检测区域 > 检测框设置大小，无法进行检测" << std::endl;
-		return 0;// 后期加日志，以及异常处理
-	}
-
-	
 	// 2.目标区域图像合并，过滤过曝图像区域
 
-	m_ImgMerge.Init(DstImg.nWidth, DstImg.nHeight, SrcImgA.nChannel);
+	m_ImgMerge.Init(mergearea.Width(), mergearea.Height(), SrcImgA.nChannel);
 
 	ippsSet_8u(0, m_ImgMerge.buf, m_ImgMerge.nHeight * m_ImgMerge.nPitch);
 
-	MergeImgNew(SrcImgA, SrcImgB, checkarea, m_ImgMerge);
+	MergeImgNew(SrcImgA, SrcImgB, mergearea, m_ImgMerge);
 
-	Global_SaveDebugImg("m_ImgMerge", m_ImgMerge);
+	Global_SaveDebugImg(m_ImgMerge, "m_ImgMerge");
 
-	// 3. pack可能存在倾斜，进行旋转
-	cv::Mat src = cv::Mat(m_ImgMerge.nHeight, m_ImgMerge.nWidth, CV_8UC(m_ImgMerge.nChannel), m_ImgMerge.buf, m_ImgMerge.nPitch);
+	// 3. 对合并图像进行裁剪以及必要的旋转，将检测区域拷贝到对应图像上
+	kxRect<int> checkarea;
 
-	cv::Mat rotatematri;
+	m_ImgCheck.Init(DstImg.nWidth, DstImg.nHeight, DstImg.nChannel);
 
-	rotatematri = cv::getRotationMatrix2D(cv::Point2f(0, 0), frotateangle - 90, 1);
+	GetTargetImg(m_ImgMerge, m_param.m_rcCheckROI.Width(), m_param.m_rcCheckROI.Height(), m_ImgCheck, checkarea);
 
-	cv::Mat dst;
+	if (checkarea.Width() > DstImg.nWidth || checkarea.Height() > DstImg.nHeight)
+	{
+		ERROR("裁剪 m_ImgMerge 到 m_ImgCheck时候发生数据错误");
+		return -1;
+	}
 
-	cv::warpAffine(src, dst, rotatematri, cv::Size(src.cols, src.rows));
 
-	m_hFun.MatToKxImageBuf(dst, m_ImgCheck, true);
+	// 4. pack可能存在倾斜，进行旋转
+	//cv::Mat src = cv::Mat(m_ImgMerge.nHeight, m_ImgMerge.nWidth, CV_8UC(m_ImgMerge.nChannel), m_ImgMerge.buf, m_ImgMerge.nPitch);
 
-	Global_SaveDebugImg("m_ImgCheck", m_ImgCheck);
+	//cv::Mat rotatematri;
+
+	//rotatematri = cv::getRotationMatrix2D(cv::Point2f(0, 0), frotateangle - 90, 1);
+
+	//cv::Mat dst;
+
+	//cv::warpAffine(src, dst, rotatematri, cv::Size(src.cols, src.rows));
+
+	//m_hFun.MatToKxImageBuf(dst, m_ImgCheck, true);
+
 
 
 	// 4. 对上下左右各自掩膜10个像素，目的是滤除pack边缘提取的影响（这个逻辑比较粗糙，斟酌是否改掉）
-	kxRect<int> currect = checkarea;
-	
-	currect.offset(-checkarea.left, -checkarea.top);//检测区域在大图中的位置
 
-	MaskEdge(m_ImgCheck, currect, 10);
+	//MaskEdge(m_ImgCheck, currect, 10);
 
-	Global_SaveDebugImg("m_ImgCheckAfterMask", m_ImgCheck);
 
 	// 5.提取涂胶区域
 	m_hAlg.SplitRGB(m_ImgCheck, m_ImgRGB);
@@ -2544,6 +2793,10 @@ int CGlueCheck::Check(const kxCImageBuf& SrcImgA, const kxCImageBuf& SrcImgB, kx
 
 
 	// 8. 检测颜色不同的异物
+	kxRect<int> currect = checkarea;
+
+	currect.offset(-checkarea.left, -checkarea.top);//检测区域在大图中的位置
+
 	checkwithmodelNew(m_ImgCheck, m_ImgGlueMaskFillholes, currect, m_Blobimg2, m_Blobimg3, m_Blobimg4);
 
 

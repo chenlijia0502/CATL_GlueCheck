@@ -218,4 +218,4 @@ const Translator g_hTranslator[nTranslatormapNum] = { { "¿ªÊ¼¼ì²â",             
 
 };
 
-extern void Global_SaveDebugImg(const char* name, kxCImageBuf& saveimg);
+extern void Global_SaveDebugImg(kxCImageBuf& saveimg, const char* namefmt, ...);

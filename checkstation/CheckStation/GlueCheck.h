@@ -175,7 +175,8 @@ private:
 
 	// 2022.2.5
 
-	// 搜索边缘，nDir = 0是从左到右，且梯度算子是-1 0 1形式。1则反之 
+	// 搜索边缘，nDir = 0是从左到右搜，且梯度算子是-1 0 1形式。1则反之 
+	// nDir = 2是从下到上搜，且梯度算子是1 0 -1形式。3则反之 
 	void GetEdgePoints(const kxCImageBuf& GrayImg, int nDir, int nthresh, kxPoint<int> * searchresult, int nnums);
 
 	// 特殊方法滑动匹配。先归一化，后滑动对减，滑动对减的方式也有些不同
@@ -187,9 +188,11 @@ private:
 
 
 	//2022.02.28 
-	void GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kxRect<int>& targetrect, float& rotateangle);//根据建模ROI搜出来的目标区域
+	void GetTargetROI(const kxCImageBuf& SrcImg, kxRect<int> rcCheck, kxRect<int>& targetrect);//在不越界前提下获取加大版ROI
 
 	void MergeImgNew(const kxCImageBuf& SrcImg1, const kxCImageBuf& SrcImg2, kxRect<int> targetrect, kxCImageBuf& DstImg);
+
+	void GetTargetImg(const kxCImageBuf& SrcImg, int nCheckROIW, int nCheckROIH, kxCImageBuf& DstImg, kxRect<int>& targetrect);// 获取核心检测区域以及区域大小
 
 	void ExtractGreenNew(const kxCImageBuf* RGB,  kxCImageBuf& DstImg);
 

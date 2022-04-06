@@ -21,7 +21,7 @@ class CMergeImg(object):
     def initinfo(self, firstbuild_imgnum, nw, nh):
         self.n_firstbuild_imgnum = firstbuild_imgnum
         self.bigimg = np.zeros((nh, nw, 3), np.uint8)
-        print(self.bigimg.shape)
+        #print(self.bigimg.shape)
 
 
     def IncreaseCol(self):

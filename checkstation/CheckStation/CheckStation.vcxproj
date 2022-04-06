@@ -112,7 +112,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\..\include\CameraKey;..\..\..\..\include\zsAlgorithm213;..\..\..\..\include\Ipp21;..\..\..\..\include;..\..\..\..\include\mkl21;..\..\..\..\include\tbb21;..\..\..\..\include\jsoncpp184;..\..\..\..\include\KxAsio;..\..\..\..\include\tinyxml2;..\..\..\..\include\MVS331;..\..\..\..\include\opencv3413;..\..\..\..\include\python;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include\CameraKey;..\..\..\..\include\zsAlgorithm2241;..\..\..\..\include\Ipp21;..\..\..\..\include;..\..\..\..\include\mkl21;..\..\..\..\include\tbb21;..\..\..\..\include\jsoncpp184;..\..\..\..\include\KxAsio;..\..\..\..\include\tinyxml2;..\..\..\..\include\MVS331;..\..\..\..\include\opencv3413;..\..\..\..\include\python;..\..\..\..\include\spdlog-1x;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_IPP_SEQUENTIAL_STATIC;MKL_DIRECT_CALL_SEQ;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;_Hikvision;_ENABLE_ATOMIC_ALIGNMENT_FIX;BOOST_ALL_DYN_LINK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -128,9 +128,9 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>opencv_world3413d.lib;jsoncppD.lib;MvCameraControl.lib;tinyxml2d.lib;python37.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world3413d.lib;jsoncppD.lib;MvCameraControl.lib;tinyxml2d.lib;python37.lib;spdlogd.lib;zsAlgorithm2241D.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\CheckStation.exe</OutputFile>
-      <AdditionalLibraryDirectories>..\..\..\..\lib\CameraKey;..\..\..\..\lib\boost;..\..\..\..\lib\zsAlgorithm213;..\..\..\..\lib\Ipp21\intel64;..\..\..\..\lib\mkl21\intel64;..\..\..\..\lib\tbb21\intel64\vc14;..\..\..\..\lib\opencv3413\vc14;..\..\..\..\lib\jsoncpp184;..\..\..\..\lib\KxAsio;..\..\..\..\lib\tinyxml2;..\..\..\..\lib\MVS331\win64;..\..\..\..\lib\python;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\lib\CameraKey;..\..\..\..\lib\boost;..\..\..\..\lib\zsAlgorithm2241;..\..\..\..\lib\Ipp21\intel64;..\..\..\..\lib\mkl21\intel64;..\..\..\..\lib\tbb21\intel64\vc14;..\..\..\..\lib\opencv3413\vc14;..\..\..\..\lib\jsoncpp184;..\..\..\..\lib\KxAsio;..\..\..\..\lib\tinyxml2;..\..\..\..\lib\MVS331\win64;..\..\..\..\lib\python;..\..\..\..\lib\spdlog-1x;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
@@ -167,7 +167,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\..\..\..\include\Sapera-new;..\..\..\..\include\python;..\..\..\..\include\zsAlgorithm213;..\..\..\..\include\Ipp21;..\..\..\..\include\mkl21;..\..\..\..\include\tbb21;..\..\..\..\include\KxAsio;..\..\..\..\include\tinyxml2;..\..\..\..\include\boost;..\..\..\..\include\MVS331;..\..\..\..\include\jsoncpp184;..\..\..\..\include\opencv3413;..\..\..\..\include\CameraKey;..\..\..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include\Sapera-new;..\..\..\..\include\python;..\..\..\..\include\zsAlgorithm2241;..\..\..\..\include\Ipp21;..\..\..\..\include\mkl21;..\..\..\..\include\tbb21;..\..\..\..\include\KxAsio;..\..\..\..\include\tinyxml2;..\..\..\..\include\boost;..\..\..\..\include\MVS331;..\..\..\..\include\jsoncpp184;..\..\..\..\include\opencv3413;..\..\..\..\include\CameraKey;..\..\..\..\include;..\..\..\..\include\spdlog-1x;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_IPP_SEQUENTIAL_STATIC;_Hikvision;MKL_DIRECT_CALL_SEQ;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;_ENABLE_ATOMIC_ALIGNMENT_FIX;BOOST_ALL_DYN_LINK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -179,9 +179,9 @@
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>opencv_world3413.lib;jsoncpp.lib;MvCameraControl.lib;tinyxml2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world3413.lib;jsoncpp.lib;MvCameraControl.lib;tinyxml2.lib;spdlog.lib;zsAlgorithm2241R.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\CheckStation.exe</OutputFile>
-      <AdditionalLibraryDirectories>..\..\..\..\lib\boost;..\..\..\..\lib\Sapera-new;..\..\..\..\lib\python;..\..\..\..\lib\zsAlgorithm213;..\..\..\..\lib\Ipp21\intel64;..\..\..\..\lib\mkl21\intel64;..\..\..\..\lib\tbb21\intel64\vc14;..\..\..\..\lib\KxAsio;..\..\..\..\lib\tinyxml2;..\..\..\..\lib\protobuf;..\..\..\..\lib\opencv3413\vc14;..\..\..\..\lib\MVS331\win64;..\..\..\..\lib\jsoncpp184;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\lib\boost;..\..\..\..\lib\Sapera-new;..\..\..\..\lib\python;..\..\..\..\lib\zsAlgorithm2241;..\..\..\..\lib\Ipp21\intel64;..\..\..\..\lib\mkl21\intel64;..\..\..\..\lib\tbb21\intel64\vc14;..\..\..\..\lib\KxAsio;..\..\..\..\lib\tinyxml2;..\..\..\..\lib\protobuf;..\..\..\..\lib\opencv3413\vc14;..\..\..\..\lib\MVS331\win64;..\..\..\..\lib\jsoncpp184;..\..\..\..\lib\spdlog-1x;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -207,6 +207,7 @@
     <ClCompile Include="CkxEnvironment.cpp" />
     <ClCompile Include="kxParameter.cpp" />
     <ClCompile Include="AsioTcp.cpp" />
+    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="MvCamera.cpp" />
     <ClCompile Include="SaveQue.cpp" />
     <ClCompile Include="TestAsioTcpClient.cpp" />
@@ -241,6 +242,7 @@
     <ClInclude Include="CkxEnvironment.h" />
     <ClInclude Include="kxParameter.h" />
     <ClInclude Include="AsioTcp.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="MvCamera.h" />
     <ClInclude Include="SaveQue.h" />
     <ClInclude Include="TestAsioTcpClient.h" />

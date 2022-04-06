@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainStation_lunzhuan(object):
     def setupUi(self, MainStation_lunzhuan):
         MainStation_lunzhuan.setObjectName("MainStation_lunzhuan")
-        MainStation_lunzhuan.resize(1633, 1015)
+        MainStation_lunzhuan.resize(1461, 684)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -44,7 +44,7 @@ class Ui_MainStation_lunzhuan(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.widget_company.sizePolicy().hasHeightForWidth())
         self.widget_company.setSizePolicy(sizePolicy)
-        self.widget_company.setMinimumSize(QtCore.QSize(80, 80))
+        self.widget_company.setMinimumSize(QtCore.QSize(160, 80))
         self.widget_company.setMaximumSize(QtCore.QSize(230, 200))
         self.widget_company.setStyleSheet("")
         self.widget_company.setObjectName("widget_company")
@@ -54,7 +54,7 @@ class Ui_MainStation_lunzhuan(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.label_3 = QtWidgets.QLabel(self.widget_company)
         self.label_3.setMinimumSize(QtCore.QSize(160, 0))
-        self.label_3.setMaximumSize(QtCore.QSize(180, 16777215))
+        self.label_3.setMaximumSize(QtCore.QSize(160, 16777215))
         self.label_3.setStyleSheet("background-color:transparent;border:0px;\n"
 "\n"
 "border-image: url(res/catllogo.jpg);")
@@ -213,19 +213,21 @@ class Ui_MainStation_lunzhuan(object):
         self.horizontalLayout_4.addWidget(self.widget_7)
         spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_4.addItem(spacerItem1)
-
-
         self.label_rootnum = QtWidgets.QLabel(self.widget_top)
-        self.label_rootnum.setMinimumSize(150, 50)
+        self.label_rootnum.setMinimumSize(QtCore.QSize(80, 0))
+        self.label_rootnum.setMaximumSize(QtCore.QSize(80, 16777215))
         font = QtGui.QFont()
         font.setFamily("Arial")
-        font.setPointSize(30)
+        font.setPointSize(18)
         font.setBold(True)
+        font.setItalic(False)
+        font.setWeight(75)
         self.label_rootnum.setFont(font)
         self.label_rootnum.setStyleSheet("color: rgb(255, 0, 0);")
+        self.label_rootnum.setText("")
+        self.label_rootnum.setAlignment(QtCore.Qt.AlignCenter)
+        self.label_rootnum.setObjectName("label_rootnum")
         self.horizontalLayout_4.addWidget(self.label_rootnum)
-
-
         self.toolButton_userlevel = QtWidgets.QToolButton(self.widget_top)
         self.toolButton_userlevel.setMinimumSize(QtCore.QSize(60, 60))
         self.toolButton_userlevel.setMaximumSize(QtCore.QSize(60, 60))
@@ -486,7 +488,6 @@ class Ui_MainStation_lunzhuan(object):
         self.labelwidget.raise_()
         self.widget_top.raise_()
         self.horizontalLayout_3.addWidget(self.widget_2)
-
 
         self.retranslateUi(MainStation_lunzhuan)
         QtCore.QMetaObject.connectSlotsByName(MainStation_lunzhuan)

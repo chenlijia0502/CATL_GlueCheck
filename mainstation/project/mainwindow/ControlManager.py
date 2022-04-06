@@ -107,11 +107,9 @@ class ControlManager(object):
             if len(np.array(info).shape) == 1:
                 while self.b_checkstatus:
                     data = self.mySeria.read(ntimeout).hex()
-                    print('read ori data: ', data)
                     self.logger.log(logging.INFO, 'read ori data: ' + str(data))
 
                     data = str_to_hex(data)
-                    print ('read data: ', data)
                     if data != info:
                         continue
                     else:
@@ -132,8 +130,6 @@ class ControlManager(object):
                             list_status[nindex] = True
 
                             break
-
-
         # if (info == imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Y_ARRIVE or info == imc_msg.HARDWAREBASEMSG.MSG_MOTOR_X_ARRIVE or
         #         info == imc_msg.HARDWAREBASEMSG.MSG_MOTOR_Z_ARRIVE):
         #     time.sleep(0.5)# x、y、z轴到位之后会有一小段时间无法接收数据，所以直接延时等待

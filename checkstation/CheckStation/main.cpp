@@ -17,7 +17,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include "json.h"
-
+#include "Logger.h"
 
 using namespace boost::python;
 using namespace tbb;
@@ -180,16 +180,12 @@ int _tmain(int argc, _TCHAR* argv[])
 	//test_python();
 	//test_opencv();
 	//testjson();
-
 	//设置异常处理函数
 	//::SetUnhandledExceptionFilter(GPTUnhandledExceptionFilter);
 	//ShowWindow(hwnd, SW_MINIMIZE);//设置窗口最小化
 
 
-	//auto daily_logger = spdlog::daily_logger_mt("daily_logger", "logs/daily.txt", 2, 30);
-
-
-
+	Initlog();
 	g_Environment.ReadSystemParam();
 	g_bdotcheckstatus = false;
 
@@ -224,5 +220,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	while(getchar() != 'q');
 	Graber::g_GetCamera()->Close();
+	spdlog::drop_all();
+
 	return 0;
 }

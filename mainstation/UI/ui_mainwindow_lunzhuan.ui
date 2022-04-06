@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1633</width>
-    <height>1015</height>
+    <width>1461</width>
+    <height>684</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -61,7 +61,7 @@
            </property>
            <property name="minimumSize">
             <size>
-             <width>80</width>
+             <width>160</width>
              <height>80</height>
             </size>
            </property>
@@ -100,7 +100,7 @@
               </property>
               <property name="maximumSize">
                <size>
-                <width>180</width>
+                <width>160</width>
                 <height>16777215</height>
                </size>
               </property>
@@ -411,6 +411,40 @@ border-image: url(res/日志记录.png);
             </size>
            </property>
           </spacer>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_rootnum">
+           <property name="minimumSize">
+            <size>
+             <width>80</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>80</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>Arial</family>
+             <pointsize>18</pointsize>
+             <weight>75</weight>
+             <italic>false</italic>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: rgb(255, 0, 0);</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="QToolButton" name="toolButton_userlevel">
